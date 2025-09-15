@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Fichas RPG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css">
+    <style>
+        /* Estilos para o formulário de sobreposição */
+        #creation-section, #character-sheet-container, #spell-creation-section, #spell-sheet-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 60; /* Maior que a navegação */
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        #creation-section.hidden, #character-sheet-container.hidden, #spell-creation-section.hidden, #spell-sheet-container.hidden {
+            display: none;
+            opacity: 0;
+            pointer-events: none; /* Impede cliques quando oculto */
+        }
+
+        .form-container {
+            background-color: #1a202c;
+            max-height: 100%; /* Limita a altura para caber na tela */
+            overflow-y: auto; /* Adiciona rolagem se o formulário for muito grande */
+            padding: 2rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            max-width: 600px;
+            width: 100%;
+        }
+
+    </style>
+</head>
+<body class="overflow-hidden">
+    <!-- Splash Screen -->
+    <div id="splash-screen" class="splash-screen fixed inset-0 flex items-center justify-center z-50">
+        <div class="flex flex-col items-center justify-center">
+            <i class="fas fa-dice-d20 text-8xl text-white animate-spin"></i>
+            <p class="mt-4 text-xl font-bold text-white tracking-widest animate-pulse">CARREGANDO...</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="main-content flex-grow w-full">
+        <!-- Dynamic Content Display -->
+        <main class="w-full h-full max-w-6xl flex-grow bg-gray-800 rounded-2xl shadow-2xl flex flex-col items-center pt-4">
+            <div id="content-display" class="w-full h-full flex flex-col items-center">
+                <!-- Conteúdo dinâmico será injetado aqui pelo JavaScript -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Container da Ficha de Personagem -->
+    <div id="character-sheet-container" class="hidden">
+        <!-- A ficha de personagem será renderizada aqui -->
+    </div>
+
+    <!-- Container da Ficha de Magia/Habilidade -->
+    <div id="spell-sheet-container" class="hidden">
+        <!-- A ficha de magia/habilidade será renderizada aqui -->
+    </div>
+    
+    <!-- Input para importação de arquivos (escondido) -->
+    <!-- Estes inputs agora são gerados dinamicamente no JS para evitar duplicação -->
+
+    <!-- Formulário de Criação de Personagem (agora fora do main) -->
+    <div id="creation-section" class="hidden">
+        <div class="form-container">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="form-title" class="text-2xl font-bold text-indigo-300">Novo Cartão de Personagem</h2>
+                <button id="close-form-btn" class="text-gray-400 hover:text-white text-3xl font-bold">&times;</button>
+            </div>
+            <form id="cardForm" class="space-y-6">
+                <div>
+                    <label for="cardTitle" class="block text-sm font-semibold mb-1">Nome</label>
+                    <input type="text" id="cardTitle" placeholder="Ex: Guerreiro Lendário" required class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600">
+                </div>
+                <div>
+                    <label for="cardSubTitle" class="block text-sm font-semibold mb-1">Raça e Classe</label>
+                    <input type="text" id="cardSubTitle" placeholder="Ex: Humano Mago" required class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="cardLevel" class="block text-sm font-semibold mb-1">Nível</label>
+                        <input type="number" id="cardLevel" placeholder="1" required class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600">
+                    </div>
+                    <div>
+                        <label for="dinheiro" class="block text-sm font-semibold mb-1">Dinheiro</label>
+                        <input type="number" id="dinheiro" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600">
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-indigo-300 mb-2">Imagem do Personagem</h3>
+                    <div class="mt-4 text-center">
+                        <label for="characterImageUpload" class="block text-sm font-semibold mb-1 cursor-pointer">Faça upload de uma imagem:</label>
+                        <input type="file" id="characterImageUpload" accept="image/*" class="file-upload-input">
+                        <img id="characterImagePreview" class="mt-4 mx-auto w-32 h-32 object-cover rounded-full border-4 border-gray-600 hidden" alt="Pré-visualização do Personagem">
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-indigo-300 mb-2">Imagem de Fundo</h3>
+                    <div class="mt-4 text-center">
+                        <label for="backgroundImageUpload" class="block text-sm font-semibold mb-1 cursor-pointer">Faça upload de uma imagem:</label>
+                        <input type="file" id="backgroundImageUpload" accept="image/*" class="file-upload-input">
+                        <div id="backgroundImagePreview" class="mt-4 mx-auto w-full h-48 rounded-lg border-4 border-gray-600 hidden bg-cover bg-center"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <h3 class="col-span-2 text-xl font-bold text-indigo-300">Status de Combate</h3>
+                    <div><label for="vida" class="block text-sm font-semibold mb-1">Vida Máx. (PV)</label><input type="number" id="vida" placeholder="1" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="mana" class="block text-sm font-semibold mb-1">Mana Máx. (PM)</label><input type="number" id="mana" placeholder="1" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="vidaAtual" class="block text-sm font-semibold mb-1">Vida Atual</label><input type="number" id="vidaAtual" placeholder="1" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="manaAtual" class="block text-sm font-semibold mb-1">Mana Atual</label><input type="number" id="manaAtual" placeholder="1" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="armadura" class="block text-sm font-semibold mb-1">Armadura</label><input type="number" id="armadura" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="esquiva" class="block text-sm font-semibold mb-1">Esquiva</label><input type="number" id="esquiva" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="bloqueio" class="block text-sm font-semibold mb-1">Bloqueio</label><input type="number" id="bloqueio" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="deslocamento" class="block text-sm font-semibold mb-1">Deslocamento</label><input type="number" id="deslocamento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <h3 class="col-span-2 text-xl font-bold text-indigo-300">Atributos Principais</h3>
+                    <div><label for="agilidade" class="block text-sm font-semibold mb-1">Agilidade (AGI)</label><input type="number" id="agilidade" placeholder="1" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="carisma" class="block text-sm font-semibold mb-1">Carisma (CAR)</label><input type="number" id="carisma" placeholder="1" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="forca" class="block text-sm font-semibold mb-1">Força (FOR)</label><input type="number" id="forca" placeholder="1" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="inteligencia" class="block text-sm font-semibold mb-1">Inteligência (INT)</label><input type="number" id="inteligencia" placeholder="1" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="sabedoria" class="block text-sm font-semibold mb-1">Sabedoria (SAB)</label><input type="number" id="sabedoria" placeholder="1" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="vigor" class="block text-sm font-semibold mb-1">Vigor (VIG)</label><input type="number" id="vigor" placeholder="1" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-indigo-300 mb-2">Detalhes do Personagem</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="historia" class="block text-sm font-semibold mb-1">História</label>
+                            <textarea id="historia" rows="4" placeholder="A jornada do personagem até agora..." class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></textarea>
+                        </div>
+                        <div>
+                            <label for="personalidade" class="block text-sm font-semibold mb-1">Personalidade</label>
+                            <textarea id="personalidade" rows="3" placeholder="Traços, manias, e como o personagem se comporta..." class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></textarea>
+                        </div>
+                        <div>
+                            <label for="motivacao" class="block text-sm font-semibold mb-1">Motivação</label>
+                            <textarea id="motivacao" rows="3" placeholder="O que impulsiona o personagem em sua aventura?" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-indigo-300 mb-2">Perícias</h3>
+                    <div id="pericias-checkboxes-container" class="space-y-2"></div>
+                    <div id="pericia-description-display" class="mt-4 p-4 rounded-lg bg-gray-700 hidden">
+                        <h4 id="periciaDescriptionTitle" class="font-bold text-indigo-300"></h4>
+                        <p id="periciaDescriptionText" class="text-sm text-gray-300 mt-2"></p>
+                    </div>
+                </div>
+                <button type="submit" id="submitButton" class="w-full py-3 px-4 rounded-full text-lg font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 focus:outline-none transition duration-300 ease-in-out transform hover:scale-105 shadow-xl btn-gradient-pulse">
+                    Criar Cartão
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Formulário de Criação de Magia/Habilidade -->
+    <div id="spell-creation-section" class="hidden">
+        <div class="form-container">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="spell-form-title" class="text-2xl font-bold text-teal-300">Nova Magia</h2>
+                <button id="close-spell-form-btn" class="text-gray-400 hover:text-white text-3xl font-bold">&times;</button>
+            </div>
+            <form id="spellForm" class="space-y-6">
+                <div>
+                    <h3 class="text-xl font-bold text-teal-300 mb-2">Ícone</h3>
+                    <div class="mt-4 text-center">
+                        <label for="spellImageUpload" class="block text-sm font-semibold mb-1 cursor-pointer">Faça
+                            upload de uma imagem:</label>
+                        <input type="file" id="spellImageUpload" accept="image/*" class="file-upload-input">
+                        <img id="spellImagePreview"
+                            class="mt-4 mx-auto w-32 h-32 object-cover rounded-full border-4 border-gray-600 hidden"
+                            alt="Pré-visualização da Magia">
+                    </div>
+                </div>
+                <div><label for="spellName" class="block text-sm font-semibold mb-1">Nome</label><input type="text"
+                        id="spellName" placeholder="Ex: Curar Ferimentos 1° Círculo" required
+                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                <div><label for="spellExecution" class="block text-sm font-semibold mb-1">Execução</label><input
+                        type="text" id="spellExecution" placeholder="Ex: padrão"
+                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                <div><label for="spellRange" class="block text-sm font-semibold mb-1">Alcance</label><input
+                        type="text" id="spellRange" placeholder="Ex: toque"
+                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                <div><label for="spellTarget" class="block text-sm font-semibold mb-1">Alvo</label><input
+                        type="text" id="spellTarget" placeholder="Ex: 1 ser"
+                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                <div><label for="spellDuration" class="block text-sm font-semibold mb-1">Duração</label><input
+                        type="text" id="spellDuration" placeholder="Ex: instantânea"
+                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                <div><label for="spellResistencia"
+                        class="block text-sm font-semibold mb-1">Resistência</label><input type="text"
+                        id="spellResistencia" placeholder="Ex: instantânea"
+                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                <div><label for="spellDescription"
+                        class="block text-sm font-semibold mb-1">Descrição</label><textarea id="spellDescription"
+                        rows="4" placeholder="Ex: Você canaliza energia positiva para curar..."
+                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></textarea>
+                </div>
+                <div><label for="spellEnhance" class="block text-sm font-semibold mb-1">Aprimorar</label><textarea
+                        id="spellEnhance" rows="3" placeholder="Ex: (+2 PM): A cura aumenta para 2d10+2..."
+                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></textarea>
+                </div>
+                <div><label for="spellTrue" class="block text-sm font-semibold mb-1">Verdadeiro</label><textarea
+                        id="spellTrue" rows="3" placeholder="Ex: (+9 PM): muda o alcance para 'curto'..."
+                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <h3 class="col-span-2 text-xl font-bold text-teal-300">Aumentos Temporários</h3>
+                    <div><label for="vida-aumento" class="block text-sm font-semibold mb-1">Vida Temporária</label><input type="number" id="vida-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="mana-aumento" class="block text-sm font-semibold mb-1">Mana Temporária</label><input type="number" id="mana-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <h3 class="col-span-2 text-xl font-bold text-teal-300">Aumento de Atributos</h3>
+                    <div><label for="agilidade-aumento" class="block text-sm font-semibold mb-1">Agilidade (AGI)</label><input type="number" id="agilidade-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="carisma-aumento" class="block text-sm font-semibold mb-1">Carisma (CAR)</label><input type="number" id="carisma-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="forca-aumento" class="block text-sm font-semibold mb-1">Força (FOR)</label><input type="number" id="forca-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="inteligencia-aumento" class="block text-sm font-semibold mb-1">Inteligência (INT)</label><input type="number" id="inteligencia-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="sabedoria-aumento" class="block text-sm font-semibold mb-1">Sabedoria (SAB)</label><input type="number" id="sabedoria-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="vigor-aumento" class="block text-sm font-semibold mb-1">Vigor (VIG)</label><input type="number" id="vigor-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <h3 class="col-span-2 text-xl font-bold text-teal-300">Aumento de Status de Combate</h3>
+                    <div><label for="spell-armadura" class="block text-sm font-semibold mb-1">Armadura</label><input type="number" id="spell-armadura" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="spell-esquiva" class="block text-sm font-semibold mb-1">Esquiva</label><input type="number" id="spell-esquiva" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="spell-bloqueio" class="block text-sm font-semibold mb-1">Bloqueio</label><input type="number" id="spell-bloqueio" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="spell-deslocamento" class="block text-sm font-semibold mb-1">Deslocamento</label><input type="number" id="spell-deslocamento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                </div>
+                 <div>
+                    <h3 class="text-xl font-bold text-teal-300 mb-2">Aumento de Perícias</h3>
+                    <div id="spell-pericias-checkboxes-container" class="space-y-2"></div>
+                    <div id="spell-pericia-description-display" class="mt-4 p-4 rounded-lg bg-gray-700 hidden">
+                        <h4 id="spellPericiaDescriptionTitle" class="font-bold text-teal-300"></h4>
+                        <p id="spellPericiaDescriptionText" class="text-sm text-gray-300 mt-2"></p>
+                    </div>
+                </div>
+                <button type="submit" id="spellSubmitButton"
+                    class="w-full py-3 px-4 rounded-full text-lg font-bold text-white bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 focus:outline-none transition duration-300 ease-in-out transform hover:scale-105 shadow-xl">
+                    Salvar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Seleção de Personagem -->
+    <div id="select-character-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 w-full max-w-sm border border-gray-700">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-indigo-300">Selecionar Personagem</h3>
+                <button id="select-character-close-btn" class="text-gray-400 hover:text-white text-3xl font-bold">&times;</button>
+            </div>
+            <div id="select-character-list" class="space-y-2 max-h-80 overflow-y-auto">
+                <!-- Lista de personagens será injetada aqui -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Fixed Bottom Navigation Menu -->
+    <nav class="fixed bottom-3 left-1/2 -translate-x-1/2 bg-gray-800/80 backdrop-blur-sm rounded-full p-2 flex items-center gap-2 z-50 shadow-lg" style="width: calc(100% - 31px);">
+         <button class="nav-button px-4 py-2 text-sm md:px-6 md:py-3 md:text-lg font-semibold rounded-full focus:outline-none flex items-center gap-2 active" data-target="personagem-em-jogo" title="Personagem em Jogo">
+            <i class="fas fa-theater-masks"></i>
+            <span class="hidden md:inline">Em Jogo</span>
+        </button>
+        <button class="nav-button px-4 py-2 text-sm md:px-6 md:py-3 md:text-lg font-semibold rounded-full focus:outline-none flex items-center gap-2" data-target="personagem" title="Personagens">
+            <i class="fas fa-users"></i>
+            <span class="hidden md:inline">Personagens</span>
+        </button>       
+        <button class="nav-button px-4 py-2 text-sm md:px-6 md:py-3 md:text-lg font-semibold rounded-full focus:outline-none flex items-center gap-2" data-target="magias" title="Magias">
+            <i class="fas fa-magic"></i>
+            <span class="hidden md:inline">Magias</span>
+        </button>
+        <button class="nav-button px-4 py-2 text-sm md:px-6 md:py-3 md:text-lg font-semibold rounded-full focus:outline-none flex items-center gap-2" data-target="habilidades" title="Habilidades">
+            <i class="fas fa-fist-raised"></i>
+            <span class="hidden md:inline">Habilidades</span>
+        </button>
+        <button class="nav-button px-4 py-2 text-sm md:px-6 md:py-3 md:text-lg font-semibold rounded-full focus:outline-none flex items-center gap-2" data-target="itens" title="Itens">
+            <i class="fas fa-box"></i>
+            <span class="hidden md:inline">Itens</span>
+        </button>
+        <button class="nav-button px-4 py-2 text-sm md:px-6 md:py-3 md:text-lg font-semibold rounded-full focus:outline-none flex items-center gap-2" data-target="mercado" title="Mercado">
+            <i class="fas fa-store"></i>
+            <span class="hidden md:inline">Mercado</span>
+        </button>
+    </nav>
+
+    <script src="./splash_screen.js"></script>
+    <script type="module" src="./local_db.js"></script>
+    <script type="module" src="./card-renderer.js"></script>
+    <script type="module" src="./character_manager.js"></script>
+    <script type="module" src="./magic_renderer.js"></script>
+    <script type="module" src="./magic_manager.js"></script>
+    <script type="module" src="./navigation_manager.js"></script>
+</body>
+</html>

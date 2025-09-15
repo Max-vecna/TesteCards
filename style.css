@@ -1,0 +1,252 @@
+/* Imports e estilos globais */
+html,body{width: 100%; height: 100%;}
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #1a202c;
+  color: #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: calc(100% - 50px);
+}
+
+/* Splash Screen */
+.splash-screen {
+  background-color: #1a202c;
+  transition: opacity 0.5s ease-out;
+  z-index: 100000000000000000000000 !important;
+}
+.splash-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Conteúdo Principal */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: opacity 1s ease-in;
+  opacity: 0;
+  visibility: hidden;
+  padding: 1rem;
+  width: 100%;
+  height: 100%;
+}
+.main-content.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Navegação */
+.nav-button {
+  background-color: #374151;
+  color: #cbd5e0;
+  transition: all 0.2s ease-in-out;
+}
+.nav-button.active {
+  background-color: #4f46e5;
+  color: white;
+  box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.5);
+  transform: translateY(-2px);
+}
+
+/* Grid de Cards */
+.rpg-thumbnail {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 120 / 160;
+  border-radius: 12px;
+  position: relative;
+  
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  overflow: visible; /* Garante que o menu não seja cortado */
+}
+.rpg-thumbnail:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+
+.add-card-button {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 120 / 160;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #4a5568;
+  color: #a0aec0;
+  
+  background-color: transparent;
+  transition: all 0.2s;
+}
+.add-card-button:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+/* Botões de Ação e Menu */
+.thumbnail-actions {
+  position: absolute;
+  top: 8px;
+  right: -12px;/* Aumentado para garantir que o menu fique por cima */
+}
+
+.thumb-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: rgba(42, 52, 71, 0.8);
+  backdrop-filter: blur(4px);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  
+  transition: background-color 0.2s;
+}
+
+.thumb-btn:hover {
+  background-color: #4f46e5;
+}
+
+.thumbnail-menu {
+  position: absolute;
+  top: -24px; /* Posição abaixo do botão de menu */
+  right: 0;
+  background-color: #2a3447;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 0.5rem;
+  z-index: 200; /* Aumentado para garantir que o menu fique por cima */
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  
+  /* Estado inicial (escondido) */
+  opacity: 0;
+  transform: scale(0.95) translateY(-10px);
+  transform-origin: top right;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.thumbnail-menu.active {
+  /* Estado visível */
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: none;
+  border: none;
+  color: #d1d5db;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-radius: 6px;
+  font-size: 14px;
+  
+  transition: background-color 0.2s, color 0.2s;
+}
+.menu-item:hover {
+  background-color: #4f46e5;
+  color: white;
+}
+.menu-item i {
+  width: 16px;
+  text-align: center;
+  opacity: 0.8;
+}
+/* Estilos do formulário */
+.file-upload-input {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    margin-top: 0.25rem;
+    background-color: #4b5563;
+    color: white;
+    border-radius: 0.5rem;
+    border: 1px solid #4b5563;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.file-upload-input:hover {
+    border-color: #6b7280;
+}
+
+.file-upload-input::-webkit-file-upload-button {
+    background-color: #6366f1;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 9999px;
+    font-weight: 600;
+    margin-right: 1rem;
+    
+}
+
+.file-upload-input::-webkit-file-upload-button:hover {
+    background-color: #4f46e5;
+}
+
+.btn-gradient-pulse {
+    background-size: 200% 200%;
+    animation: pulse-gradient 2s linear infinite;
+}
+
+@keyframes pulse-gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.stat-bar {
+    background-color: #00000085;
+    height: 8px;
+    margin-top: 0.25rem;
+    position: relative;    
+    overflow: hidden;
+}
+
+.fa-fire{
+    background: linear-gradient(to bottom, #00c6ff, #7f00ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+
+      /* Suporte para navegadores baseados em Firefox */
+      background-clip: text;
+      color: transparent;
+}
+
+.iconMagic
+{
+  display: flex;  
+  justify-content: center;
+  align-items: center;  
+  flex-direction: column;
+}
