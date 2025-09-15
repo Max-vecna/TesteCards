@@ -52,8 +52,8 @@ export async function renderFullCharacterSheet(characterData, local, isModal = f
     const sheetContainer = document.getElementById('character-sheet-container');
     if (!sheetContainer) return;
 
-    const imageUrl = characterData.imageBase64 ? URL.createObjectURL(bufferToBlob(characterData.imageBase64, characterData.imageMimeType)) : 'https://placehold.co/800x600/4a5568/a0aec0?text=Personagem';
-    const imageBack = characterData.backgroundImageBase64 ? URL.createObjectURL(bufferToBlob(characterData.backgroundImageBase64, characterData.backgroundMimeType)) : 'https://placehold.co/800x600/4a5568/a0aec0?text=Personagem';
+    const imageUrl = characterData.image ? URL.createObjectURL(bufferToBlob(characterData.image, characterData.imageMimeType)) : 'https://placehold.co/800x600/4a5568/a0aec0?text=Personagem';
+    const imageBack = characterData.backgroundImage ? URL.createObjectURL(bufferToBlob(characterData.backgroundImage, characterData.backgroundMimeType)) : 'https://placehold.co/800x600/4a5568/a0aec0?text=Personagem';
     
     // Gerar um ID dinâmico para evitar conflitos se houver vários cards
     const uniqueId = Date.now();

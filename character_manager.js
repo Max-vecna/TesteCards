@@ -232,8 +232,8 @@ export async function saveCharacterCard(cardForm) {
             dinheiro: parseInt(dinheiroInput.value) || 0,
             attributes,
             lore,
-            imageBase64: imageBuffer || cardData.imageBase64,
-            backgroundImageBase64: backgroundBuffer || cardData.backgroundImageBase64,
+            image: imageBuffer || cardData.image,
+            backgroundImage: backgroundBuffer || cardData.backgroundImage,
             imageMimeType: characterImageFile ? characterImageFile.type : cardData.imageMimeType,
             backgroundMimeType: backgroundImageFile ? backgroundImageFile.type : cardData.backgroundMimeType,
         });
@@ -246,8 +246,8 @@ export async function saveCharacterCard(cardForm) {
             dinheiro: parseInt(dinheiroInput.value) || 0,
             attributes,
             lore,
-            imageBase64: imageBuffer,
-            backgroundImageBase64: backgroundBuffer,
+            image: imageBuffer,
+            backgroundImage: backgroundBuffer,
             imageMimeType: characterImageFile ? characterImageFile.type : null,
             backgroundMimeType: backgroundImageFile ? backgroundImageFile.type : null,
             inPlay: false, // Adiciona o novo status para controlar se está em jogo
@@ -325,14 +325,14 @@ export async function editCard(cardId) {
 
     populatePericiasCheckboxes(cardData.attributes.pericias);
 
-    if (cardData.imageBase64) {
-        const imageBlob = bufferToBlob(cardData.imageBase64, cardData.imageMimeType);
+    if (cardData.image) {
+        const imageBlob = bufferToBlob(cardData.image, cardData.imageMimeType);
         showImagePreview(characterImagePreview, URL.createObjectURL(imageBlob), true);
     } else {
         showImagePreview(characterImagePreview, null, true);
     }
-    if (cardData.backgroundImageBase64) {
-        const backgroundBlob = bufferToBlob(cardData.backgroundImageBase64, cardData.backgroundMimeType);
+    if (cardData.backgroundImage) {
+        const backgroundBlob = bufferToBlob(cardData.backgroundImage, cardData.backgroundMimeType);
         showImagePreview(backgroundImagePreview, URL.createObjectURL(backgroundBlob), false);
     } else {
         showImagePreview(backgroundImagePreview, null, false);
@@ -372,9 +372,9 @@ export async function renderCharacterList() {
             </div>
 
             ${allCharacters.map(char => `
-                <div class="rpg-thumbnail bg-cover bg-center shadow-lg" data-action="view"  data-type="character" data-id="${char.id}" style="background-image: url('${char.backgroundImageBase64 ? URL.createObjectURL(bufferToBlob(char.backgroundImageBase64, char.backgroundMimeType)) : 'https://placehold.co/120x160/4a5568/a0aec0?text=Fundo'}');">
+                <div class="rpg-thumbnail bg-cover bg-center shadow-lg" data-action="view"  data-type="character" data-id="${char.id}" style="background-image: url('${char.backgroundImage ? URL.createObjectURL(bufferToBlob(char.backgroundImage, char.backgroundMimeType)) : 'https://placehold.co/120x160/4a5568/a0aec0?text=Fundo'}');">
                     <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg">
-                        <img src="${char.imageBase64 ? URL.createObjectURL(bufferToBlob(char.imageBase64, char.imageMimeType)) : 'https://placehold.co/60x60/a0aec0/4a5568?text=P'}" alt="${char.title}" class="w-16 h-16 rounded-full object-cover border-2 border-white mb-2">
+                        <img src="${char.image ? URL.createObjectURL(bufferToBlob(char.image, char.imageMimeType)) : 'https://placehold.co/60x60/a0aec0/4a5568?text=P'}" alt="${char.title}" class="w-16 h-16 rounded-full object-cover border-2 border-white mb-2">
                         <h4 class="font-bold text-sm ellipse">${char.title}</h4>
                         <span class="absolute top-2 left-2 bg-gray-800 text-white text-xs px-2 py-1 rounded-full">Nv.${char.level}</span>
                     </div>
@@ -432,8 +432,8 @@ export async function exportCard(cardId) {
     const cardData = await getData('rpgCards', cardId);
     if (cardData) {
         const dataToExport = { ...cardData };
-        if (dataToExport.imageBase64) dataToExport.imageBase64 = arrayBufferToBase64(dataToExport.imageBase64);
-        if (dataToExport.backgroundImageBase64) dataToExport.backgroundImageBase64 = arrayBufferToBase64(dataToExport.backgroundImageBase64);
+        if (dataToExport.image) dataToExport.image = arrayBufferToBase64(dataToExport.image);
+        if (dataToExport.backgroundImage) dataToExport.backgroundImage = arrayBufferToBase64(dataToExport.backgroundImage);
         const jsonString = JSON.stringify(dataToExport, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -467,11 +467,11 @@ export async function importCard(file) {
                 importedCard.inPlay = false; // Garante que o personagem importado não esteja em jogo
 
                 // Converte Base64 de volta para ArrayBuffer
-                if (importedCard.imageBase64) {
-                    importedCard.imageBase64 = base64ToArrayBuffer(importedCard.imageBase64);
+                if (importedCard.image) {
+                    importedCard.image = base64ToArrayBuffer(importedCard.image);
                 }
-                if (importedCard.backgroundImageBase64) {
-                    importedCard.backgroundImageBase64 = base64ToArrayBuffer(importedCard.backgroundImageBase64);
+                if (importedCard.backgroundImage) {
+                    importedCard.backgroundImage = base64ToArrayBuffer(importedCard.backgroundImage);
                 }
                 
                 await saveData('rpgCards', importedCard);
@@ -502,3 +502,19 @@ document.getElementById('backgroundImageUpload').addEventListener('change', (e) 
         showImagePreview(document.getElementById('backgroundImagePreview'), URL.createObjectURL(file), false);
     }
 });
+
+ // Funções auxiliares para modais customizados
+    function showCustomAlert(message) {
+        const modalHtml = `
+            <div id="custom-alert-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+                <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 w-full max-w-sm border border-gray-700">
+                    <p class="text-center text-lg mb-4">${message}</p>
+                    <button id="close-alert-btn" class="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-bold">OK</button>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        document.getElementById('close-alert-btn').addEventListener('click', () => {
+            document.getElementById('custom-alert-modal').remove();
+        });
+    }

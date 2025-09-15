@@ -46,7 +46,7 @@ export async function renderFullSpellSheet(spellData) {
     const sheetContainer = document.getElementById('spell-sheet-container');
     if (!sheetContainer) return;
 
-    const imageUrl = spellData.imageBase64 ? URL.createObjectURL(bufferToBlob(spellData.imageBase64, spellData.imageMimeType)) : 'https://placehold.co/400x400/00796B/B2DFDB?text=Magia';
+    const imageUrl = spellData.image ? URL.createObjectURL(bufferToBlob(spellData.image, spellData.imageMimeType)) : 'https://placehold.co/400x400/00796B/B2DFDB?text=Magia';
     
     // Extrai a cor média da imagem de fundo
     const predominantColor = await getPredominantColor(imageUrl).catch(e => {

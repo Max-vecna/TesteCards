@@ -227,7 +227,7 @@ export async function saveSpellCard(spellForm) {
             enhance: spellEnhanceInput.value,
             true: spellTrueInput.value,
             aumentos: attributesAumento,
-            imageBase64: imageBuffer || spellData.imageBase64,
+            image: imageBuffer || spellData.image,
             imageMimeType: spellImageFile ? spellImageFile.type : spellData.imageMimeType,
         });
     } else {
@@ -243,7 +243,7 @@ export async function saveSpellCard(spellForm) {
             enhance: spellEnhanceInput.value,
             true: spellTrueInput.value,
             aumentos: attributesAumento,
-            imageBase64: imageBuffer,
+            image: imageBuffer,
             imageMimeType: spellImageFile ? spellImageFile.type : null,
         };
     }
@@ -322,8 +322,8 @@ export async function editSpell(spellId) {
     // AQUI: A chamada para popular as perícias com os dados da magia.
     populateSpellPericiasCheckboxes(spellData.aumentos?.pericias || []);
 
-    if (spellData.imageBase64) {
-        const imageBlob = bufferToBlob(spellData.imageBase64, spellData.imageMimeType);
+    if (spellData.image) {
+        const imageBlob = bufferToBlob(spellData.image, spellData.imageMimeType);
         showImagePreview(spellImagePreview, URL.createObjectURL(imageBlob), true);
     } else {
         showImagePreview(spellImagePreview, null, true);
@@ -367,7 +367,7 @@ export async function renderSpellList() {
             ${allSpells.map(spell => `
                 <div class="rpg-thumbnail bg-cover bg-center shadow-lg" data-action="viewSpell" data-type="spell" data-id="${spell.id}">
                     <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg">
-                        <img src="${spell.imageBase64 ? URL.createObjectURL(bufferToBlob(spell.imageBase64, spell.imageMimeType)) : 'https://placehold.co/60x60/a0aec0/4a5568?text=M'}" alt="${spell.name}" class="w-16 h-16 rounded-full object-cover border-2 border-white mb-2">
+                        <img src="${spell.image ? URL.createObjectURL(bufferToBlob(spell.image, spell.imageMimeType)) : 'https://placehold.co/60x60/a0aec0/4a5568?text=M'}" alt="${spell.name}" class="w-16 h-16 rounded-full object-cover border-2 border-white mb-2">
                         <h4 class="font-bold text-sm ellipse">${spell.name}</h4>
                     </div>
                     <div class="thumbnail-actions absolute z-10=">
@@ -422,7 +422,7 @@ export async function exportSpell(spellId) {
     const spellData = await getData('rpgSpells', spellId);
     if (spellData) {
         const dataToExport = { ...spellData };
-        if (dataToExport.imageBase64) dataToExport.imageBase64 = arrayBufferToBase64(dataToExport.imageBase64);
+        if (dataToExport.image) dataToExport.image = arrayBufferToBase64(dataToExport.image);
         const jsonString = JSON.stringify(dataToExport, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -455,8 +455,8 @@ export async function importSpell(file) {
                 importedSpell.id = Date.now().toString();
 
                 // Converte Base64 de volta para ArrayBuffer
-                if (importedSpell.imageBase64) {
-                    importedSpell.imageBase64 = base64ToArrayBuffer(importedSpell.imageBase64);
+                if (importedSpell.image) {
+                    importedSpell.image = base64ToArrayBuffer(importedSpell.image);
                 }
                 
                 await saveData('rpgSpells', importedSpell);
