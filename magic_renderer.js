@@ -98,7 +98,7 @@ export async function renderFullSpellSheet(spellData) {
             <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
             
             <div class="absolute top-4 left-1/2 -translate-x-1/2 text-center z-10">
-                <h3 class="text-3xl font-bold">${spellData.name}</h3>
+                <h3 class="text-2xl font-bold">${spellData.name}</h3>
             </div>
 
             ${(spellData.aumentos?.vida > 0) ? `

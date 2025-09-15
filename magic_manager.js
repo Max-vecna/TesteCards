@@ -346,7 +346,7 @@ export async function removeSpell(spellId) {
 export async function renderSpellList() {
     const contentDisplay = document.getElementById('content-display');
     contentDisplay.innerHTML = '';
-    
+
     const allSpells = await getData('rpgSpells');
     const spellsHtml = `
         <div class="grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 overflow-y-auto p-6 pt-0">
@@ -368,7 +368,7 @@ export async function renderSpellList() {
                 <div class="rpg-thumbnail bg-cover bg-center shadow-lg" data-action="viewSpell" data-type="spell" data-id="${spell.id}">
                     <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg">
                         <img src="${spell.imageBase64 ? URL.createObjectURL(bufferToBlob(spell.imageBase64, spell.imageMimeType)) : 'https://placehold.co/60x60/a0aec0/4a5568?text=M'}" alt="${spell.name}" class="w-16 h-16 rounded-full object-cover border-2 border-white mb-2">
-                        <h4 class="font-bold text-sm">${spell.name}</h4>
+                        <h4 class="font-bold text-sm ellipse">${spell.name}</h4>
                     </div>
                     <div class="thumbnail-actions absolute z-10=">
                         <button class="thumb-btn thumb-btn-menu">

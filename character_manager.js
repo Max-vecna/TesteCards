@@ -291,7 +291,7 @@ export async function editCard(cardId) {
     const inteligenciaInput = document.getElementById('inteligencia');
     const sabedoriaInput = document.getElementById('sabedoria');
     const vigorInput = document.getElementById('vigor');
-    const historiaInput = document = document.getElementById('historia');
+    const historiaInput = document.getElementById('historia');
     const personalidadeInput = document.getElementById('personalidade');
     const motivacaoInput = document.getElementById('motivacao');
     const characterImagePreview = document.getElementById('characterImagePreview');
@@ -375,7 +375,7 @@ export async function renderCharacterList() {
                 <div class="rpg-thumbnail bg-cover bg-center shadow-lg" data-action="view"  data-type="character" data-id="${char.id}" style="background-image: url('${char.backgroundImageBase64 ? URL.createObjectURL(bufferToBlob(char.backgroundImageBase64, char.backgroundMimeType)) : 'https://placehold.co/120x160/4a5568/a0aec0?text=Fundo'}');">
                     <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg">
                         <img src="${char.imageBase64 ? URL.createObjectURL(bufferToBlob(char.imageBase64, char.imageMimeType)) : 'https://placehold.co/60x60/a0aec0/4a5568?text=P'}" alt="${char.title}" class="w-16 h-16 rounded-full object-cover border-2 border-white mb-2">
-                        <h4 class="font-bold text-sm">${char.title}</h4>
+                        <h4 class="font-bold text-sm ellipse">${char.title}</h4>
                         <span class="absolute top-2 left-2 bg-gray-800 text-white text-xs px-2 py-1 rounded-full">Nv.${char.level}</span>
                     </div>
                     <div class="thumbnail-actions absolute z-10">
@@ -502,18 +502,3 @@ document.getElementById('backgroundImageUpload').addEventListener('change', (e) 
         showImagePreview(document.getElementById('backgroundImagePreview'), URL.createObjectURL(file), false);
     }
 });
-
-function showCustomAlert(message) {
-        const modalHtml = `
-            <div id="custom-alert-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-                <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 w-full max-w-sm border border-gray-700">
-                    <p class="text-center text-lg mb-4">${message}</p>
-                    <button id="close-alert-btn" class="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-bold">OK</button>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        document.getElementById('close-alert-btn').addEventListener('click', () => {
-            document.getElementById('custom-alert-modal').remove();
-        });
-    }
