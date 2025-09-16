@@ -52,6 +52,24 @@ export async function renderFullCharacterSheet(characterData, local, isModal = f
     const sheetContainer = document.getElementById('character-sheet-container');
     if (!sheetContainer) return;
 
+    // Proporção base 248x346
+    const aspectRatio = 16 / 9;
+
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    let finalWidth;
+    let finalHeight;
+
+    // Calcular a largura e altura máximas, mantendo a proporção de 248x346
+    if ((windowWidth * aspectRatio) > windowHeight) {
+        finalHeight = windowHeight * 0.9;
+        finalWidth = finalHeight / aspectRatio;
+    } else {
+        finalWidth = windowWidth * 0.9;
+        finalHeight = finalWidth * aspectRatio;
+    }
+    
     const imageUrl = characterData.image ? URL.createObjectURL(bufferToBlob(characterData.image, characterData.imageMimeType)) : 'https://placehold.co/800x600/4a5568/a0aec0?text=Personagem';
     const imageBack = characterData.backgroundImage ? URL.createObjectURL(bufferToBlob(characterData.backgroundImage, characterData.backgroundMimeType)) : 'https://placehold.co/800x600/4a5568/a0aec0?text=Personagem';
     
@@ -77,7 +95,7 @@ export async function renderFullCharacterSheet(characterData, local, isModal = f
 
     const sheetHtml = `
         <button id="close-sheet-btn" class="absolute top-4 right-4 bg-red-600 hover:text-white z-10 thumb-btn" style="display: ${isModal? 'block' : 'none'}"><i class="fa-solid fa-xmark"></i></button>
-        <div id="character-sheet" class="w-full max-w-lg h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="background-image: url('${imageUrl}'); background-size: cover; background-position: center; transform: scale(.9); border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor};">        
+        <div id="character-sheet" class="w-full max-w-lg h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="background-image: url('${imageUrl}'); background-size: cover; background-position: center; border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px;">        
             <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
             
             <div class="absolute top-4 right-2 p-2 rounded-full text-center">

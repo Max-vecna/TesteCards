@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (cardType === 'spell') {
                 const spellData = await getData('rpgSpells', cardId);
                 if (spellData) {
-                    renderFullSpellSheet(spellData);
+                    renderFullSpellSheet(spellData, true);
                 }
             }
             return;

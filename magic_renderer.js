@@ -42,12 +42,38 @@ function getPredominantColor(imageUrl) {
     });
 }
 
-export async function renderFullSpellSheet(spellData) {
+export async function renderFullSpellSheet(spellData, isModal) {
     const sheetContainer = document.getElementById('spell-sheet-container');
     if (!sheetContainer) return;
 
-    const imageUrl = spellData.image ? URL.createObjectURL(bufferToBlob(spellData.image, spellData.imageMimeType)) : 'https://placehold.co/400x400/00796B/B2DFDB?text=Magia';
-    
+    // Proporção base 16x10
+    const aspectRatio = 16 / 8.5;
+
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    let finalWidth;
+    let finalHeight;
+
+    // Calcular a largura e altura máximas, mantendo a proporção de 16x10
+    if ((windowWidth * aspectRatio) > windowHeight) {
+        finalHeight = windowHeight * 0.9;
+        finalWidth = finalHeight / aspectRatio;
+    } else {
+        finalWidth = windowWidth * 0.9;
+        finalHeight = finalWidth * aspectRatio;
+    }
+
+    // Criar objectURL apenas quando houver imagem e guardar para revogar depois
+    let imageUrl;
+    let createdObjectUrl = null;
+    if (spellData.image) {
+        createdObjectUrl = URL.createObjectURL(bufferToBlob(spellData.image, spellData.imageMimeType));
+        imageUrl = createdObjectUrl;
+    } else {
+        imageUrl = 'https://placehold.co/400x400/00796B/B2DFDB?text=Magia';
+    }
+
     // Extrai a cor média da imagem de fundo
     const predominantColor = await getPredominantColor(imageUrl).catch(e => {
         console.error("Erro ao extrair cor média:", e);
@@ -92,9 +118,11 @@ export async function renderFullSpellSheet(spellData) {
         })
         .join('');
 
+        var scale = isModal? 1 : .17;
+        var origin = isModal?  "" : "transform-origin: top left";
     const sheetHtml = `
-        <button id="close-spell-sheet-btn" class="absolute top-4 right-4 bg-red-600 hover:text-white z-10 thumb-btn"><i class="fa-solid fa-xmark"></i></button>
-        <div id="spell-sheet" class="w-full max-w-lg h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="background-image: url('${imageUrl}'); background-size: cover; background-position: center; transform: scale(.9); border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor};">        
+        <button id="close-spell-sheet-btn" class="absolute top-4 right-4 bg-red-600 hover:text-white z-10 thumb-btn" style="display:${isModal? "block": "none"}"><i class="fa-solid fa-xmark"></i></button>
+        <div id="spell-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
             <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
             
             <div class="absolute top-4 left-1/2 -translate-x-1/2 text-center z-10">
@@ -169,14 +197,34 @@ export async function renderFullSpellSheet(spellData) {
         </div>
     `;
 
+   
+    // Se não for modal, retorna o HTML (miniatura)
+    if (!isModal) return sheetHtml;
+
+    // --- é modal: injeta no container e adiciona listeners APÓS inserir ---
     sheetContainer.innerHTML = sheetHtml;
     sheetContainer.classList.remove('hidden');
 
-    const closeSheetBtn = document.getElementById('close-spell-sheet-btn');
-
+    // Botão fechar: substitui o nó pra limpar listeners anteriores e adiciona o handler
+    const closeSheetBtn = sheetContainer.querySelector('#close-spell-sheet-btn');
     if (closeSheetBtn) {
-        closeSheetBtn.addEventListener('click', () => {
+        const btn = closeSheetBtn.cloneNode(true);
+        closeSheetBtn.parentNode.replaceChild(btn, closeSheetBtn);
+        btn.addEventListener('click', () => {
             sheetContainer.classList.add('hidden');
+            sheetContainer.innerHTML = '';
+            if (createdObjectUrl) URL.revokeObjectURL(createdObjectUrl);
         });
     }
+
+    // Fecha clicando no overlay (fora do card)
+    const overlayHandler = (e) => {
+        if (e.target === sheetContainer) {
+            sheetContainer.classList.add('hidden');
+            sheetContainer.innerHTML = '';
+            if (createdObjectUrl) URL.revokeObjectURL(createdObjectUrl);
+            sheetContainer.removeEventListener('click', overlayHandler);
+        }
+    };
+    sheetContainer.addEventListener('click', overlayHandler);
 }
