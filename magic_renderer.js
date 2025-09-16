@@ -47,7 +47,7 @@ export async function renderFullSpellSheet(spellData, isModal) {
     if (!sheetContainer) return;
 
     // Proporção base 16x10
-    const aspectRatio = 16 / 10;
+    const aspectRatio = 16 / 11;
 
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
@@ -228,5 +228,6 @@ export async function renderFullSpellSheet(spellData, isModal) {
     };
     sheetContainer.addEventListener('click', overlayHandler);
 }
+
 
 
