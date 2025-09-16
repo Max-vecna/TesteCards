@@ -42,12 +42,12 @@ function getPredominantColor(imageUrl) {
     });
 }
 
-export async function renderFullSpellSheet(spellData, isModal) {
+export async function renderFullSpellSheet(spellData, isModal, aspect) {
     const sheetContainer = document.getElementById('spell-sheet-container');
     if (!sheetContainer) return;
 
     // Proporção base 16x10
-    const aspectRatio = 16 / 11;
+    const aspectRatio = aspect || (16 / 10);
 
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
@@ -228,6 +228,3 @@ export async function renderFullSpellSheet(spellData, isModal) {
     };
     sheetContainer.addEventListener('click', overlayHandler);
 }
-
-
-

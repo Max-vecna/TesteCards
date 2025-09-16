@@ -354,7 +354,7 @@ export async function renderSpellList() {
 
     // Gera as miniaturas de forma assíncrona
     const spellsHtmlArray = await Promise.all(allSpells.map(async (spell) => {
-        const spellSheetHtml = await renderFullSpellSheet(spell, false);
+        const spellSheetHtml = await renderFullSpellSheet(spell, false, 16/11);
         return `
             <div class="rpg-thumbnail bg-cover bg-center shadow-lg relative" data-action="viewSpell" data-type="spell" data-id="${spell.id}">
                 <div class="miniCard absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg">
