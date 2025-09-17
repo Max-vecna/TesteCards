@@ -158,9 +158,10 @@ export function populateSpellPericiasCheckboxes(selectedPericias = []) {
 /**
  * Salva ou atualiza uma magia/habilidade no IndexedDB.
  * @param {HTMLFormElement} spellForm - O formulário com os dados da magia.
+ * @param {string} type - O tipo de item a ser salvo ('magia' ou 'habilidade').
  * @returns {Promise<void>}
  */
-export async function saveSpellCard(spellForm) {
+export async function saveSpellCard(spellForm, type) {
     const spellNameInput = document.getElementById('spellName');
     const spellExecutionInput = document.getElementById('spellExecution');
     const spellRangeInput = document.getElementById('spellRange');
@@ -227,6 +228,7 @@ export async function saveSpellCard(spellForm) {
             enhance: spellEnhanceInput.value,
             true: spellTrueInput.value,
             aumentos: attributesAumento,
+            type: type, // Atualiza o tipo em caso de edição
             image: imageBuffer || spellData.image,
             imageMimeType: spellImageFile ? spellImageFile.type : spellData.imageMimeType,
         });
@@ -243,6 +245,7 @@ export async function saveSpellCard(spellForm) {
             enhance: spellEnhanceInput.value,
             true: spellTrueInput.value,
             aumentos: attributesAumento,
+            type: type, // Define o tipo na criação
             image: imageBuffer,
             imageMimeType: spellImageFile ? spellImageFile.type : null,
         };
@@ -291,8 +294,7 @@ export async function editSpell(spellId) {
 
     const spellImagePreview = document.getElementById('spellImagePreview');
 
-    spellFormTitle.textContent = 'Editando: ' + spellData.name;
-    spellSubmitButton.textContent = 'Salvar Edição';
+    // Título e botão são definidos no navigation_manager.js
     currentEditingSpellId = spellId;
     
     spellNameInput.value = spellData.name;
@@ -335,22 +337,27 @@ export async function editSpell(spellId) {
  * @param {string} spellId - O ID da magia a ser removida.
  */
 export async function removeSpell(spellId) {
-    if (window.confirm('Tem certeza que deseja excluir esta magia/habilidade?')) {
+    if (window.confirm('Tem certeza que deseja excluir este item?')) {
         await removeData('rpgSpells', spellId);
     }
 }
 
 /**
- * Renderiza a lista de miniaturas de magias na interface.
+ * Renderiza a lista de miniaturas de magias/habilidades na interface.
+ * @param {string} type - 'magias' ou 'habilidades' para filtrar a lista.
  */
-/**
- * Renderiza a lista de miniaturas de magias na interface.
- */
-export async function renderSpellList() {
+export async function renderSpellList(type = 'magias') {
     const contentDisplay = document.getElementById('content-display');
     contentDisplay.innerHTML = '';
 
-    const allSpells = await getData('rpgSpells');
+    let allSpells = await getData('rpgSpells');
+
+    // Filtra os itens com base no tipo
+    if (type === 'magias') {
+        allSpells = allSpells.filter(spell => spell.type === 'magia' || !spell.type); // Mantém dados antigos como magias
+    } else if (type === 'habilidades') {
+        allSpells = allSpells.filter(spell => spell.type === 'habilidade');
+    }
 
     // Gera as miniaturas de forma assíncrona
     const spellsHtmlArray = await Promise.all(allSpells.map(async (spell) => {
@@ -381,20 +388,27 @@ export async function renderSpellList() {
         `;
     }));
 
+    const buttonText = type === 'magias' ? 'Adicionar Magia' : 'Adicionar Habilidade';
+    const buttonAction = type === 'magias' ? 'add-spell' : 'add-habilidade';
+    const importBtnId = type === 'magias' ? 'import-cards-spell-btn' : 'import-cards-habilidade-btn';
+    const importInputId = type === 'magias' ? 'import-spell-json-input' : 'import-habilidade-json-input';
+    const importTitle = type === 'magias' ? 'Importar Magia (JSON)' : 'Importar Habilidade (JSON)';
+
+
     const spellsHtml = `
         <div class="grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 overflow-y-auto p-6 pt-0">
-            <!-- Botão de Adicionar Magia -->
+            <!-- Botão de Adicionar dinâmico -->
             <div class="relative w-full h-full aspect-square" style="aspect-ratio: 120 / 160;">
-                <button class="add-card-button absolute inset-0" data-action="add-spell">
+                <button class="add-card-button absolute inset-0" data-action="${buttonAction}">
                     <i class="fas fa-plus text-2xl mb-2"></i>
-                    <span class="text-sm font-semibold">Adicionar Magia</span>
+                    <span class="text-sm font-semibold">${buttonText}</span>
                 </button>
                 <div class="absolute -bottom-3 w-full flex justify-center gap-2">
                     <button class="thumb-btn bg-indigo-500 hover:bg-indigo-600 rounded-full w-8 h-8 flex items-center justify-center" 
-                            id="import-cards-spell-btn" title="Importar Magia (JSON)">
+                            id="${importBtnId}" title="${importTitle}">
                         <i class="fas fa-upload text-xs"></i>
                     </button>
-                    <input type="file" id="import-spell-json-input" accept=".json" class="hidden">
+                    <input type="file" id="${importInputId}" accept=".json" class="hidden">
                 </div>
             </div>
 
@@ -471,34 +485,32 @@ export async function renderSpellList() {
     // ------------------------------------------------------
 
     // Adiciona o listener para o botão de importação
-    document.getElementById('import-cards-spell-btn').addEventListener('click', () => {
-        document.getElementById('import-spell-json-input').click();
+    document.getElementById(importBtnId).addEventListener('click', () => {
+        document.getElementById(importInputId).click();
     });
 
     // Listener para importar JSON
-    document.getElementById('import-spell-json-input').addEventListener('change', async (e) => {
+    document.getElementById(importInputId).addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (file) {
             try {
-                const importedSpell = await importSpell(file);
-                if (importedSpell) {
-                    showCustomAlert(`Magia '${importedSpell.name}' importada com sucesso!`);
+                const importedItem = await importSpell(file, type);
+                const itemTypeName = type === 'magias' ? 'Magia' : 'Habilidade';
+                if (importedItem) {
+                    showCustomAlert(`${itemTypeName} '${importedItem.name}' importada com sucesso!`);
                 } else {
-                    showCustomAlert('Nenhuma magia encontrada no arquivo.');
+                    showCustomAlert(`Nenhum item encontrado no arquivo.`);
                 }
                 contentDisplay.innerHTML = '';
-                renderSpellList();
+                renderSpellList(type);
             } catch (error) {
-                showCustomAlert('Erro ao importar arquivo. Verifique se é um JSON de magia válido.');
+                showCustomAlert(`Erro ao importar arquivo. Verifique se é um JSON válido.`);
             } finally {
                 e.target.value = '';
             }
         }
     });
 }
-
-
-
 
 /**
  * Exporta uma única magia/habilidade para um arquivo JSON.
@@ -514,7 +526,7 @@ export async function exportSpell(spellId) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const safeName = (dataToExport.name || 'magia').replace(/\s+/g, '_');
+        const safeName = (dataToExport.name || 'item').replace(/\s+/g, '_');
         a.download = `${safeName}.json`;
         document.body.appendChild(a);
         a.click();
@@ -526,21 +538,21 @@ export async function exportSpell(spellId) {
 /**
  * Importa uma única magia/habilidade a partir de um arquivo JSON.
  * @param {File} file - O arquivo JSON a ser importado.
+ * @param {string} type - 'magias' ou 'habilidades' para definir o tipo do item importado.
  */
-export async function importSpell(file) {
+export async function importSpell(file, type) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
                 const importedSpell = JSON.parse(e.target.result);
                 if (!importedSpell || importedSpell.id === undefined) {
-                    throw new Error("Formato de arquivo inválido. Esperado um único objeto de magia/habilidade com um ID.");
+                    throw new Error("Formato de arquivo inválido. Esperado um único objeto com um ID.");
                 }
 
-                // Altera o ID da magia importada para garantir que ele seja único
                 importedSpell.id = Date.now().toString();
+                importedSpell.type = type === 'habilidades' ? 'habilidade' : 'magia';
 
-                // Converte Base64 de volta para ArrayBuffer
                 if (importedSpell.image) {
                     importedSpell.image = base64ToArrayBuffer(importedSpell.image);
                 }
@@ -548,7 +560,7 @@ export async function importSpell(file) {
                 await saveData('rpgSpells', importedSpell);
                 resolve(importedSpell);
             } catch (error) {
-                console.error("Erro ao importar magia/habilidade:", error);
+                console.error("Erro ao importar item:", error);
                 reject(error);
             }
         };
