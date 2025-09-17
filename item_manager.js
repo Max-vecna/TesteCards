@@ -84,6 +84,46 @@ function base64ToArrayBuffer(base64) {
     return bytes.buffer;
 }
 
+function getPredominantColor(imageUrl) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.src = imageUrl;
+
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0, img.width, img.height);
+
+            try {
+                const imageData = ctx.getImageData(0, 0, img.width, img.height).data;
+                let r = 0, g = 0, b = 0;
+                let count = 0;
+                const step = 4 * 10;
+
+                for (let i = 0; i < imageData.length; i += step) {
+                    r += imageData[i];
+                    g += imageData[i + 1];
+                    b += imageData[i + 2];
+                    count++;
+                }
+
+                const avgR = Math.floor(r / count);
+                const avgG = Math.floor(g / count);
+                const avgB = Math.floor(b / count);
+
+                resolve(`rgb(${avgR}, ${avgG}, ${avgB})`);
+            } catch (e) {
+                reject(e);
+            }
+        };
+
+        img.onerror = (e) => reject(e);
+    });
+}
+
 
 /**
  * Popula os checkboxes de perícias no formulário de item.
@@ -154,10 +194,15 @@ export function populateItemPericiasCheckboxes(selectedPericias = []) {
 export async function saveItemCard(itemForm) {
     const itemNameInput = document.getElementById('itemName');
     const itemDescriptionInput = document.getElementById('itemDescription');
+    const itemTypeInput = document.getElementById('item-type');
+    const itemDamageInput = document.getElementById('item-damage');
+    const itemChargeInput = document.getElementById('item-charge');
+    const itemPrerequisiteInput = document.getElementById('item-prerequisite');
+    const itemRestoreLifeInput = document.getElementById('item-restore-life');
+    const itemRestoreManaInput = document.getElementById('item-restore-mana');
+    const itemUsableInput = document.getElementById('item-usable');
     
     // Inputs de aumentos
-    const vidaAumentoInput = document.getElementById('item-vida-aumento');
-    const manaAumentoInput = document.getElementById('item-mana-aumento');
     const agilidadeAumentoInput = document.getElementById('item-agilidade-aumento');
     const carismaAumentoInput = document.getElementById('item-carisma-aumento');
     const forcaAumentoInput = document.getElementById('item-forca-aumento');
@@ -181,8 +226,6 @@ export async function saveItemCard(itemForm) {
     });
 
     const aumentos = {
-        vida: parseInt(vidaAumentoInput.value) || 0,
-        mana: parseInt(manaAumentoInput.value) || 0,
         agilidade: parseInt(agilidadeAumentoInput.value) || 0,
         carisma: parseInt(carismaAumentoInput.value) || 0,
         forca: parseInt(forcaAumentoInput.value) || 0,
@@ -198,24 +241,47 @@ export async function saveItemCard(itemForm) {
     
     const imageBuffer = itemImageFile ? await readFileAsArrayBuffer(itemImageFile) : null;
     
+    let predominantColor = null;
+    if (imageBuffer && itemImageFile) {
+        const tempUrl = URL.createObjectURL(bufferToBlob(imageBuffer, itemImageFile.type));
+        predominantColor = await getPredominantColor(tempUrl).catch(() => '#a0522d');
+        URL.revokeObjectURL(tempUrl);
+    }
+
     let itemData;
     if (currentEditingItemId) {
         itemData = await getData('rpgItems', currentEditingItemId);
         Object.assign(itemData, {
             name: itemNameInput.value,
             description: itemDescriptionInput.value,
+            type: itemTypeInput.value,
+            damage: itemDamageInput.value,
+            charge: parseInt(itemChargeInput.value) || 0,
+            prerequisite: itemPrerequisiteInput.value,
+            restoreLife: parseInt(itemRestoreLifeInput.value) || 0,
+            restoreMana: parseInt(itemRestoreManaInput.value) || 0,
+            usable: itemUsableInput.checked,
             aumentos,
             image: imageBuffer || itemData.image,
             imageMimeType: itemImageFile ? itemImageFile.type : itemData.imageMimeType,
+            predominantColor: predominantColor || itemData.predominantColor || '#a0522d'
         });
     } else {
         itemData = {
             id: Date.now().toString(),
             name: itemNameInput.value,
             description: itemDescriptionInput.value,
+            type: itemTypeInput.value,
+            damage: itemDamageInput.value,
+            charge: parseInt(itemChargeInput.value) || 0,
+            prerequisite: itemPrerequisiteInput.value,
+            restoreLife: parseInt(itemRestoreLifeInput.value) || 0,
+            restoreMana: parseInt(itemRestoreManaInput.value) || 0,
+            usable: itemUsableInput.checked,
             aumentos,
             image: imageBuffer,
             imageMimeType: itemImageFile ? itemImageFile.type : null,
+            predominantColor: predominantColor || '#a0522d'
         };
     }
 
@@ -237,11 +303,16 @@ export async function editItem(itemId) {
     currentEditingItemId = itemId;
     document.getElementById('itemName').value = itemData.name;
     document.getElementById('itemDescription').value = itemData.description;
+    document.getElementById('item-type').value = itemData.type || '';
+    document.getElementById('item-damage').value = itemData.damage || '';
+    document.getElementById('item-charge').value = itemData.charge || 0;
+    document.getElementById('item-prerequisite').value = itemData.prerequisite || '';
+    document.getElementById('item-restore-life').value = itemData.restoreLife || 0;
+    document.getElementById('item-restore-mana').value = itemData.restoreMana || 0;
+    document.getElementById('item-usable').checked = itemData.usable || false;
 
     // Preenche os aumentos
     const aumentos = itemData.aumentos || {};
-    document.getElementById('item-vida-aumento').value = aumentos.vida || 0;
-    document.getElementById('item-mana-aumento').value = aumentos.mana || 0;
     document.getElementById('item-agilidade-aumento').value = aumentos.agilidade || 0;
     document.getElementById('item-carisma-aumento').value = aumentos.carisma || 0;
     document.getElementById('item-forca-aumento').value = aumentos.forca || 0;
