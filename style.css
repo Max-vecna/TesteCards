@@ -39,6 +39,7 @@ body {
   padding: 1rem;
   width: 100%;
   height: 100%;
+  position: relative; /* For loader positioning */
 }
 .main-content.visible {
   opacity: 1;

@@ -4,6 +4,8 @@ import { openDatabase, removeData, getData, saveData } from './local_db.js';
 import { renderFullCharacterSheet } from './card-renderer.js';
 import { renderFullSpellSheet } from './magic_renderer.js';
 
+let renderContent; // Declarado no escopo do módulo para ser acessível globalmente
+
 // Função auxiliar para converter buffer em Blob
 function bufferToBlob(buffer, mimeType) {
     return new Blob([buffer], { type: mimeType });
@@ -50,7 +52,7 @@ function setupResizeCentering(gridContainer) {
 
 
 /**
- * Renderiza a lista de miniaturas de personagens com animação.
+ * Renderiza a lista de miniaturas de personagens com animação otimizada.
  */
 async function renderCharacterList() {
     const contentDisplay = document.getElementById('content-display');
@@ -75,46 +77,55 @@ async function renderCharacterList() {
         </div>
     `;
     container.appendChild(addButtonWrapper);
+    
+    // 1. Cria todos os elementos de card em memória primeiro
+    const cardElements = await Promise.all(allCharacters.map(async (char) => {
+        const characterSheetHtml = await renderFullCharacterSheet(char, false, 16/11, false);
+        const backgroundImage = char.backgroundImage ? `url('${URL.createObjectURL(bufferToBlob(char.backgroundImage, char.backgroundMimeType))}')` : '#2d3748';
+
+        const cardWrapper = document.createElement('div');
+        cardWrapper.className = 'rpg-thumbnail bg-cover bg-center shadow-lg relative';
+        cardWrapper.dataset.action = "view";
+        cardWrapper.dataset.type = "character";
+        cardWrapper.dataset.id = char.id;
+        cardWrapper.style.backgroundImage = backgroundImage;
+        
+        cardWrapper.innerHTML = `
+            <div class="miniCard absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg overflow-hidden">
+                ${characterSheetHtml}
+            </div>
+            <div class="thumbnail-actions absolute z-10">
+                <button class="thumb-btn thumb-btn-menu">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="thumbnail-menu" data-type="character">
+                    <button class="menu-item" data-action="edit" data-id="${char.id}"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="menu-item" data-action="remove" data-id="${char.id}"><i class="fas fa-trash-alt"></i> Excluir</button>
+                    <button class="menu-item" data-action="export-json" data-id="${char.id}"><i class="fas fa-file-download"></i> Baixar</button>
+                    ${char.inPlay 
+                        ? `<button class="menu-item" data-action="remove-from-play" data-id="${char.id}"><i class="fas fa-sign-out-alt"></i> Remover de Jogo</button>` 
+                        : `<button class="menu-item" data-action="set-in-play" data-id="${char.id}"><i class="fas fa-play-circle"></i> Usar em Jogo</button>`}
+                </div>
+            </div>
+        `;
+        return cardWrapper;
+    }));
+
+    // 2. Adiciona todos os cards ao DOM de uma vez
+    cardElements.forEach(el => container.appendChild(el));
     contentDisplay.appendChild(container);
+    
+    // 3. Centraliza e anima a entrada dos cards
+    requestAnimationFrame(() => {
+        // Centraliza todos antes de torná-los visíveis
+        container.querySelectorAll('.miniCard').forEach(centerSheetInMiniCard);
 
-    allCharacters.forEach((char, index) => {
-        setTimeout(async () => {
-            const characterSheetHtml = await renderFullCharacterSheet(char, false, 16/11, false);
-            const backgroundImage = char.backgroundImage ? `url('${URL.createObjectURL(bufferToBlob(char.backgroundImage, char.backgroundMimeType))}')` : '#2d3748';
-
-            const cardWrapper = document.createElement('div');
-            cardWrapper.className = 'rpg-thumbnail bg-cover bg-center shadow-lg relative';
-            cardWrapper.dataset.action = "view";
-            cardWrapper.dataset.type = "character";
-            cardWrapper.dataset.id = char.id;
-            cardWrapper.style.backgroundImage = backgroundImage;
-            
-            cardWrapper.innerHTML = `
-                <div class="miniCard absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg overflow-hidden">
-                    ${characterSheetHtml}
-                </div>
-                <div class="thumbnail-actions absolute z-10">
-                    <button class="thumb-btn thumb-btn-menu">
-                        <i class="fas fa-ellipsis-v"></i>
-                    </button>
-                    <div class="thumbnail-menu" data-type="character">
-                        <button class="menu-item" data-action="edit" data-id="${char.id}"><i class="fas fa-edit"></i> Editar</button>
-                        <button class="menu-item" data-action="remove" data-id="${char.id}"><i class="fas fa-trash-alt"></i> Excluir</button>
-                        <button class="menu-item" data-action="export-json" data-id="${char.id}"><i class="fas fa-file-download"></i> Baixar</button>
-                        ${char.inPlay 
-                            ? `<button class="menu-item" data-action="remove-from-play" data-id="${char.id}"><i class="fas fa-sign-out-alt"></i> Remover de Jogo</button>` 
-                            : `<button class="menu-item" data-action="set-in-play" data-id="${char.id}"><i class="fas fa-play-circle"></i> Usar em Jogo</button>`}
-                    </div>
-                </div>
-            `;
-            container.appendChild(cardWrapper);
-            
-            // Centraliza o card e depois o torna visível
-            requestAnimationFrame(() => {
-                centerSheetInMiniCard(cardWrapper.querySelector('.miniCard'));
+        // Anima a entrada com um atraso
+        cardElements.forEach((cardWrapper, index) => {
+            setTimeout(() => {
                 cardWrapper.classList.add('visible');
-            });
-        }, index * 100);
+            }, index * 80); // Atraso um pouco menor para uma animação mais rápida
+        });
     });
 
     setupResizeCentering(container);
@@ -133,7 +144,7 @@ async function renderCharacterList() {
 }
 
 /**
- * Renderiza a lista de magias/habilidades com animação.
+ * Renderiza a lista de magias/habilidades com animação otimizada.
  * @param {string} type - 'magias' ou 'habilidades'.
  */
 async function renderSpellList(type = 'magias') {
@@ -172,39 +183,46 @@ async function renderSpellList(type = 'magias') {
         </div>
     `;
     gridContainer.appendChild(addButtonWrapper);
+    
+    // 1. Cria todos os elementos de card em memória primeiro
+    const cardElements = await Promise.all(allSpells.map(async (spell) => {
+        const spellSheetHtml = await renderFullSpellSheet(spell, false, 16/11);
+        const cardWrapper = document.createElement('div');
+        cardWrapper.className = 'rpg-thumbnail bg-cover bg-center shadow-lg relative';
+        cardWrapper.dataset.action = "viewSpell";
+        cardWrapper.dataset.type = "spell";
+        cardWrapper.dataset.id = spell.id;
+        cardWrapper.innerHTML = `
+            <div class="miniCard absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg">
+                ${spellSheetHtml}
+            </div>
+            <div class="thumbnail-actions absolute z-10">
+                <button class="thumb-btn thumb-btn-menu">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="thumbnail-menu" data-type="spell">
+                    <button class="menu-item" data-action="edit" data-id="${spell.id}"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="menu-item" data-action="remove" data-id="${spell.id}"><i class="fas fa-trash-alt"></i> Excluir</button>
+                    <button class="menu-item" data-action="export-json" data-id="${spell.id}"><i class="fas fa-file-download"></i> Baixar</button>
+                </div>
+            </div>
+        `;
+        return cardWrapper;
+    }));
+
+    // 2. Adiciona todos os cards ao DOM de uma vez
+    cardElements.forEach(el => gridContainer.appendChild(el));
     contentDisplay.appendChild(gridContainer);
     
-    allSpells.forEach((spell, index) => {
-        setTimeout(async () => {
-            const spellSheetHtml = await renderFullSpellSheet(spell, false, 16/11);
-            const cardWrapper = document.createElement('div');
-            cardWrapper.className = 'rpg-thumbnail bg-cover bg-center shadow-lg relative';
-            cardWrapper.dataset.action = "viewSpell";
-            cardWrapper.dataset.type = "spell";
-            cardWrapper.dataset.id = spell.id;
-            cardWrapper.innerHTML = `
-                <div class="miniCard absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg">
-                    ${spellSheetHtml}
-                </div>
-                <div class="thumbnail-actions absolute z-10">
-                    <button class="thumb-btn thumb-btn-menu">
-                        <i class="fas fa-ellipsis-v"></i>
-                    </button>
-                    <div class="thumbnail-menu" data-type="spell">
-                        <button class="menu-item" data-action="edit" data-id="${spell.id}"><i class="fas fa-edit"></i> Editar</button>
-                        <button class="menu-item" data-action="remove" data-id="${spell.id}"><i class="fas fa-trash-alt"></i> Excluir</button>
-                        <button class="menu-item" data-action="export-json" data-id="${spell.id}"><i class="fas fa-file-download"></i> Baixar</button>
-                    </div>
-                </div>
-            `;
-            gridContainer.appendChild(cardWrapper);
-
-            // Centraliza o card e depois o torna visível
-            requestAnimationFrame(() => {
-                centerSheetInMiniCard(cardWrapper.querySelector('.miniCard'));
+    // 3. Centraliza e anima a entrada dos cards
+    requestAnimationFrame(() => {
+        gridContainer.querySelectorAll('.miniCard').forEach(centerSheetInMiniCard);
+        
+        cardElements.forEach((cardWrapper, index) => {
+            setTimeout(() => {
                 cardWrapper.classList.add('visible');
-            });
-        }, index * 100);
+            }, index * 80);
+        });
     });
     
     setupResizeCentering(gridContainer);
@@ -224,6 +242,7 @@ async function renderSpellList(type = 'magias') {
 
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Adiciona o estilo para a animação de entrada dos cards
     const style = document.createElement('style');
     style.innerHTML = `
         .rpg-thumbnail {
@@ -238,6 +257,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
     document.head.appendChild(style);
 
+    // Seletores de elementos do DOM
+    const contentLoader = document.getElementById('content-loader');
     const navButtons = document.querySelectorAll('.nav-button');
     const contentDisplay = document.getElementById('content-display');
     const creationSection = document.getElementById('creation-section');
@@ -261,12 +282,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const spellSubmitButton = document.getElementById('spellSubmitButton');
     const enhanceWrapper = document.getElementById('enhance-wrapper');
     const trueWrapper = document.getElementById('true-wrapper');
+    
+    // Função principal para renderizar o conteúdo da aba selecionada
+    renderContent = async (target) => {
+        contentDisplay.innerHTML = ''; // Limpa o conteúdo
+        contentLoader.classList.remove('hidden'); // Mostra o loader
 
-    const renderContent = async (target) => {
-        contentDisplay.innerHTML = '';
+        // Dá um tempo para o navegador renderizar o loader antes de continuar
+        await new Promise(resolve => setTimeout(resolve, 50));
+
         creationSection.classList.add('hidden');
         spellCreationSection.classList.add('hidden');
 
+        // Adiciona um título à seção
         const titleText = document.querySelector(`.nav-button[data-target="${target}"] .hidden`)?.textContent || target.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
         const html = `
             <div class="w-full text-center mb-2 mt-2">
@@ -275,6 +303,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
         contentDisplay.innerHTML = html;
 
+        // Chama a função de renderização apropriada
         if (target === 'personagem') {
             await renderCharacterList();
         } else if (target === 'magias') {
@@ -284,8 +313,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (target === 'personagem-em-jogo') {
             await renderCharacterInGame();
         }
+
+        contentLoader.classList.add('hidden'); // Esconde o loader
     };
     
+    // Mostra o formulário de criação de personagem
     function showCreationView(isEditing) {
         creationSection.classList.remove('hidden');
         document.getElementById('main-content').classList.add('hidden');
@@ -299,6 +331,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // Mostra o formulário de criação de magia/habilidade
     function showSpellCreationView(isEditing, type = 'magia') {
         spellCreationSection.classList.remove('hidden');
         document.getElementById('main-content').classList.add('hidden');
@@ -323,7 +356,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             populateSpellPericiasCheckboxes();
         }
     }
-
+    
+    // Renderiza o personagem que está "em jogo"
     const renderCharacterInGame = async () => {
         const allCharacters = await getData('rpgCards');
         const characterInPlay = allCharacters.find(char => char.inPlay);
@@ -343,7 +377,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         }
     };
-
+    
+    // Mostra o modal para selecionar um personagem para colocar "em jogo"
     const showCharacterSelectionModal = async () => {
         selectCharacterList.innerHTML = '';
         const allCharacters = await getData('rpgCards');
@@ -377,7 +412,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         selectCharacterModal.classList.remove('hidden');
     };
-
+    
+    // Gerencia a navegação entre as abas
     const handleNavigation = (event) => {
         const target = event.currentTarget.dataset.target;
         navButtons.forEach(btn => btn.classList.remove('active'));
@@ -388,7 +424,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     navButtons.forEach(button => {
         button.addEventListener('click', handleNavigation);
     });
-
+    
+    // Listener de cliques global para ações (adicionar, selecionar, etc.)
     document.addEventListener('click', (e) => {
         const addCharacterButton = e.target.closest('[data-action="add-character"]');
         const addSpellButton = e.target.closest('[data-action="add-spell"]');
@@ -400,7 +437,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (addHabilidadeButton) showSpellCreationView(false, 'habilidade');
         if (selectCharacterButton) showCharacterSelectionModal();
     });
-
+    
+    // Listeners para fechar modais e formulários
     closeFormBtn.addEventListener('click', () => {
         creationSection.classList.add('hidden');
         document.getElementById('main-content').classList.remove('hidden');
@@ -419,6 +457,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         selectCharacterModal.classList.add('hidden');
     });
 
+    // Submissão do formulário de personagem
     cardForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const vidaMax = parseInt(vidaInput.value) || 0;
@@ -436,6 +475,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderContent('personagem');
     });
 
+    // Submissão do formulário de magia/habilidade
     spellForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const type = e.currentTarget.dataset.type || 'magia';
@@ -446,14 +486,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderContent(type === 'magia' ? 'magias' : 'habilidades');
     });
 
+    // Abre o banco de dados e renderiza o conteúdo inicial
     await openDatabase();
     renderContent('personagem-em-jogo');
-
+    
+    // Listener de cliques global para ações nos cards (ver, editar, remover, etc.)
     document.addEventListener('click', async (e) => {
         const thumbCard = e.target.closest('.rpg-thumbnail');
         const menuBtn = e.target.closest('.thumb-btn-menu');
         const menuItem = e.target.closest('.thumbnail-menu .menu-item');
 
+        // Visualizar card (clique fora do menu)
         if (thumbCard && !menuBtn && !menuItem) {
             const cardId = thumbCard.dataset.id;
             const cardType = thumbCard.dataset.type;
@@ -466,7 +509,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             return;
         }
-
+        
+        // Abrir/fechar menu de opções do card
         if (menuBtn) {
             e.preventDefault();
             e.stopPropagation();
@@ -478,6 +522,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
+        // Ações do menu (editar, remover, etc.)
         if (menuItem) {
             e.preventDefault();
             e.stopPropagation();
@@ -542,6 +587,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        // Fecha menus abertos se clicar fora
         if (!e.target.closest('.thumbnail-menu')) {
             document.querySelectorAll('.thumbnail-menu.active').forEach(m => m.classList.remove('active'));
         }
