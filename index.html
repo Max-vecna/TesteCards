@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="./style.css">
     <style>
         /* Estilos para o formulário de sobreposição */
-        #creation-section, #character-sheet-container, #spell-creation-section, #spell-sheet-container {
+        #creation-section, #character-sheet-container, #spell-creation-section, #spell-sheet-container, #item-sheet-container, #item-creation-section {
             position: fixed;
             top: 0;
             left: 0;
@@ -23,7 +23,7 @@
             transition: opacity 0.3s ease-in-out;
         }
 
-        #creation-section.hidden, #character-sheet-container.hidden, #spell-creation-section.hidden, #spell-sheet-container.hidden {
+        #creation-section.hidden, #character-sheet-container.hidden, #spell-creation-section.hidden, #spell-sheet-container.hidden, #item-sheet-container.hidden, #item-creation-section.hidden {
             display: none;
             opacity: 0;
             pointer-events: none; /* Impede cliques quando oculto */
@@ -31,12 +31,13 @@
 
         .form-container {
             background-color: #1a202c;
-            max-height: 100%; /* Limita a altura para caber na tela */
+            max-height: 90vh; /* Limita a altura para caber na tela */
             overflow-y: auto; /* Adiciona rolagem se o formulário for muito grande */
             padding: 2rem;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
             max-width: 600px;
-            width: 100%;
+            width: 90%;
+            border-radius: 1rem;
         }
 
     </style>
@@ -66,19 +67,13 @@
     </div>
 
     <!-- Container da Ficha de Personagem -->
-    <div id="character-sheet-container" class="hidden">
-        <!-- A ficha de personagem será renderizada aqui -->
-    </div>
-
+    <div id="character-sheet-container" class="hidden"></div>
     <!-- Container da Ficha de Magia/Habilidade -->
-    <div id="spell-sheet-container" class="hidden">
-        <!-- A ficha de magia/habilidade será renderizada aqui -->
-    </div>
+    <div id="spell-sheet-container" class="hidden"></div>
+    <!-- Container da Ficha de Item -->
+    <div id="item-sheet-container" class="hidden"></div>
     
-    <!-- Input para importação de arquivos (escondido) -->
-    <!-- Estes inputs agora são gerados dinamicamente no JS para evitar duplicação -->
-
-    <!-- Formulário de Criação de Personagem (agora fora do main) -->
+    <!-- Formulário de Criação de Personagem -->
     <div id="creation-section" class="hidden">
         <div class="form-container">
             <div class="flex justify-between items-center mb-6">
@@ -260,6 +255,70 @@
         </div>
     </div>
 
+    <!-- Formulário de Criação de Item -->
+    <div id="item-creation-section" class="hidden">
+        <div class="form-container">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="item-form-title" class="text-2xl font-bold text-amber-300">Novo Item</h2>
+                <button id="close-item-form-btn" class="text-gray-400 hover:text-white text-3xl font-bold">&times;</button>
+            </div>
+            <form id="itemForm" class="space-y-6">
+                 <div>
+                    <h3 class="text-xl font-bold text-amber-300 mb-2">Ícone</h3>
+                    <div class="mt-4 text-center">
+                        <label for="itemImageUpload" class="block text-sm font-semibold mb-1 cursor-pointer">Faça upload de uma imagem:</label>
+                        <input type="file" id="itemImageUpload" accept="image/*" class="file-upload-input">
+                        <img id="itemImagePreview" class="mt-4 mx-auto w-32 h-32 object-cover rounded-full border-4 border-gray-600 hidden" alt="Pré-visualização do Item">
+                    </div>
+                </div>
+                <div><label for="itemName" class="block text-sm font-semibold mb-1">Nome</label><input type="text" id="itemName" placeholder="Ex: Poção de Cura" required class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label for="item-type" class="block text-sm font-semibold mb-1">Tipo</label><input type="text" id="item-type" placeholder="Ex: Poção, Espada, Armadura" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="item-damage" class="block text-sm font-semibold mb-1">Dano</label><input type="text" id="item-damage" placeholder="Ex: 1d8+FOR" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="item-charge" class="block text-sm font-semibold mb-1">Carga</label><input type="number" id="item-charge" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="item-prerequisite" class="block text-sm font-semibold mb-1">Pré-requisito</label><input type="text" id="item-prerequisite" placeholder="Ex: FOR 15" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="item-restore-life" class="block text-sm font-semibold mb-1">Restaurar Vida</label><input type="number" id="item-restore-life" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="item-restore-mana" class="block text-sm font-semibold mb-1">Restaurar Mana</label><input type="number" id="item-restore-mana" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="item-usable" class="form-checkbox h-4 w-4 text-amber-500 rounded border-gray-600 focus:ring-amber-500">
+                    <label for="item-usable" class="ml-2 text-sm text-gray-200">Usável em Combate?</label>
+                </div>
+
+                <div><label for="itemDescription" class="block text-sm font-semibold mb-1">Descrição</label><textarea id="itemDescription" rows="4" placeholder="Ex: Uma poção que restaura a vitalidade." class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></textarea></div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <h3 class="col-span-2 text-xl font-bold text-amber-300">Aumento de Atributos</h3>
+                    <div><label for="item-agilidade-aumento" class="block text-sm font-semibold mb-1">Agilidade (AGI)</label><input type="number" id="item-agilidade-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="item-carisma-aumento" class="block text-sm font-semibold mb-1">Carisma (CAR)</label><input type="number" id="item-carisma-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="item-forca-aumento" class="block text-sm font-semibold mb-1">Força (FOR)</label><input type="number" id="item-forca-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="item-inteligencia-aumento" class="block text-sm font-semibold mb-1">Inteligência (INT)</label><input type="number" id="item-inteligencia-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="item-sabedoria-aumento" class="block text-sm font-semibold mb-1">Sabedoria (SAB)</label><input type="number" id="item-sabedoria-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="item-vigor-aumento" class="block text-sm font-semibold mb-1">Vigor (VIG)</label><input type="number" id="item-vigor-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <h3 class="col-span-2 text-xl font-bold text-amber-300">Aumento de Status de Combate</h3>
+                    <div><label for="item-armadura-aumento" class="block text-sm font-semibold mb-1">Armadura</label><input type="number" id="item-armadura-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="item-esquiva-aumento" class="block text-sm font-semibold mb-1">Esquiva</label><input type="number" id="item-esquiva-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="item-bloqueio-aumento" class="block text-sm font-semibold mb-1">Bloqueio</label><input type="number" id="item-bloqueio-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="item-deslocamento-aumento" class="block text-sm font-semibold mb-1">Deslocamento</label><input type="number" id="item-deslocamento-aumento" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                </div>
+                 <div>
+                    <h3 class="text-xl font-bold text-amber-300 mb-2">Aumento de Perícias</h3>
+                    <div id="item-pericias-checkboxes-container" class="space-y-2"></div>
+                    <div id="item-pericia-description-display" class="mt-4 p-4 rounded-lg bg-gray-700 hidden">
+                        <h4 id="itemPericiaDescriptionTitle" class="font-bold text-amber-300"></h4>
+                        <p id="itemPericiaDescriptionText" class="text-sm text-gray-300 mt-2"></p>
+                    </div>
+                </div>
+                <button type="submit" id="itemSubmitButton" class="w-full py-3 px-4 rounded-full text-lg font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 focus:outline-none transition duration-300 ease-in-out transform hover:scale-105 shadow-xl">
+                    Salvar Item
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal de Seleção de Personagem -->
     <div id="select-character-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
         <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 w-full max-w-sm border border-gray-700">
@@ -307,6 +366,9 @@
     <script type="module" src="./character_manager.js"></script>
     <script type="module" src="./magic_renderer.js"></script>
     <script type="module" src="./magic_manager.js"></script>
+    <script type="module" src="./item_renderer.js"></script>
+    <script type="module" src="./item_manager.js"></script>
     <script type="module" src="./navigation_manager.js"></script>
 </body>
 </html>
+

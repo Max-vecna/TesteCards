@@ -86,6 +86,23 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     });
 
     const mainAttributes = ['agilidade', 'carisma', 'forca', 'inteligencia', 'sabedoria', 'vigor'];
+    characterData.attributes = characterData.attributes || {
+        agilidade: 0,
+        carisma: 0,
+        forca: 0,
+        inteligencia: 0,
+        sabedoria: 0,
+        vigor: 0,
+        vida: 0,
+        vidaAtual: 0,
+        mana: 0,
+        manaAtual: 0,
+        armadura: 0,
+        esquiva: 0,
+        bloqueio: 0,
+        deslocamento: 0
+    };
+
     const attributeValues = mainAttributes.map(attr => parseInt(characterData.attributes[attr]) || 0);
     const maxAttributeValue = Math.max(...attributeValues, 1);
     const cdValue = 10 + (parseInt(characterData.level) || 0) + (parseInt(characterData.attributes.sabedoria) || 0);
