@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const contentDisplay = document.getElementById('content-display');
         
         if (characterInPlay) {
-            contentDisplay.innerHTML =renderFullCharacterSheet(characterInPlay, contentDisplay, false);
+            contentDisplay.innerHTML = await renderFullCharacterSheet(characterInPlay, false, 16/9, true); // <= LINHA MODIFICADA
         } else {
             contentDisplay.innerHTML = `
                 <div class="w-full h-full flex flex-col items-center justify-center">
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (cardType === 'character') {
                 const cardData = await getData('rpgCards', cardId);
                 if (cardData) {
-                    renderFullCharacterSheet(cardData, null, true);
+                    await renderFullCharacterSheet(cardData, true, 16 / 9, false); // <= LINHA MODIFICADA
                 }
             } else if (cardType === 'spell') {
                 const spellData = await getData('rpgSpells', cardId);

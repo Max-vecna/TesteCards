@@ -352,10 +352,40 @@ export async function removeCard(cardId) {
 /**
  * Renderiza a lista de miniaturas de personagens na interface.
  */
+// Substitua a função renderCharacterList existente em character_manager.js por esta versão
+
 export async function renderCharacterList() {
     const contentDisplay = document.getElementById('content-display');
-    contentDisplay.innerHTML = '';
+    contentDisplay.innerHTML = ''; // Limpa o conteúdo anterior
     const allCharacters = await getData('rpgCards');
+
+    // Gera as miniaturas de forma assíncrona, assim como em renderSpellList
+    const charactersHtmlArray = await Promise.all(allCharacters.map(async (char) => {
+        const characterSheetHtml = await renderFullCharacterSheet(char, false, 16/11, false);
+        const backgroundImage = char.backgroundImage ? `url('${URL.createObjectURL(bufferToBlob(char.backgroundImage, char.backgroundMimeType))}')` : '#2d3748';
+
+        return `
+            <div class="rpg-thumbnail bg-cover bg-center shadow-lg relative" data-action="view" data-type="character" data-id="${char.id}" style="background-image: ${backgroundImage};">
+                <div class="miniCard absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg overflow-hidden">
+                    ${characterSheetHtml}
+                </div>
+                <div class="thumbnail-actions absolute z-10">
+                    <button class="thumb-btn thumb-btn-menu">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <div class="thumbnail-menu" data-type="character">
+                        <button class="menu-item" data-action="edit" data-id="${char.id}"><i class="fas fa-edit"></i> Editar</button>
+                        <button class="menu-item" data-action="remove" data-id="${char.id}"><i class="fas fa-trash-alt"></i> Excluir</button>
+                        <button class="menu-item" data-action="export-json" data-id="${char.id}"><i class="fas fa-file-download"></i> Baixar</button>
+                        ${char.inPlay 
+                            ? `<button class="menu-item" data-action="remove-from-play" data-id="${char.id}"><i class="fas fa-sign-out-alt"></i> Remover de Jogo</button>` 
+                            : `<button class="menu-item" data-action="set-in-play" data-id="${char.id}"><i class="fas fa-play-circle"></i> Usar em Jogo</button>`}
+                    </div>
+                </div>
+            </div>
+        `;
+    }));
+
     const charactersHtml = `
         <div class="grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 overflow-y-auto p-6 pt-0">
             <div class="relative w-full h-full aspect-square" style="aspect-ratio: 120 / 160;">
@@ -370,55 +400,98 @@ export async function renderCharacterList() {
                     <input type="file" id="import-json-input" accept=".json" class="hidden">
                 </div>
             </div>
-
-            ${allCharacters.map(char => `
-                <div class="rpg-thumbnail bg-cover bg-center shadow-lg" data-action="view"  data-type="character" data-id="${char.id}" style="background-image: url('${char.backgroundImage ? URL.createObjectURL(bufferToBlob(char.backgroundImage, char.backgroundMimeType)) : 'https://placehold.co/120x160/4a5568/a0aec0?text=Fundo'}');">
-                    <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg">
-                        <img src="${char.image ? URL.createObjectURL(bufferToBlob(char.image, char.imageMimeType)) : 'https://placehold.co/60x60/a0aec0/4a5568?text=P'}" alt="${char.title}" class="w-16 h-16 rounded-full object-cover border-2 border-white mb-2">
-                        <h4 class="font-bold text-sm ellipse">${char.title}</h4>
-                        <span class="absolute top-2 left-2 bg-gray-800 text-white text-xs px-2 py-1 rounded-full">Nv.${char.level}</span>
-                    </div>
-                    <div class="thumbnail-actions absolute z-10">
-                        <button class="thumb-btn thumb-btn-menu">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                        <div class="thumbnail-menu" data-type="character">
-                            <button class="menu-item" data-action="edit" data-id="${char.id}"><i class="fas fa-edit"></i> Editar</button>
-                            <button class="menu-item" data-action="remove" data-id="${char.id}"><i class="fas fa-trash-alt"></i> Excluir</button>
-                            <button class="menu-item" data-action="export-json" data-id="${char.id}"><i class="fas fa-file-download"></i> Baixar</button>
-                            ${char.inPlay ? `<button class="menu-item" data-action="remove-from-play" data-id="${char.id}"><i class="fas fa-sign-out-alt"></i> Remover de Jogo</button>` : ''}
-                        </div>
-                    </div>
-                </div>
-            `).join('')}
+            ${charactersHtmlArray.join('')}
         </div>
     `;
-    contentDisplay.innerHTML += charactersHtml;
+    contentDisplay.innerHTML = charactersHtml;
 
-    // Adiciona o listener para o botão de importação, agora dentro da função de renderização
+    // -------- LÓGICA DE CENTRALIZAÇÃO DINÂMICA (COPIADA E ADAPTADA DE MAGIC_MANAGER.JS) --------
+    function debounce(fn, wait = 100) {
+        let t;
+        return (...args) => {
+            clearTimeout(t);
+            t = setTimeout(() => fn(...args), wait);
+        };
+    }
+
+    function centerCharacterSheetInMiniCard(miniCard) {
+        const sheet = miniCard.querySelector('#character-sheet'); // Alvo alterado para #character-sheet
+        if (!sheet) return;
+
+        const thumbRect = miniCard.getBoundingClientRect();
+        const sheetRect = sheet.getBoundingClientRect();
+
+        if (!isFinite(thumbRect.width) || !isFinite(sheetRect.width)) return;
+
+        let left = (thumbRect.width - sheetRect.width) / 2;
+        let top = (thumbRect.height - sheetRect.height) / 2;
+
+        if (!isFinite(left)) left = 0;
+        if (!isFinite(top)) top = 0;
+        
+        // Impede que a ficha saia dos limites da miniatura
+        left = Math.max(left, 0);
+        top = Math.max(top, 0);
+
+        sheet.style.position = 'absolute';
+        sheet.style.left = `${left}px`;
+        sheet.style.top = `${top}px`;
+    }
+
+    function centerAllCharacterSheets() {
+        document.querySelectorAll('.miniCard').forEach(centerCharacterSheetInMiniCard);
+    }
+
+    // Limpa observadores antigos se já existirem
+    if (window.__characterCenterRO) {
+        try { window.__characterCenterRO.disconnect(); } catch(e) {}
+        try { window.__characterCenterMO.disconnect(); } catch(e) {}
+        window.__characterCenterRO = null;
+        window.__characterCenterMO = null;
+    }
+
+    const ro = new ResizeObserver(entries => {
+        for (const entry of entries) {
+            centerCharacterSheetInMiniCard(entry.target);
+        }
+    });
+    window.__characterCenterRO = ro;
+
+    const gridContainer = contentDisplay.querySelector('.grid') || contentDisplay;
+    const mo = new MutationObserver(debounce(() => {
+        ro.disconnect();
+        document.querySelectorAll('.miniCard').forEach(el => ro.observe(el));
+        centerAllCharacterSheets();
+    }, 80));
+    window.__characterCenterMO = mo;
+    mo.observe(gridContainer, { childList: true, subtree: true });
+
+    document.querySelectorAll('.miniCard').forEach(el => ro.observe(el));
+    centerAllCharacterSheets();
+
+    window.addEventListener('resize', debounce(centerAllCharacterSheets, 120));
+    // -----------------------------------------------------------------------------------
+
     document.getElementById('import-cards-btn').addEventListener('click', () => {
         document.getElementById('import-json-input').click();
     });
 
-    // Ouve a mudança no input de arquivo para importar
     document.getElementById('import-json-input').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (file) {
             try {
                 const importedCard = await importCard(file);
                 if (importedCard) {
-                     // Use um modal customizado em vez de alert
                      showCustomAlert(`Personagem '${importedCard.title}' importado com sucesso!`);
                 } else {
                      showCustomAlert('Nenhum personagem encontrado no arquivo.');
                 }
-                const contentDisplay = document.getElementById('content-display');
                 contentDisplay.innerHTML = '';
-                renderCharacterList(); // Atualiza a lista de personagens
+                renderCharacterList();
             } catch (error) {
                 showCustomAlert('Erro ao importar arquivo. Verifique se é um JSON de personagem válido.');
             } finally {
-                e.target.value = ''; // Reseta o input para permitir a importação do mesmo arquivo novamente
+                e.target.value = '';
             }
         }
     });

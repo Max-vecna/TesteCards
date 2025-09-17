@@ -257,3 +257,11 @@ body {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+.miniCard
+{
+  background: url('icons/back.png');
+  background-size: cover;
+  background-position: center;
+  box-shadow: black 0px 0px 10px 0px inset;
+}

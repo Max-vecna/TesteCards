@@ -47,7 +47,7 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
     if (!sheetContainer) return;
 
     // Proporção base 16x10
-    const aspectRatio = aspect || (16 / 9);
+    const aspectRatio = aspect || (16 / 10);
 
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
@@ -120,7 +120,8 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
 
         var scale = isModal? 1 : .17;
         var origin = isModal?  "" : "transform-origin: top left";
-    const sheetHtml = `
+        
+        const sheetHtml = `
         <button id="close-spell-sheet-btn" class="absolute top-4 right-4 bg-red-600 hover:text-white z-10 thumb-btn" style="display:${isModal? "block": "none"}"><i class="fa-solid fa-xmark"></i></button>
         <div id="spell-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
             <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
@@ -228,4 +229,3 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
     };
     sheetContainer.addEventListener('click', overlayHandler);
 }
-

@@ -1,3 +1,5 @@
+import { saveData, getData } from './local_db.js'; // Adicionado para a funcionalidade de dinheiro
+
 function bufferToBlob(buffer, mimeType) {
     return new Blob([buffer], { type: mimeType });
 }
@@ -48,12 +50,13 @@ function getPredominantColor(imageUrl) {
 }
 
 
-export async function renderFullCharacterSheet(characterData, local, isModal = false) {
+export async function renderFullCharacterSheet(characterData, isModal, aspect, isInPlay) {
     const sheetContainer = document.getElementById('character-sheet-container');
+    // Se o container não existir e estivermos em modo modal, não faz nada.
     if (!sheetContainer) return;
 
     // Proporção base 248x346
-    const aspectRatio = 16 / 9;
+    const aspectRatio = aspect || 16 / 9;
 
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
@@ -82,21 +85,21 @@ export async function renderFullCharacterSheet(characterData, local, isModal = f
         return '#4a5568'; // Cor de fallback
     });
 
-    sheetContainer.style.background = `url('${imageBack}')`;
-    sheetContainer.style.backgroundSize = 'cover';
-    sheetContainer.style.backgroundPosition = 'center';
-    sheetContainer.style.boxShadow = 'inset 0px 0px 10px 0px black';
-    
     const mainAttributes = ['agilidade', 'carisma', 'forca', 'inteligencia', 'sabedoria', 'vigor'];
     const attributeValues = mainAttributes.map(attr => parseInt(characterData.attributes[attr]) || 0);
     const maxAttributeValue = Math.max(...attributeValues, 1);
     const cdValue = 10 + (parseInt(characterData.level) || 0) + (parseInt(characterData.attributes.sabedoria) || 0);
     const palette = { borderColor: predominantColor };
 
+    var scale = isModal ? 1 : .17;
+    if(isInPlay) scale = 1;
+
+    var origin = isModal ?  "" : "transform-origin: top left";
+
     const sheetHtml = `
-        <button id="close-sheet-btn" class="absolute top-4 right-4 bg-red-600 hover:text-white z-10 thumb-btn" style="display: ${isModal? 'block' : 'none'}"><i class="fa-solid fa-xmark"></i></button>
-        <div id="character-sheet" class="w-full max-w-lg h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="background-image: url('${imageUrl}'); background-size: cover; background-position: center; border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px;">        
-            <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
+            <button id="close-sheet-btn-${uniqueId}" class="absolute top-4 right-4 bg-red-600 hover:text-white z-10 thumb-btn" style="display: ${isModal ? 'block' : 'none'}"><i class="fa-solid fa-xmark"></i></button>
+            <div id="character-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
+                <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
             
             <div class="absolute top-4 right-2 p-2 rounded-full text-center">
                 <i class="fas fa-heart text-red-500 text-5xl"></i>
@@ -134,17 +137,16 @@ export async function renderFullCharacterSheet(characterData, local, isModal = f
                 <div id="anel-icon" class="w-8 h-8 mx-auto" style="background: url(icons/aim.png); background-size: contain;"></div>
             </div>
 
-            <div id="lore-icon" class="absolute top-20 left-4 rounded-full p-3 bg-black/50 flex items-center justify-center text-lg text-yellow-200 cursor-pointer" data-action="toggle-lore">
+            <div id="lore-icon-${uniqueId}" class="absolute top-20 left-4 rounded-full p-3 bg-black/50 flex items-center justify-center text-lg text-yellow-200 cursor-pointer" data-action="toggle-lore">
                 <i class="fas fa-book"></i>
             </div>
             <div id="money-icon" class="absolute money-container top-32 left-4 rounded-full p-2 bg-black/50 flex items-center justify-center text-sm text-amber-300 font-bold" data-action="open-money-modal" title="Alterar Dinheiro" style="writing-mode: vertical-rl; text-orientation: upright;">
                 💰$<span data-status="money">${characterData.dinheiro || 0}</span>
             </div>
             
-            <!-- Modal do Lore -->
-            <div id="lore-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 hidden transition-opacity duration-300">
+            <div id="lore-modal-${uniqueId}" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 hidden transition-opacity duration-300">
                 <div class="bg-gray-800 p-8 rounded-lg max-w-xl w-full text-white shadow-lg relative">
-                    <button id="close-lore-modal-btn" class="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full leading-none w-8 h-8 flex items-center justify-center">
+                    <button id="close-lore-modal-btn-${uniqueId}" class="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full leading-none w-8 h-8 flex items-center justify-center">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                     <h2 class="text-2xl font-bold mb-4 border-b pb-2">Lore do Personagem</h2>
@@ -188,33 +190,47 @@ export async function renderFullCharacterSheet(characterData, local, isModal = f
             </div>
         </div>
     `;
-    
-    if (!isModal){local.innerHTML = sheetHtml;}    
 
-    else{
-        sheetContainer.innerHTML = sheetHtml;
-        sheetContainer.classList.remove('hidden')
+    if (!isModal) {
+        
+        return sheetHtml;
+    }
 
-        // Lógica para o modal
-        const loreIcon = document.getElementById('lore-icon');
-        const loreModal = document.getElementById('lore-modal');
-        const closeLoreModalBtn = document.getElementById('close-lore-modal-btn');
-        const closeSheetBtn = document.getElementById('close-sheet-btn');
+    sheetContainer.style.background = `url('${imageBack}')`;
+    sheetContainer.style.backgroundSize = 'cover';
+    sheetContainer.style.backgroundPosition = 'center';
+    sheetContainer.style.boxShadow = 'inset 0px 0px 10px 0px black';
+    sheetContainer.innerHTML = sheetHtml;
+    sheetContainer.classList.remove('hidden');
 
-        if (loreIcon && loreModal && closeLoreModalBtn) {
-            loreIcon.addEventListener('click', () => {
-                loreModal.classList.remove('hidden');
-            });
+    const loreIcon = sheetContainer.querySelector(`#lore-icon-${uniqueId}`);
+    const loreModal = sheetContainer.querySelector(`#lore-modal-${uniqueId}`);
+    const closeLoreModalBtn = sheetContainer.querySelector(`#close-lore-modal-btn-${uniqueId}`);
+    const closeSheetBtn = sheetContainer.querySelector(`#close-sheet-btn-${uniqueId}`); // <-- ALTERADO
 
-            closeLoreModalBtn.addEventListener('click', () => {
-                loreModal.classList.add('hidden');
-            });
-        }
-
-        if (closeSheetBtn) {
-            closeSheetBtn.addEventListener('click', () => {
-                sheetContainer.classList.add('hidden');
-            });
-        }
+    const closeSheet = () => {
+        sheetContainer.classList.add('hidden');
+        sheetContainer.innerHTML = '';
+        if (imageUrl.startsWith('blob:')) URL.revokeObjectURL(imageUrl);
+        if (imageBack.startsWith('blob:')) URL.revokeObjectURL(imageBack);
     };
+
+    if (loreIcon && loreModal && closeLoreModalBtn) {
+        loreIcon.addEventListener('click', () => loreModal.classList.remove('hidden'));
+        closeLoreModalBtn.addEventListener('click', () => loreModal.classList.add('hidden'));
+    }
+
+    // LÓGICA CORRIGIDA E MAIS ROBUSTA
+    if (closeSheetBtn) {
+        // Clonar o botão remove event listeners antigos e garante que o novo será adicionado
+        const newBtn = closeSheetBtn.cloneNode(true);
+        closeSheetBtn.parentNode.replaceChild(newBtn, closeSheetBtn);
+        newBtn.addEventListener('click', closeSheet);
+    }
+    
+    sheetContainer.addEventListener('click', (e) => {
+        if (e.target === sheetContainer) {
+            closeSheet();
+        }
+    });
 }
