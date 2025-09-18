@@ -97,6 +97,15 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
                 </div>
             ` : ''}
 
+            <div class="absolute top-20 left-4">                                    
+                <p class="text-left text-xs">Custo de mana: ${spellData.manaCost || '-'}</p>
+                <p class="text-left text-xs"><strong>Execução:</strong> ${spellData.execution || '-'}</p>
+                <p class="text-left text-xs"><strong>Alcance:</strong> ${spellData.range || '-'}</p>
+                <p class="text-left text-xs"><strong>Alvo:</strong> ${spellData.target || '-'}</p>
+                <p class="text-left text-xs"><strong>Duração:</strong> ${spellData.duration || '-'}</p>
+                <p class="text-left text-xs"><strong>Resistência:</strong> ${spellData.resistencia || '-'}</p>
+            </div>
+
             ${(spellData.aumentos?.mana > 0) ? `
                 <div class="absolute top-4 left-2 p-2 rounded-full text-center">
                     <div class="icon-container mana-icon-container">
@@ -143,8 +152,7 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
                                 <p class="text-gray-300 text-xs" style="text-align:justify;white-wrap:break-word;">${spellData.true || 'Nenhuma descrição.'}</p>
                             </div>` : ''}
                         </div>
-                         <div class="grid grid-cols-5 gap-x-4 gap-y-1 text-xs my-2 mb-4">                         
-                            <div class="text-center">PM<br>${spellData.manaCost || 0}</div>
+                         <div class="grid grid-cols-5 gap-x-4 gap-y-1 text-xs my-2 mb-4"> 
                             <div class="text-center">EX<br>${spellData.execution || 0}</div>
                             <div class="text-center">AL<br>${spellData.range || 0}</div>
                             <div class="text-center">AV<br>${spellData.target || 0}</div>
