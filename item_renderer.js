@@ -86,7 +86,7 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
                             ${itemData.effect ? `       
                             <div class="p-4 rounded-3xl w-full" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; position: relative; z-index: 1; overflow-y: visible; display: flex; flex-direction: column; justify-content: flex-end;">
                                 <h4 class="font-semibold text-gray-300">Descrição</h4>
-                                <p class="text-gray-300 text-xs" style="text-align:justify;white-space:pre-line;overflow-wrap:break-word;">${itemData.description || 'Nenhuma descrição.'}</p>
+                                <p class="text-gray-300 text-xs" style="text-align:justify;white-space:pre-line;overflow-wrap:break-word;">${itemData.effect || 'Nenhuma descrição.'}</p>
                             </div>` : ''}
                         </div>
                          <div class="grid grid-cols-5 gap-x-4 gap-y-1 text-xs my-2 mb-4">
@@ -123,3 +123,4 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
         if (e.target === sheetContainer) closeSheet();
     });
 }
+
