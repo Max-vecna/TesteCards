@@ -421,7 +421,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         section.classList.remove('hidden');
         document.getElementById('main-content').classList.add('hidden');
         document.querySelector('nav').classList.add('hidden');
-        if (!isEditing && setupFunction) setupFunction();
+        if (setupFunction) setupFunction();
     }
 
     // Renderiza o personagem que está "em jogo"
@@ -631,6 +631,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         showView(spellCreationSection, true, () => {
                             spellForm.dataset.type = spellData.type || 'magia';
                             spellFormTitle.textContent = isHabilidade ? 'Editando Habilidade' : 'Editando Magia';
+                            spellSubmitButton.textContent = isHabilidade ? 'Salvar Habilidade' : 'Salvar Magia';
                             enhanceWrapper.classList.toggle('hidden', isHabilidade);
                             trueWrapper.classList.toggle('hidden', isHabilidade);
                         });

@@ -88,14 +88,7 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
                                 <h4 class="font-semibold text-gray-300">Descrição</h4>
                                 <p class="text-gray-300 text-xs" style="text-align:justify;white-space:pre-line;overflow-wrap:break-word;">${itemData.effect || 'Nenhuma descrição.'}</p>
                             </div>` : ''}
-                        </div>
-                         <div class="grid grid-cols-5 gap-x-4 gap-y-1 text-xs my-2 mb-4">
-                            <div class="text-center">EX<br>${itemData.execution || 0}</div>
-                            <div class="text-center">AL<br>${itemData.range || 0}</div>
-                            <div class="text-center">AV<br>${itemData.target || 0}</div>
-                            <div class="text-center">DU<br>${itemData.duration || 0}m</div>                            
-                            <div class="text-center">CD<br>${itemData.resistencia}</div>                            
-                        </div>
+                        </div>                        
                     </div>
                 </div>
             </div>
@@ -123,4 +116,3 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
         if (e.target === sheetContainer) closeSheet();
     });
 }
-
