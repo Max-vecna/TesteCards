@@ -4,52 +4,6 @@ function bufferToBlob(buffer, mimeType) {
     return new Blob([buffer], { type: mimeType });
 }
 
-/**
- * Extrai a cor média de uma imagem.
- * @param {string} imageUrl - URL da imagem.
- * @returns {Promise<string>} Uma promessa que resolve com a cor média em formato rgb().
- */
-function getPredominantColor(imageUrl) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = "Anonymous";
-        img.src = imageUrl;
-
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0, img.width, img.height);
-
-            try {
-                const imageData = ctx.getImageData(0, 0, img.width, img.height).data;
-                let r = 0, g = 0, b = 0;
-                let count = 0;
-                const step = 4 * 10; // Pula alguns pixels para otimização
-
-                for (let i = 0; i < imageData.length; i += step) {
-                    r += imageData[i];
-                    g += imageData[i + 1];
-                    b += imageData[i + 2];
-                    count++;
-                }
-
-                const avgR = Math.floor(r / count);
-                const avgG = Math.floor(g / count);
-                const avgB = Math.floor(b / count);
-
-                resolve(`rgb(${avgR}, ${avgG}, ${avgB})`);
-            } catch (e) {
-                reject(e);
-            }
-        };
-
-        img.onerror = (e) => reject(e);
-    });
-}
-
-
 export async function renderFullCharacterSheet(characterData, isModal, aspect, isInPlay) {
     const sheetContainer = document.getElementById('character-sheet-container');
     // Se o container não existir e estivermos em modo modal, não faz nada.
@@ -79,11 +33,8 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     // Gerar um ID dinâmico para evitar conflitos se houver vários cards
     const uniqueId = Date.now();
 
-    // Extrai a cor média da imagem de fundo
-    const predominantColor = await getPredominantColor(imageBack).catch(e => {
-        console.error("Erro ao extrair cor média:", e);
-        return '#4a5568'; // Cor de fallback
-    });
+    // Otimização: Usa a cor pré-calculada e armazenada no banco de dados.
+    const predominantColor = characterData.predominantColor || '#4a5568';
 
     const mainAttributes = ['agilidade', 'carisma', 'forca', 'inteligencia', 'sabedoria', 'vigor'];
     characterData.attributes = characterData.attributes || {
@@ -116,7 +67,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     const sheetHtml = `
             <button id="close-sheet-btn-${uniqueId}" class="absolute top-4 right-4 bg-red-600 hover:text-white z-10 thumb-btn" style="display: ${isModal ? 'block' : 'none'}"><i class="fa-solid fa-xmark"></i></button>
             <div id="character-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
-                <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
+                <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000, hwb(0deg 0% 100% / 50%), transparent, #0000008f, #0000008f, #000000a4);"></div>
             
             <div class="absolute top-4 right-2 p-2 rounded-full text-center">
                 <i class="fas fa-heart text-red-500 text-5xl"></i>
@@ -138,9 +89,10 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
                 </div>
             </div>
 
-            <div class="absolute top-4 left-1/2 -translate-x-1/2 text-center z-10">
-                <h3 class="text-2xl font-bold">${characterData.title}</h3>
-                <p class="text-md italic text-gray-300">${characterData.subTitle}</p>
+            <div class="absolute top-4 left-1/2 -translate-x-1/2 text-center z-10 w-full flex-max">
+                <h3 class="text-2xl font-bold" style="color: ${predominantColor}">${characterData.title}</h3>
+                <div class="rpg-card-title-divider" style="background: linear-gradient(to right, transparent, ${predominantColor}, transparent); width: 60%"> </div>
+                <p class="text-md italic text-gray-300" style="color: ${predominantColor}">${characterData.subTitle}</p>
             </div>
 
              <div class="absolute top-20 right-4 p-2 grid grid-row-8 md:grid-cols-10 gap-2 mb-4" style="background: #0000008f; border-radius: 12px;">

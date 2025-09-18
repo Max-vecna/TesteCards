@@ -2,33 +2,6 @@ function bufferToBlob(buffer, mimeType) {
     return new Blob([buffer], { type: mimeType });
 }
 
-function getPredominantColor(imageUrl) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = "Anonymous";
-        img.src = imageUrl;
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0, img.width, img.height);
-            try {
-                const data = ctx.getImageData(0, 0, img.width, img.height).data;
-                let r = 0, g = 0, b = 0, count = 0;
-                for (let i = 0; i < data.length; i += 20) { // amostragem de pixels
-                    r += data[i];
-                    g += data[i + 1];
-                    b += data[i + 2];
-                    count++;
-                }
-                resolve(`rgb(${Math.floor(r/count)}, ${Math.floor(g/count)}, ${Math.floor(b/count)})`);
-            } catch (e) { reject(e); }
-        };
-        img.onerror = reject;
-    });
-}
-
 export async function renderFullItemSheet(itemData, isModal, aspect) {
     const sheetContainer = document.getElementById('item-sheet-container');
     if (!sheetContainer) return '';
@@ -58,7 +31,7 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
         imageUrl = createdObjectUrl;
     }
 
-    const predominantColor = await getPredominantColor(imageUrl).catch(() => '#a0522d');
+    const predominantColor = itemData.predominantColor || '#a0522d';
     
     const scale = isModal ? 1 : .17;
     const origin = isModal ? "" : "transform-origin: top left";
@@ -66,10 +39,11 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
       const sheetHtml = `
           <button id="close-item-sheet-btn" class="absolute top-4 right-4 bg-red-600 hover:text-white z-10 thumb-btn" style="display:${isModal? "block": "none"}"><i class="fa-solid fa-xmark"></i></button>
         <div id="item-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
-            <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
+            <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000, hwb(0deg 0% 100% / 50%), transparent, #0000008f, #0000008f, #000000a4);"></div>
             
-            <div class="absolute top-4 left-1/2 -translate-x-1/2 text-center z-10">
-                <h3 class="text-2xl font-bold">${itemData.name}</h3>
+            <div class="absolute top-4 left-1/2 -translate-x-1/2 text-center z-10 w-full flex-max">
+                <h3 class="text-2xl font-bold" style="color: ${predominantColor}">${itemData.name}</h3>
+                <div class="rpg-card-title-divider" style="background: linear-gradient(to right, transparent, ${predominantColor}, transparent); width: 60%"> </div>
             </div>
 
             ${(itemData.aumentos?.vida > 0) ? `
@@ -109,7 +83,7 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
                 <div class="w-full text-sm text-left" style="display: flex; flex-direction: row; gap: 12px;">
                     <div class="rounded-3xl w-full" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; position: relative; z-index: 1; overflow-y: visible; display: flex; flex-direction: column; justify-content: flex-end;">
                         <div class="scrollable-content text-sm text-left" style="display: flex; flex-direction: row; overflow-y: scroll;gap: 12px; scroll-snap-type: x mandatory;">
-                            ${itemData.description ? `       
+                            ${itemData.effect ? `       
                             <div class="p-4 rounded-3xl w-full" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; position: relative; z-index: 1; overflow-y: visible; display: flex; flex-direction: column; justify-content: flex-end;">
                                 <h4 class="font-semibold text-gray-300">Descrição</h4>
                                 <p class="text-gray-300 text-xs" style="text-align:justify;white-space:pre-line;overflow-wrap:break-word;">${itemData.description || 'Nenhuma descrição.'}</p>
@@ -149,4 +123,3 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
         if (e.target === sheetContainer) closeSheet();
     });
 }
-

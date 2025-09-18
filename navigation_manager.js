@@ -92,7 +92,7 @@ async function renderCharacterList() {
     const allCharacters = await getData('rpgCards');
 
     const container = document.createElement('div');
-    container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 overflow-y-auto p-6 pt-0';
+    container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 p-6 pt-0';
     
     const addButtonWrapper = document.createElement('div');
     addButtonWrapper.className = 'relative w-full h-full aspect-square';
@@ -135,8 +135,8 @@ async function renderCharacterList() {
                     <button class="menu-item" data-action="remove" data-id="${char.id}"><i class="fas fa-trash-alt"></i> Excluir</button>
                     <button class="menu-item" data-action="export-json" data-id="${char.id}"><i class="fas fa-file-download"></i> Baixar</button>
                     ${char.inPlay 
-                        ? `<button class="menu-item" data-action="remove-from-play" data-id="${char.id}"><i class="fas fa-sign-out-alt"></i> Remover de Jogo</button>` 
-                        : `<button class="menu-item" data-action="set-in-play" data-id="${char.id}"><i class="fas fa-play-circle"></i> Usar em Jogo</button>`}
+                        ? `<button class="menu-item" data-action="remove-from-play" data-id="${char.id}"><i class="fas fa-sign-out-alt"></i> Remover</button>` 
+                        : `<button class="menu-item" data-action="set-in-play" data-id="${char.id}"><i class="fas fa-play-circle"></i> Usar</button>`}
                 </div>
             </div>
         `;
@@ -185,7 +185,7 @@ async function renderSpellList(type = 'magias') {
     }
 
     const gridContainer = document.createElement('div');
-    gridContainer.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 overflow-y-auto p-6 pt-0';
+    gridContainer.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 p-6 pt-0';
     
     const buttonText = type === 'magias' ? 'Adicionar Magia' : 'Adicionar Habilidade';
     const buttonAction = type === 'magias' ? 'add-spell' : 'add-habilidade';
@@ -272,7 +272,7 @@ async function renderItemList() {
     const allItems = await getData('rpgItems');
 
     const container = document.createElement('div');
-    container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 overflow-y-auto p-6 pt-0';
+    container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 p-6 pt-0';
 
     const addButtonWrapper = document.createElement('div');
     addButtonWrapper.className = 'relative w-full h-full aspect-square';
@@ -577,11 +577,39 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.preventDefault();
             e.stopPropagation();
             const menu = menuBtn.nextElementSibling;
-            document.querySelectorAll('.thumbnail-menu.active').forEach(m => {
-                if (m !== menu) m.classList.remove('active');
+            const parentThumbnail = menuBtn.closest('.rpg-thumbnail');
+            const actionsContainer = menuBtn.parentElement;
+            const isCurrentlyActive = menu.classList.contains('active');
+
+            // 1. Fecha todos os menus primeiro, resetando suas classes de posicionamento.
+            document.querySelectorAll('.thumbnail-menu.active').forEach(activeMenu => {
+                activeMenu.classList.remove('open-right', 'open-up');
+                activeMenu.classList.remove('active');
+                activeMenu.closest('.rpg-thumbnail')?.classList.remove('menu-active');
+                
             });
-            menu.classList.toggle('active');
-            return;
+
+            // 2. Se o menu clicado não estava ativo, abre-o e calcula a posição.
+            if (!isCurrentlyActive) {
+                menu.classList.add('active');
+                parentThumbnail?.classList.add('menu-active');
+
+                const thumbRect = parentThumbnail.getBoundingClientRect();
+                const menuWidth = 150; // Largura definida no CSS
+                const menuHeight = 160; // Altura máxima estimada do menu
+                const margin = 10; // Uma pequena margem da borda da tela
+
+                // Verificação Horizontal: Há espaço suficiente à esquerda para o menu abrir?
+                if ((thumbRect.right - menuWidth) < margin) {
+                    menu.classList.add('open-right');
+                }
+
+                // Verificação Vertical: Há espaço suficiente abaixo para o menu abrir?
+                if ((thumbRect.top + 32 + menuHeight) > window.innerHeight - margin) {
+                    menu.classList.add('open-up');
+                }
+            }
+            return; // Impede que o evento continue e feche o menu recém-aberto
         }
         
         if (menuItem) {
@@ -643,10 +671,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        // Se clicar fora de qualquer menu, fecha todos.
         if (!e.target.closest('.thumbnail-menu')) {
-            document.querySelectorAll('.thumbnail-menu.active').forEach(m => m.classList.remove('active'));
+            document.querySelectorAll('.thumbnail-menu.active').forEach(m => {
+                m.classList.remove('open-right', 'open-up');
+                m.classList.remove('active');
+                m.closest('.rpg-thumbnail')?.classList.remove('menu-active');                
+            });
         }
     });
 });
-
 

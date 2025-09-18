@@ -89,6 +89,47 @@ function base64ToArrayBuffer(base64) {
     return bytes.buffer;
 }
 
+function getPredominantColor(imageUrl) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.src = imageUrl;
+
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0, img.width, img.height);
+
+            try {
+                const imageData = ctx.getImageData(0, 0, img.width, img.height).data;
+                let r = 0, g = 0, b = 0;
+                let count = 0;
+                const step = 4 * 10;
+
+                for (let i = 0; i < imageData.length; i += step) {
+                    r += imageData[i];
+                    g += imageData[i + 1];
+                    b += imageData[i + 2];
+                    count++;
+                }
+
+                const avgR = Math.floor(r / count);
+                const avgG = Math.floor(g / count);
+                const avgB = Math.floor(b / count);
+
+                resolve(`rgb(${avgR}, ${avgG}, ${avgB})`);
+            } catch (e) {
+                reject(e);
+            }
+        };
+
+        img.onerror = (e) => reject(e);
+    });
+}
+
+
 /**
  * Função para renderizar as perícias no formulário de magia.
  * @param {Array} [selectedPericias] - Um array de objetos de perícias para pré-selecionar.
@@ -167,7 +208,8 @@ export async function saveSpellCard(spellForm, type) {
     const spellRangeInput = document.getElementById('spellRange');
     const spellTargetInput = document.getElementById('spellTarget');
     const spellDurationInput = document.getElementById('spellDuration');
-    const spellResistenciaInput = document.getElementById('spellResistencia');
+    const spellResistenciaInput = document.getElementById('spellResistencia');    
+    const spellManaCostInput = document.getElementById('spellManaCost');
     const spellDescriptionInput = document.getElementById('spellDescription');
     const spellEnhanceInput = document.getElementById('spellEnhance');
     const spellTrueInput = document.getElementById('spellTrue');
@@ -213,6 +255,13 @@ export async function saveSpellCard(spellForm, type) {
     
     const imageBuffer = spellImageFile ? await readFileAsArrayBuffer(spellImageFile) : null;
     
+    let predominantColor = null;
+    if (imageBuffer && spellImageFile) {
+        const tempUrl = URL.createObjectURL(bufferToBlob(imageBuffer, spellImageFile.type));
+        predominantColor = await getPredominantColor(tempUrl).catch(() => '#00796B');
+        URL.revokeObjectURL(tempUrl);
+    }
+
     let spellData;
     if (currentEditingSpellId) {
         spellData = await getData('rpgSpells', currentEditingSpellId);
@@ -224,13 +273,15 @@ export async function saveSpellCard(spellForm, type) {
             target: spellTargetInput.value,
             duration: spellDurationInput.value,
             resistencia: spellResistenciaInput.value,
+            manaCost: parseInt(spellManaCostInput.value) || 0,
             description: spellDescriptionInput.value,
             enhance: spellEnhanceInput.value,
             true: spellTrueInput.value,
             aumentos: attributesAumento,
-            type: type, // Atualiza o tipo em caso de edição
+            type: type,
             image: imageBuffer || spellData.image,
             imageMimeType: spellImageFile ? spellImageFile.type : spellData.imageMimeType,
+            predominantColor: predominantColor || spellData.predominantColor || '#00796B'
         });
     } else {
         spellData = {
@@ -241,13 +292,15 @@ export async function saveSpellCard(spellForm, type) {
             target: spellTargetInput.value,
             duration: spellDurationInput.value,
             resistencia: spellResistenciaInput.value,
+            manaCost: parseInt(spellManaCostInput.value) || 0,
             description: spellDescriptionInput.value,
             enhance: spellEnhanceInput.value,
             true: spellTrueInput.value,
             aumentos: attributesAumento,
-            type: type, // Define o tipo na criação
+            type: type,
             image: imageBuffer,
             imageMimeType: spellImageFile ? spellImageFile.type : null,
+            predominantColor: predominantColor || '#00796B'
         };
     }
 
@@ -273,7 +326,8 @@ export async function editSpell(spellId) {
     const spellRangeInput = document.getElementById('spellRange');
     const spellTargetInput = document.getElementById('spellTarget');
     const spellDurationInput = document.getElementById('spellDuration');
-    const spellResistenciaInput = document.getElementById('spellResistencia');
+    const spellResistenciaInput = document.getElementById('spellResistencia');    
+    const spellManaCostInput = document.getElementById('spellManaCost');
     const spellDescriptionInput = document.getElementById('spellDescription');
     const spellEnhanceInput = document.getElementById('spellEnhance');
     const spellTrueInput = document.getElementById('spellTrue');
@@ -303,6 +357,7 @@ export async function editSpell(spellId) {
     spellTargetInput.value = spellData.target;
     spellDurationInput.value = spellData.duration;
     spellResistenciaInput.value = spellData.resistencia;
+    spellManaCostInput.value = spellData.manaCost || 0;
     spellDescriptionInput.value = spellData.description;
     spellEnhanceInput.value = spellData.enhance;
     spellTrueInput.value = spellData.true;

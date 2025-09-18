@@ -69,7 +69,13 @@ body {
   
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
   overflow: visible; /* Garante que o menu não seja cortado */
+  z-index: 1; /* Adiciona um contexto de empilhamento base */
 }
+
+.rpg-thumbnail.menu-active {
+    z-index: 100; /* Garante que o card com o menu ativo fique por cima dos outros */
+}
+
 .rpg-thumbnail:hover {
   transform: translateY(-4px);
   box-shadow: 0 6px 12px rgba(0,0,0,0.2);
@@ -98,8 +104,15 @@ body {
 /* Botões de Ação e Menu */
 .thumbnail-actions {
   position: absolute;
-  top: 8px;
-  right: -12px;/* Aumentado para garantir que o menu fique por cima */
+  top: 10px;
+  right: -10px;
+  z-index: 150;
+}
+
+/* Modificador para ancorar o menu à esquerda do card */
+.thumbnail-actions.anchor-left {
+    right: auto;
+    left: 8px;
 }
 
 .thumb-btn {
@@ -125,28 +138,45 @@ body {
 
 .thumbnail-menu {
   position: absolute;
-  top: -24px; /* Posição abaixo do botão de menu */
-  right: 0;
+  top: 32px; /* Posição padrão: abaixo do botão */
+  right: 0; /* Posição padrão: alinhado à direita da âncora, abrindo para a esquerda */
   background-color: #2a3447;
   border: 1px solid #4a5568;
   border-radius: 8px;
   padding: 0.5rem;
-  z-index: 200; /* Aumentado para garantir que o menu fique por cima */
+  z-index: 200; 
   box-shadow: 0 5px 15px rgba(0,0,0,0.3);
   
-  /* Estado inicial (escondido) */
   opacity: 0;
   transform: scale(0.95) translateY(-10px);
-  transform-origin: top right;
-  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  transform-origin: top right; /* Animação padrão */
+  transition:  transform 0.15s ease-out;
   pointer-events: none;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
+/* Modificador para abrir o menu para a direita */
+.thumbnail-menu.open-right {
+    right: auto;
+    left: 0;
+    transform-origin: top left;
+}
+
+/* Modificador para abrir o menu para cima */
+.thumbnail-menu.open-up {
+    top: auto;
+    bottom: 100%; /* Posiciona o menu acima do botão de âncora */
+    transform-origin: bottom right; /* Ajusta a origem da animação */
+}
+
+/* Combinação para abrir para cima e para a direita */
+.thumbnail-menu.open-up.open-right {
+    transform-origin: bottom left;
+}
+
 .thumbnail-menu.active {
-  /* Estado visível */
   opacity: 1;
   transform: scale(1) translateY(0);
   pointer-events: auto;
@@ -265,4 +295,19 @@ body {
   background-size: cover;
   background-position: center;
   box-shadow: black 0px 0px 10px 0px inset;
+}
+
+.rpg-card-title-divider {
+    height: 2px;
+    width: 80%;
+    background: linear-gradient(to right, transparent, var(--border-color, #6b7280), transparent);
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.flex-max
+{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }

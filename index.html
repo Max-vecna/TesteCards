@@ -60,7 +60,7 @@
 
         <!-- Dynamic Content Display -->
         <main class="w-full h-full max-w-6xl flex-grow bg-gray-800 rounded-2xl shadow-2xl flex flex-col items-center pt-4">
-            <div id="content-display" class="w-full h-full flex flex-col items-center">
+            <div id="content-display" class="w-full h-full flex flex-col items-center overflow-y-auto">
                 <!-- Conteúdo dinâmico será injetado aqui pelo JavaScript -->
             </div>
         </main>
@@ -189,22 +189,14 @@
                 <div><label for="spellName" class="block text-sm font-semibold mb-1">Nome</label><input type="text"
                         id="spellName" placeholder="Ex: Curar Ferimentos 1° Círculo" required
                         class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
-                <div><label for="spellExecution" class="block text-sm font-semibold mb-1">Execução</label><input
-                        type="text" id="spellExecution" placeholder="Ex: padrão"
-                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
-                <div><label for="spellRange" class="block text-sm font-semibold mb-1">Alcance</label><input
-                        type="text" id="spellRange" placeholder="Ex: toque"
-                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
-                <div><label for="spellTarget" class="block text-sm font-semibold mb-1">Alvo</label><input
-                        type="text" id="spellTarget" placeholder="Ex: 1 ser"
-                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
-                <div><label for="spellDuration" class="block text-sm font-semibold mb-1">Duração</label><input
-                        type="text" id="spellDuration" placeholder="Ex: instantânea"
-                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
-                <div><label for="spellResistencia"
-                        class="block text-sm font-semibold mb-1">Resistência</label><input type="text"
-                        id="spellResistencia" placeholder="Ex: instantânea"
-                        class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label for="spellManaCost" class="block text-sm font-semibold mb-1">Gasto de Mana</label><input type="number" id="spellManaCost" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="spellExecution" class="block text-sm font-semibold mb-1">Execução</label><input type="text" id="spellExecution" placeholder="Ex: padrão" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="spellRange" class="block text-sm font-semibold mb-1">Alcance</label><input type="text" id="spellRange" placeholder="Ex: toque" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="spellTarget" class="block text-sm font-semibold mb-1">Alvo</label><input type="text" id="spellTarget" placeholder="Ex: 1 ser" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="spellDuration" class="block text-sm font-semibold mb-1">Duração</label><input type="text" id="spellDuration" placeholder="Ex: instantânea" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                    <div><label for="spellResistencia" class="block text-sm font-semibold mb-1">Resistência</label><input type="text" id="spellResistencia" placeholder="Ex: N/A" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
+                </div>
                 <div><label for="spellDescription"
                         class="block text-sm font-semibold mb-1">Descrição</label><textarea id="spellDescription"
                         rows="4" placeholder="Ex: Você canaliza energia positiva para curar..."

@@ -2,46 +2,6 @@ function bufferToBlob(buffer, mimeType) {
     return new Blob([buffer], { type: mimeType });
 }
 
-function getPredominantColor(imageUrl) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = "Anonymous";
-        img.src = imageUrl;
-
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0, img.width, img.height);
-
-            try {
-                const imageData = ctx.getImageData(0, 0, img.width, img.height).data;
-                let r = 0, g = 0, b = 0;
-                let count = 0;
-                const step = 4 * 10; // Pula alguns pixels para otimização
-
-                for (let i = 0; i < imageData.length; i += step) {
-                    r += imageData[i];
-                    g += imageData[i + 1];
-                    b += imageData[i + 2];
-                    count++;
-                }
-
-                const avgR = Math.floor(r / count);
-                const avgG = Math.floor(g / count);
-                const avgB = Math.floor(b / count);
-
-                resolve(`rgb(${avgR}, ${avgG}, ${avgB})`);
-            } catch (e) {
-                reject(e);
-            }
-        };
-
-        img.onerror = (e) => reject(e);
-    });
-}
-
 export async function renderFullSpellSheet(spellData, isModal, aspect) {
     const sheetContainer = document.getElementById('spell-sheet-container');
     if (!sheetContainer) return;
@@ -74,11 +34,8 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
         imageUrl = 'https://placehold.co/400x400/00796B/B2DFDB?text=Magia';
     }
 
-    // Extrai a cor média da imagem de fundo
-    const predominantColor = await getPredominantColor(imageUrl).catch(e => {
-        console.error("Erro ao extrair cor média:", e);
-        return '#4a5568'; // Cor de fallback
-    });
+    // Otimização: Usa a cor pré-calculada e armazenada no banco de dados.
+    const predominantColor = spellData.predominantColor || '#00796B';
 
     // Obter as classes de ícones para os atributos de combate
     const attributeIcons = {
@@ -124,10 +81,11 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
         const sheetHtml = `
         <button id="close-spell-sheet-btn" class="absolute top-4 right-4 bg-red-600 hover:text-white z-10 thumb-btn" style="display:${isModal? "block": "none"}"><i class="fa-solid fa-xmark"></i></button>
         <div id="spell-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
-            <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
+            <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000, hwb(0deg 0% 100% / 50%), transparent, #0000008f, #0000008f, #000000a4);"></div>
             
-            <div class="absolute top-4 left-1/2 -translate-x-1/2 text-center z-10">
-                <h3 class="text-2xl font-bold">${spellData.name}</h3>
+            <div class="absolute top-4 left-1/2 -translate-x-1/2 text-center z-10 w-full flex-max">
+                <h3 class="text-2xl font-bold" style="color: ${predominantColor}">${spellData.name}</h3>
+                <div class="rpg-card-title-divider" style="background: linear-gradient(to right, transparent, ${predominantColor}, transparent); width: 60%"> </div>
             </div>
 
             ${(spellData.aumentos?.vida > 0) ? `
@@ -151,7 +109,7 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
             ` : ''}
             
             <div class="absolute top-20 right-4 p-2 grid grid-row-8 md:grid-cols-10 gap-2 mb-4" style="background: #0000008f; border-radius: 12px;">
-                ${(spellData.aumentos?.armadura > 0) ? `<div id="elmo-icon" class="w-8 h-8 mx-auto iconMagic" style="background: url(icons/spartan.png); background-size: contain;">${spellData.aumentos.armadura}</div>` : ''}
+                ${(spellData.aumentos?.armadura > 0) ? `<div id="elmo-icon" class="w-8 h-8 mx-auto iconMagic" style="background: url(Default/spartan.png); background-size: contain;">${spellData.aumentos.armadura}</div>` : ''}
                 ${(spellData.aumentos?.esquiva > 0) ? `<div id="espada-icon" class="w-8 h-8 mx-auto iconMagic" style="background: url(icons/paper-plane.png); background-size: contain;">${spellData.aumentos.esquiva}</div>` : ''}
                 ${(spellData.aumentos?.bloqueio > 0) ? `<div id="escudo-icon" class="w-8 h-8 mx-auto iconMagic" style="background: url(icons/token.png); background-size: contain;">${spellData.aumentos.bloqueio}</div>` : ''}
                 ${(spellData.aumentos?.deslocamento > 0) ? `<div id="bota-icon" class="w-8 h-8 mx-auto iconMagic" style="background: url(icons/boot.png); background-size: contain;">${spellData.aumentos.deslocamento}</div>` : ''}
@@ -185,7 +143,8 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
                                 <p class="text-gray-300 text-xs" style="text-align:justify;white-wrap:break-word;">${spellData.true || 'Nenhuma descrição.'}</p>
                             </div>` : ''}
                         </div>
-                         <div class="grid grid-cols-5 gap-x-4 gap-y-1 text-xs my-2 mb-4">
+                         <div class="grid grid-cols-5 gap-x-4 gap-y-1 text-xs my-2 mb-4">                         
+                            <div class="text-center">PM<br>${spellData.manaCost || 0}</div>
                             <div class="text-center">EX<br>${spellData.execution || 0}</div>
                             <div class="text-center">AL<br>${spellData.range || 0}</div>
                             <div class="text-center">AV<br>${spellData.target || 0}</div>
