@@ -92,7 +92,7 @@ async function renderCharacterList() {
     const allCharacters = await getData('rpgCards');
 
     const container = document.createElement('div');
-    container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 p-6 pt-0';
+    container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 overflow-y-auto p-6 pt-0';
     
     const addButtonWrapper = document.createElement('div');
     addButtonWrapper.className = 'relative w-full h-full aspect-square';
@@ -135,8 +135,8 @@ async function renderCharacterList() {
                     <button class="menu-item" data-action="remove" data-id="${char.id}"><i class="fas fa-trash-alt"></i> Excluir</button>
                     <button class="menu-item" data-action="export-json" data-id="${char.id}"><i class="fas fa-file-download"></i> Baixar</button>
                     ${char.inPlay 
-                        ? `<button class="menu-item" data-action="remove-from-play" data-id="${char.id}"><i class="fas fa-sign-out-alt"></i> Remover</button>` 
-                        : `<button class="menu-item" data-action="set-in-play" data-id="${char.id}"><i class="fas fa-play-circle"></i> Usar</button>`}
+                        ? `<button class="menu-item" data-action="remove-from-play" data-id="${char.id}"><i class="fas fa-sign-out-alt"></i> Remover de Jogo</button>` 
+                        : `<button class="menu-item" data-action="set-in-play" data-id="${char.id}"><i class="fas fa-play-circle"></i> Usar em Jogo</button>`}
                 </div>
             </div>
         `;
@@ -185,7 +185,7 @@ async function renderSpellList(type = 'magias') {
     }
 
     const gridContainer = document.createElement('div');
-    gridContainer.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 p-6 pt-0';
+    gridContainer.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 overflow-y-auto p-6 pt-0';
     
     const buttonText = type === 'magias' ? 'Adicionar Magia' : 'Adicionar Habilidade';
     const buttonAction = type === 'magias' ? 'add-spell' : 'add-habilidade';
@@ -272,7 +272,7 @@ async function renderItemList() {
     const allItems = await getData('rpgItems');
 
     const container = document.createElement('div');
-    container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 p-6 pt-0';
+    container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 overflow-y-auto p-6 pt-0';
 
     const addButtonWrapper = document.createElement('div');
     addButtonWrapper.className = 'relative w-full h-full aspect-square';
@@ -388,6 +388,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const spellSubmitButton = document.getElementById('spellSubmitButton');
     const enhanceWrapper = document.getElementById('enhance-wrapper');
     const trueWrapper = document.getElementById('true-wrapper');
+    const manaCostWrapper = document.getElementById('mana-cost-wrapper');
 
     const itemForm = document.getElementById('itemForm');
     const itemFormTitle = document.getElementById('item-form-title');
@@ -421,7 +422,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         section.classList.remove('hidden');
         document.getElementById('main-content').classList.add('hidden');
         document.querySelector('nav').classList.add('hidden');
-        if (setupFunction) setupFunction();
+        if (!isEditing && setupFunction) setupFunction();
     }
 
     // Renderiza o personagem que está "em jogo"
@@ -509,6 +510,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             spellSubmitButton.textContent = isHabilidade ? 'Criar Habilidade' : 'Criar Magia';
             enhanceWrapper.classList.toggle('hidden', isHabilidade);
             trueWrapper.classList.toggle('hidden', isHabilidade);
+            // manaCostWrapper.classList.toggle('hidden', isHabilidade); // Removido para mostrar sempre
             populateSpellPericiasCheckboxes();
         });
         if (action === "add-item") showView(itemCreationSection, false, () => {
@@ -577,39 +579,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.preventDefault();
             e.stopPropagation();
             const menu = menuBtn.nextElementSibling;
-            const parentThumbnail = menuBtn.closest('.rpg-thumbnail');
-            const actionsContainer = menuBtn.parentElement;
-            const isCurrentlyActive = menu.classList.contains('active');
-
-            // 1. Fecha todos os menus primeiro, resetando suas classes de posicionamento.
-            document.querySelectorAll('.thumbnail-menu.active').forEach(activeMenu => {
-                activeMenu.classList.remove('open-right', 'open-up');
-                activeMenu.classList.remove('active');
-                activeMenu.closest('.rpg-thumbnail')?.classList.remove('menu-active');
-                
+            
+            document.querySelectorAll('.thumbnail-menu.active').forEach(m => {
+                if (m !== menu) m.classList.remove('active', 'menu-left');
             });
+            
+            menu.classList.toggle('active');
 
-            // 2. Se o menu clicado não estava ativo, abre-o e calcula a posição.
-            if (!isCurrentlyActive) {
-                menu.classList.add('active');
-                parentThumbnail?.classList.add('menu-active');
+            if (menu.classList.contains('active')) {
+                const menuRect = menu.getBoundingClientRect();
+                const bodyRect = document.body.getBoundingClientRect();
 
-                const thumbRect = parentThumbnail.getBoundingClientRect();
-                const menuWidth = 150; // Largura definida no CSS
-                const menuHeight = 160; // Altura máxima estimada do menu
-                const margin = 10; // Uma pequena margem da borda da tela
-
-                // Verificação Horizontal: Há espaço suficiente à esquerda para o menu abrir?
-                if ((thumbRect.right - menuWidth) < margin) {
-                    menu.classList.add('open-right');
+                if (menuRect.right > bodyRect.right - 10) { // 10px de margem
+                    menu.classList.add('menu-left');
+                } else {
+                    menu.classList.remove('menu-left');
                 }
-
-                // Verificação Vertical: Há espaço suficiente abaixo para o menu abrir?
-                if ((thumbRect.top + 32 + menuHeight) > window.innerHeight - margin) {
-                    menu.classList.add('open-up');
-                }
+            } else {
+                 menu.classList.remove('menu-left');
             }
-            return; // Impede que o evento continue e feche o menu recém-aberto
+
+            return;
         }
         
         if (menuItem) {
@@ -628,19 +618,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const spellData = await getData('rpgSpells', cardId);
                     if (spellData) {
                         const isHabilidade = spellData.type === 'habilidade';
-                        showView(spellCreationSection, true, () => {
-                            spellForm.dataset.type = spellData.type || 'magia';
-                            spellFormTitle.textContent = isHabilidade ? 'Editando Habilidade' : 'Editando Magia';
-                            spellSubmitButton.textContent = isHabilidade ? 'Salvar Habilidade' : 'Salvar Magia';
-                            enhanceWrapper.classList.toggle('hidden', isHabilidade);
-                            trueWrapper.classList.toggle('hidden', isHabilidade);
-                        });
+                        // Atualiza a UI do formulário ANTES de mostrar
+                        spellForm.dataset.type = spellData.type || 'magia';
+                        spellFormTitle.textContent = isHabilidade ? 'Editando Habilidade' : 'Editando Magia';
+                        spellSubmitButton.textContent = isHabilidade ? 'Salvar Habilidade' : 'Salvar Magia';
+                        enhanceWrapper.classList.toggle('hidden', isHabilidade);
+                        trueWrapper.classList.toggle('hidden', isHabilidade);
+                        // manaCostWrapper.classList.toggle('hidden', isHabilidade); // Removido para mostrar sempre
+                        
+                        showView(spellCreationSection, true);
                         await editSpell(cardId);
                     }
                 } else if (cardType === 'item') {
-                    showView(itemCreationSection, true, () => {
-                        itemFormTitle.textContent = 'Editando Item';
-                    });
+                    itemFormTitle.textContent = 'Editando Item';
+                    itemSubmitButton.textContent = 'Salvar Item';
+                    showView(itemCreationSection, true);
                     await editItem(cardId);
                 }
             } else if (action === 'remove' || action === 'delete') {
@@ -659,6 +651,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (isSettingInPlay) {
                     await Promise.all(allCharacters.map(c => {
                         if (c.inPlay) { c.inPlay = false; return saveData('rpgCards', c); }
+                        return null;
                     }));
                 }
                 const charToUpdate = allCharacters.find(c => c.id === cardId);
@@ -672,13 +665,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Se clicar fora de qualquer menu, fecha todos.
         if (!e.target.closest('.thumbnail-menu')) {
-            document.querySelectorAll('.thumbnail-menu.active').forEach(m => {
-                m.classList.remove('open-right', 'open-up');
-                m.classList.remove('active');
-                m.closest('.rpg-thumbnail')?.classList.remove('menu-active');                
-            });
+            document.querySelectorAll('.thumbnail-menu.active').forEach(m => m.classList.remove('active', 'menu-left'));
         }
     });
 });

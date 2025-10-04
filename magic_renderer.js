@@ -2,6 +2,46 @@ function bufferToBlob(buffer, mimeType) {
     return new Blob([buffer], { type: mimeType });
 }
 
+function getPredominantColor(imageUrl) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.src = imageUrl;
+
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0, img.width, img.height);
+
+            try {
+                const imageData = ctx.getImageData(0, 0, img.width, img.height).data;
+                let r = 0, g = 0, b = 0;
+                let count = 0;
+                const step = 4 * 10; // Pula alguns pixels para otimização
+
+                for (let i = 0; i < imageData.length; i += step) {
+                    r += imageData[i];
+                    g += imageData[i + 1];
+                    b += imageData[i + 2];
+                    count++;
+                }
+
+                const avgR = Math.floor(r / count);
+                const avgG = Math.floor(g / count);
+                const avgB = Math.floor(b / count);
+
+                resolve(`rgb(${avgR}, ${avgG}, ${avgB}, 30%)`);
+            } catch (e) {
+                reject(e);
+            }
+        };
+
+        img.onerror = (e) => reject(e);
+    });
+}
+
 export async function renderFullSpellSheet(spellData, isModal, aspect) {
     const sheetContainer = document.getElementById('spell-sheet-container');
     if (!sheetContainer) return;
@@ -34,189 +74,124 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
         imageUrl = 'https://placehold.co/400x400/00796B/B2DFDB?text=Magia';
     }
 
-    // Otimização: Usa a cor pré-calculada e armazenada no banco de dados.
-    const predominantColor = spellData.predominantColor || '#00796B';
+    // Extrai a cor média da imagem de fundo
+    const predominantColor = await getPredominantColor(imageUrl).catch(e => {
+        console.error("Erro ao extrair cor média:", e);
+        return '#4a5568'; // Cor de fallback
+    });
 
-    // Obter as classes de ícones para os atributos de combate
-    const attributeIcons = {
-        'vida': 'fa-solid fa-heart text-red-500',
-        'mana': 'fa-solid fa-fire text-blue-500',
-        'armadura': 'fa-solid fa-shield-halved text-gray-400',
-        'esquiva': 'fa-solid fa-person-running text-teal-400',
-        'bloqueio': 'fa-solid fa-hand-fist text-orange-400',
-        'deslocamento': 'fa-solid fa-shoe-prints text-lime-400',
-    };
-    
-    var scale = isModal? 1 : .17;
+    var scale = isModal? 1 : .24;
     var origin = isModal?  "" : "transform-origin: top left";
     
-    // Verifica se existe algum aumento de combate ou de atributo para exibir
-    const hasCombatBoosts = spellData.aumentos && (
-        (spellData.aumentos.armadura || 0) > 0 ||
-        (spellData.aumentos.esquiva || 0) > 0 ||
-        (spellData.aumentos.bloqueio || 0) > 0 ||
-        (spellData.aumentos.deslocamento || 0) > 0
-    );
+    const aumentos = spellData.aumentos || {};
+    let aumentosHtml = '';
 
-    const hasAttributeBoosts = spellData.aumentos && (
-        (spellData.aumentos.agilidade || 0) > 0 ||
-        (spellData.aumentos.carisma || 0) > 0 ||
-        (spellData.aumentos.forca || 0) > 0 ||
-        (spellData.aumentos.inteligencia || 0) > 0 ||
-        (spellData.aumentos.sabedoria || 0) > 0 ||
-        (spellData.aumentos.vigor || 0) > 0
-    );
+    const energiasItems = [];
+    if (aumentos.vida > 0) energiasItems.push(`Vida +${aumentos.vida}`);
+    if (aumentos.mana > 0) energiasItems.push(`Mana +${aumentos.mana}`);
 
-    const hasPericiasBoosts = spellData.aumentos?.pericias?.some(p => p.value !== 0);
+    const combateItems = [];
+    if (aumentos.armadura > 0) combateItems.push(`Armadura +${aumentos.armadura}`);
+    if (aumentos.esquiva > 0) combateItems.push(`Esquiva +${aumentos.esquiva}`);
+    if (aumentos.bloqueio > 0) combateItems.push(`Bloqueio +${aumentos.bloqueio}`);
+    if (aumentos.deslocamento > 0) combateItems.push(`Deslocamento +${aumentos.deslocamento}m`);
+
+    const atributosItems = [];
+    if (aumentos.agilidade > 0) atributosItems.push(`Agilidade +${aumentos.agilidade}`);
+    if (aumentos.carisma > 0) atributosItems.push(`Carisma +${aumentos.carisma}`);
+    if (aumentos.forca > 0) atributosItems.push(`Força +${aumentos.forca}`);
+    if (aumentos.inteligencia > 0) atributosItems.push(`Inteligência +${aumentos.inteligencia}`);
+    if (aumentos.sabedoria > 0) atributosItems.push(`Sabedoria +${aumentos.sabedoria}`);
+    if (aumentos.vigor > 0) atributosItems.push(`Vigor +${aumentos.vigor}`);
+
+    const periciasItems = [];
+    if (Array.isArray(aumentos.pericias) && aumentos.pericias.length > 0) {
+        aumentos.pericias.forEach(p => {
+            if (p.value > 0) {
+                periciasItems.push(`${p.name} +${p.value}`);
+            }
+        });
+    }
+
+    const hasAumentos = energiasItems.length > 0 || combateItems.length > 0 || atributosItems.length > 0 || periciasItems.length > 0;
+
+    if (hasAumentos) {
+        aumentosHtml = `
+            <div class="pt-2">
+                <h3 class="text-sm font-semibold flex items-center gap-2">Aumentos</h3>
+                <div class="text-gray-300 text-xs leading-relaxed mt-1 pl-6 space-y-1">
+                    ${energiasItems.length > 0 ? `<div><strong class="font-semibold text-gray-200">Energias:</strong> ${energiasItems.join(', ')}</div>` : ''}
+                    ${combateItems.length > 0 ? `<div><strong class="font-semibold text-gray-200">Status de Combate:</strong> ${combateItems.join(', ')}</div>` : ''}
+                    ${atributosItems.length > 0 ? `<div><strong class="font-semibold text-gray-200">Atributos:</strong> ${atributosItems.join(', ')}</div>` : ''}
+                    ${periciasItems.length > 0 ? `<div><strong class="font-semibold text-gray-200">Perícias:</strong> ${periciasItems.join(', ')}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    const uniqueId = `spell-${Date.now()}`;
     
+    const statsHtml = `
+        <div class="grid grid-cols-5 gap-x-2 text-xs my-2 text-center text-gray-200">
+            <div>
+                <p class="font-bold tracking-wider">EX</p>
+                <p class="text-gray-300 truncate" title="${spellData.execution || '-'}">${spellData.execution || '-'}</p>
+            </div>
+            <div>
+                <p class="font-bold tracking-wider">AL</p>
+                <p class="text-gray-300 truncate" title="${spellData.range || '-'}">${spellData.range || '-'}</p>
+            </div>
+            <div>
+                <p class="font-bold tracking-wider">AV</p>
+                <p class="text-gray-300 truncate" title="${spellData.target || '-'}">${spellData.target || '-'}</p>
+            </div>
+            <div>
+                <p class="font-bold tracking-wider">DU</p>
+                <p class="text-gray-300 truncate" title="${spellData.duration || '-'}">${spellData.duration || '-'}</p>
+            </div>
+            <div>
+                <p class="font-bold tracking-wider">CD</p>
+                <p class="text-gray-300 truncate" title="${spellData.resistencia || '-'}">${spellData.resistencia || '-'}</p>
+            </div>
+        </div>
+    `;
+
     const sheetHtml = `
-        <button id="close-spell-sheet-btn" class="absolute top-4 right-4 bg-red-600 hover:text-white z-10 thumb-btn" style="display:${isModal? "block": "none"}"><i class="fa-solid fa-xmark"></i></button>
-        <div id="spell-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
-            <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000, hwb(0deg 0% 100% / 50%), transparent, #0000008f, #0000008f, #000000a4);"></div>
+        <button id="close-spell-sheet-btn-${uniqueId}" class="absolute top-4 right-4 bg-red-600 hover:text-white z-20 thumb-btn" style="display:${isModal? "block": "none"};"><i class="fa-solid fa-xmark"></i></button>
+        <div id="spell-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
+            <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
             
-            <div class="absolute top-4 left-1/2 -translate-x-1/2 text-center z-10 w-full flex-max">
-                <h3 class="text-2xl font-bold" style="color: ${predominantColor}">${spellData.name}</h3>
-                <div class="rpg-card-title-divider" style="background: linear-gradient(to right, transparent, ${predominantColor}, transparent); width: 60%"> </div>
-            </div>
-
-            ${(spellData.aumentos?.vida > 0) ? `
-                <div class="absolute top-2 right-2 p-2 rounded-full text-center">
-                    <i class="fas fa-heart text-red-500 text-4xl"></i>
-                    <div class="absolute inset-0 flex flex-col items-center justify-center font-bold text-white">
-                        <span>${spellData.aumentos.vida}</span>
+            <div class="mt-auto p-4 md:p-6 w-full text-left absolute bottom-0" style="background: ${predominantColor}">
+                <div class="sheet-card-text-panel">
+                    <div class="flex justify-between items-start">
+                        <h2 class="text-2xl md:text-3xl font-bold tracking-tight text-white pr-2">${spellData.name}</h2>
+                        <span class="text-sm text-center font-medium bg-black/20 px-2 py-1 rounded whitespace-nowrap">${spellData.manaCost} PM</span>
+                    </div>
+                    <div class="sheet-card-divider"></div>
+                    ${statsHtml}
+                    <div class="space-y-3 max-h-32 overflow-y-auto pr-2">
+                        ${spellData.description ? `
+                            <div class="pt-2">
+                                <h3 class="text-sm font-semibold flex items-center gap-2">Descrição</h3>
+                                <p class="text-gray-300 text-xs leading-relaxed mt-1 pl-6">${spellData.description || 'Nenhuma descrição.'}</p>
+                            </div>
+                        ` : ''}
+                        ${(spellData.enhance && spellData.type !== 'habilidade') ? `
+                            <div class="pt-2">
+                                <h3 class="text-sm font-semibold flex items-center gap-2">Aprimorar</h3>
+                                <p class="text-gray-300 text-xs leading-relaxed mt-1 pl-6">${spellData.enhance || 'Nenhuma descrição.'}</p>
+                            </div>
+                        ` : ''}
+                        ${(spellData.true && spellData.type !== 'habilidade') ? `
+                            <div class="pt-2">
+                                <h3 class="text-sm font-semibold flex items-center gap-2">Verdadeiro</h3>
+                                <p class="text-gray-300 text-xs leading-relaxed mt-1 pl-6">${spellData.true || 'Nenhuma descrição.'}</p>
+                            </div>
+                        ` : ''}
+                        ${aumentosHtml}
                     </div>
                 </div>
-            ` : ''}
-
-            ${(spellData.aumentos?.mana > 0) ? `
-                <div class="absolute top-2 left-2 p-2 rounded-full text-center">
-                    <div class="icon-container mana-icon-container">
-                        <i class="fas fa-fire text-blue-500 text-4xl"></i>
-                        <div class="absolute inset-0 flex flex-col items-center justify-center font-bold text-white">
-                            <span>${spellData.aumentos.mana}</span>
-                        </div>
-                    </div>
-                </div>
-            ` : ''}
-            
-             <div class="absolute top-16 left-4 grid grid-row-8 md:grid-cols-10 gap-2 mb-4" style="border-radius: 12px;">
-                ${hasCombatBoosts ? `        
-                <div style="border-radius: 12px">
-                    ${(spellData.aumentos?.agilidade > 0) ? `
-                        <div id="elmo-icon" class="w-8 h-8 mx-auto iconMagic outlined-bold flex" style="background: url(icons/panel-transparent-border-020.png); background-size: contain;">
-                            ${spellData.aumentos.agilidade}                            
-                        </div>` 
-                    : ''}
-
-                    ${(spellData.aumentos?.carisma > 0) ? `
-                        <div id="elmo-icon" class="w-8 h-8 mx-auto iconMagic outlined-bold flex" style="background: url(icons/panel-transparent-border-027.png); background-size: contain;">
-                            ${spellData.aumentos.carisma}                            
-                        </div>`
-                    : ''}
-
-                    ${(spellData.aumentos?.forca > 0) ? `
-                        <div id="elmo-icon" class="w-8 h-8 mx-auto iconMagic outlined-bold flex" style="background: url(icons/panel-transparent-border-028.png); background-size: contain;">
-                            ${spellData.aumentos.forca}                            
-                        </div>`
-                    : ''}
-                    
-                    ${(spellData.aumentos?.inteligencia > 0) ? `
-                        <div id="elmo-icon" class="w-8 h-8 mx-auto iconMagic outlined-bold flex" style="background: url(icons/panel-transparent-border-029.png); background-size: contain;">
-                            ${spellData.aumentos.inteligencia}                            
-                        </div>`
-                    : ''}
-
-                    ${(spellData.aumentos?.sabedoria > 0) ? `
-                        <div id="elmo-icon" class="w-8 h-8 mx-auto iconMagic outlined-bold flex" style="background: url(icons/panel-transparent-border-030.png); background-size: contain;">
-                            ${spellData.aumentos.sabedoria}                            
-                        </div>`
-                    : ''}
-
-                    ${(spellData.aumentos?.vigor > 0) ? `
-                        <div id="elmo-icon" class="w-8 h-8 mx-auto iconMagic outlined-bold flex" style="background: url(icons/panel-transparent-border-021.png); background-size: contain;">
-                            ${spellData.aumentos.vigor}                            
-                        </div>`
-                    : ''}
-                 </div>
-                `: ""}                
-            </div>
-
-            <div class="absolute top-16 right-4 grid grid-row-8 md:grid-cols-10 gap-2 mb-4" style="border-radius: 12px;">
-                ${hasAttributeBoosts ? `        
-                <div style="border-radius: 12px">
-                    ${(spellData.aumentos?.armadura > 0) ? `
-                        <div id="elmo-icon" class="w-8 h-8 mx-auto iconMagic outlined-bold flex" style="background: url(icons/panel-transparent-border-020.png); background-size: contain;">
-                            ${spellData.aumentos.armadura}                            
-                        </div>` 
-                    : ''}
-
-                    ${(spellData.aumentos?.esquiva > 0) ? `
-                        <div id="elmo-icon" class="w-8 h-8 mx-auto iconMagic outlined-bold flex" style="background: url(icons/panel-transparent-border-027.png); background-size: contain;">
-                            ${spellData.aumentos.esquiva}                            
-                        </div>`
-                    : ''}
-
-                    ${(spellData.aumentos?.bloqueio > 0) ? `
-                        <div id="elmo-icon" class="w-8 h-8 mx-auto iconMagic outlined-bold flex" style="background: url(icons/panel-transparent-border-028.png); background-size: contain;">
-                            ${spellData.aumentos.bloqueio}                            
-                        </div>`
-                    : ''}
-                    
-                    ${(spellData.aumentos?.deslocamento > 0) ? `
-                        <div id="elmo-icon" class="w-8 h-8 mx-auto iconMagic outlined-bold flex" style="background: url(icons/panel-transparent-border-029.png); background-size: contain;">
-                            ${spellData.aumentos.deslocamento}                            
-                        </div>`
-                    : ''}
-                 </div>
-                `: ""}                
-            </div>
-
-            <div class="absolute bottom-0 w-full">               
-                <div class="w-full text-sm text-left" style="display: flex; flex-direction: row; gap: 12px;">
-                    <div class="rounded-3xl w-full p-4" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; position: relative; z-index: 1; overflow-y: visible; display: flex; flex-direction: column; justify-content: flex-end;">
-                        ${hasPericiasBoosts ? `    
-                        <div class="p-4 mb-4"  style="background: linear-gradient(90deg, #0000004f, transparent, transparent); border-left: 2px solid ${predominantColor}; border-radius: 12px">
-                            <span class="font-bold">Perícias:</span>
-                            ${(spellData.aumentos?.pericias || [])
-                                .filter(p => p.value !== 0) // Mostra apenas perícias com valor diferente de zero
-                                .map(pericia => `
-                                    <div class="w-full text-left text-xs text-gray-200 truncate" title="${pericia.name}">
-                                        ${pericia.name}: <span class="font-bold text-teal-300">${pericia.value > 0 ? '+' : ''}${pericia.value}</span>
-                                    </div>
-                                `).join('')
-                            }
-                        </div>`
-                        : ""}
-                        <div class="scrollable-content text-sm text-left" style="background: linear-gradient(90deg, #0000004f, transparent, transparent); display: flex; flex-direction: row; overflow-y: scroll;gap: 12px; scroll-snap-type: x mandatory; border-left: 2px solid ${predominantColor}; border-radius: 12px">
-                            ${spellData.description ? `       
-                            <div class="p-4 rounded-3xl w-full" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; position: relative; z-index: 1; overflow-y: visible; display: flex; flex-direction: column; justify-content: flex-end;">
-                                <h4 class="font-semibold text-gray-300">Descrição</h4>
-                                <p class="text-gray-300 text-xs" style="text-align:justify;white-space:pre-line;overflow-wrap:break-word;">${spellData.description || 'Nenhuma descrição.'}</p>
-                            </div>` : ''}
-
-                            ${spellData.enhance ? `       
-                            <div class="p-4 rounded-3xl w-full" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; position: relative; z-index: 1; overflow-y: visible; display: flex; flex-direction: column; justify-content: flex-end;">
-                                <h4 class="font-semibold text-gray-300">Aprimorar</h4>
-                                <p class="text-gray-300 text-xs" style="text-align:justify;white-wrap:break-word;">${spellData.enhance || 'Nenhuma descrição.'}</p>
-                            </div>` : ''}
-
-                            ${spellData.true ? `       
-                            <div class="p-4 rounded-3xl w-full" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; position: relative; z-index: 1; overflow-y: visible; display: flex; flex-direction: column; justify-content: flex-end;">
-                                <h4 class="font-semibold text-gray-300">Verdadeiro</h4>
-                                <p class="text-gray-300 text-xs" style="text-align:justify;white-wrap:break-word;">${spellData.true || 'Nenhuma descrição.'}</p>
-                            </div>` : ''}
-                        </div>
-                         <div class="grid grid-cols-6 gap-x-4 gap-y-1 text-xs my-2 mb-4"> 
-                            <div class="text-center">PM<br>- ${spellData.manaCost || 0}</div>
-                            <div class="text-center">EX<br>${spellData.execution || 'N/A'}</div>
-                            <div class="text-center">AL<br>${spellData.range || 'N/A'}</div>
-                            <div class="text-center">AV<br>${spellData.target || 'N/A'}</div>
-                            <div class="text-center">DU<br>${spellData.duration || 'N/A'}</div>                            
-                            <div class="text-center">CD<br>${spellData.resistencia || 'N/A'}</div>                            
-                        </div>
-                    </div>
-                </div>
-            </div>
+            </div>            
         </div>
     `;
 
@@ -229,7 +204,7 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
     sheetContainer.classList.remove('hidden');
 
     // Botão fechar: substitui o nó pra limpar listeners anteriores e adiciona o handler
-    const closeSheetBtn = sheetContainer.querySelector('#close-spell-sheet-btn');
+    const closeSheetBtn = sheetContainer.querySelector(`#close-spell-sheet-btn-${uniqueId}`);
     if (closeSheetBtn) {
         const btn = closeSheetBtn.cloneNode(true);
         closeSheetBtn.parentNode.replaceChild(btn, closeSheetBtn);

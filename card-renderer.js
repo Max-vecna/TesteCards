@@ -4,6 +4,52 @@ function bufferToBlob(buffer, mimeType) {
     return new Blob([buffer], { type: mimeType });
 }
 
+/**
+ * Extrai a cor média de uma imagem.
+ * @param {string} imageUrl - URL da imagem.
+ * @returns {Promise<string>} Uma promessa que resolve com a cor média em formato rgb().
+ */
+function getPredominantColor(imageUrl) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.src = imageUrl;
+
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0, img.width, img.height);
+
+            try {
+                const imageData = ctx.getImageData(0, 0, img.width, img.height).data;
+                let r = 0, g = 0, b = 0;
+                let count = 0;
+                const step = 4 * 10; // Pula alguns pixels para otimização
+
+                for (let i = 0; i < imageData.length; i += step) {
+                    r += imageData[i];
+                    g += imageData[i + 1];
+                    b += imageData[i + 2];
+                    count++;
+                }
+
+                const avgR = Math.floor(r / count);
+                const avgG = Math.floor(g / count);
+                const avgB = Math.floor(b / count);
+
+                resolve(`rgb(${avgR}, ${avgG}, ${avgB})`);
+            } catch (e) {
+                reject(e);
+            }
+        };
+
+        img.onerror = (e) => reject(e);
+    });
+}
+
+
 export async function renderFullCharacterSheet(characterData, isModal, aspect, isInPlay) {
     const sheetContainer = document.getElementById('character-sheet-container');
     // Se o container não existir e estivermos em modo modal, não faz nada.
@@ -33,8 +79,11 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     // Gerar um ID dinâmico para evitar conflitos se houver vários cards
     const uniqueId = Date.now();
 
-    // Otimização: Usa a cor pré-calculada e armazenada no banco de dados.
-    const predominantColor = characterData.predominantColor || '#4a5568';
+    // Extrai a cor média da imagem de fundo
+    const predominantColor = await getPredominantColor(imageBack).catch(e => {
+        console.error("Erro ao extrair cor média:", e);
+        return '#4a5568'; // Cor de fallback
+    });
 
     const mainAttributes = ['agilidade', 'carisma', 'forca', 'inteligencia', 'sabedoria', 'vigor'];
     characterData.attributes = characterData.attributes || {
@@ -64,10 +113,28 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
 
     var origin = isModal ?  "" : "transform-origin: top left";
 
+    let periciasHtml = '<p class="text-xs text-gray-400 italic">Nenhuma perícia selecionada.</p>';
+    if (Array.isArray(characterData.attributes.pericias) && characterData.attributes.pericias.length > 0) {
+        const groupedPericias = characterData.attributes.pericias.reduce((acc, pericia) => {
+            const className = pericia.class || 'Outras';
+            if (!acc[className]) acc[className] = [];
+            acc[className].push(pericia);
+            return acc;
+        }, {});
+        const sortedClasses = Object.keys(groupedPericias)
+            .sort();
+        periciasHtml = sortedClasses.map(className => {
+            const periciasList = groupedPericias[className].map(p => `<span class="text-xs text-gray-400 italic">${p.name} +${p.value}; </span>`)
+                .join('');
+            return `<div class="text-left mt-1"><p class="text-xs text-gray-400 italic" style="font-size: 11px;">${className}</p><div class="flex flex-wrap gap-1 mb-1">${periciasList}</div></div>`;
+        })
+            .join('');
+    }
+
     const sheetHtml = `
             <button id="close-sheet-btn-${uniqueId}" class="absolute top-4 right-4 bg-red-600 hover:text-white z-10 thumb-btn" style="display: ${isModal ? 'block' : 'none'}"><i class="fa-solid fa-xmark"></i></button>
             <div id="character-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
-                <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000, hwb(0deg 0% 100% / 50%), transparent, #0000008f, #0000008f, #000000a4);"></div>
+                <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
             
             <div class="absolute top-4 right-2 p-2 rounded-full text-center">
                 <i class="fas fa-heart text-red-500 text-5xl"></i>
@@ -89,21 +156,9 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
                 </div>
             </div>
 
-            <div class="absolute top-4 left-1/2 -translate-x-1/2 text-center z-10 w-full flex-max">
-                <h3 class="text-2xl font-bold" style="color: ${predominantColor}">${characterData.title}</h3>
-                <div class="rpg-card-title-divider" style="background: linear-gradient(to right, transparent, ${predominantColor}, transparent); width: 60%"> </div>
-                <p class="text-md italic text-gray-300" style="color: ${predominantColor}">${characterData.subTitle}</p>
-            </div>
-
-             <div class="absolute top-20 right-4 p-2 grid grid-row-8 md:grid-cols-10 gap-2 mb-4" style="background: #0000008f; border-radius: 12px;">
-                <div id="elmo-icon" class="w-8 h-8 mx-auto" style="background: url(icons/spartan.png); background-size: contain;"></div>
-                <div id="escudo-icon" class="w-8 h-8 mx-auto" style="background: url(icons/token.png); background-size: contain;"></div>
-                <div id="espada-icon" class="w-8 h-8 mx-auto" style="background: url(icons/sword.png); background-size: contain;"></div>
-                <div id="capa-icon" class="w-8 h-8 mx-auto" style="background: url(icons/coat.png); background-size: contain;"></div>
-                <div id="luvas-icon" class="w-8 h-8 mx-auto" style="background: url(icons/racing-gloves.png); background-size: contain;"></div>
-                <div id="bota-icon" class="w-8 h-8 mx-auto" style="background: url(icons/boot.png); background-size: contain;"></div>
-                <div id="cajado-icon" class="w-8 h-8 mx-auto" style="background: url(icons/sceptre.png); background-size: contain;"></div>
-                <div id="anel-icon" class="w-8 h-8 mx-auto" style="background: url(icons/aim.png); background-size: contain;"></div>
+            <div class="absolute top-4 left-1/2 -translate-x-1/2 text-center z-10">
+                <h3 class="text-2xl font-bold">${characterData.title}</h3>
+                <p class="text-md italic text-gray-300">${characterData.subTitle}</p>
             </div>
 
             <div id="lore-icon-${uniqueId}" class="absolute top-20 left-4 rounded-full p-3 bg-black/50 flex items-center justify-center text-lg text-yellow-200 cursor-pointer" data-action="toggle-lore">
@@ -154,6 +209,11 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
                         </div>
                         `;
                         }).join('')}
+                    </div>
+                    <div class="pb-4 rounded-3xl w-full" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; border-color: ${palette.borderColor}; position: relative; z-index: 1; overflow-y: visible; display: flex; flex-direction: column; justify-content: flex-end;">
+                        <div class="pericias-scroll-area flex flex-col gap-2" style="overflow-y: auto; max-height: 170px;">
+                            ${periciasHtml}
+                        </div>
                     </div>
                 </div>
             </div>

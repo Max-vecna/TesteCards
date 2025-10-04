@@ -91,52 +91,6 @@ function base64ToArrayBuffer(base64) {
 }
 
 /**
- * Extrai a cor média de uma imagem. Esta função é usada ao salvar para otimizar a renderização.
- * @param {string} imageUrl - URL da imagem.
- * @returns {Promise<string>} Uma promessa que resolve com a cor média em formato rgb().
- */
-function getPredominantColor(imageUrl) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = "Anonymous";
-        img.src = imageUrl;
-
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0, img.width, img.height);
-
-            try {
-                const imageData = ctx.getImageData(0, 0, img.width, img.height).data;
-                let r = 0, g = 0, b = 0;
-                let count = 0;
-                const step = 4 * 10; // Pula alguns pixels para otimização
-
-                for (let i = 0; i < imageData.length; i += step) {
-                    r += imageData[i];
-                    g += imageData[i + 1];
-                    b += imageData[i + 2];
-                    count++;
-                }
-
-                const avgR = Math.floor(r / count);
-                const avgG = Math.floor(g / count);
-                const avgB = Math.floor(b / count);
-
-                resolve(`rgb(${avgR}, ${avgG}, ${avgB})`);
-            } catch (e) {
-                reject(e);
-            }
-        };
-
-        img.onerror = (e) => reject(e);
-    });
-}
-
-
-/**
  * Função para renderizar as perícias no formulário.
  * @param {Array} [selectedPericias] - Um array de objetos de perícias para pré-selecionar.
  */
@@ -267,14 +221,6 @@ export async function saveCharacterCard(cardForm) {
     const imageBuffer = characterImageFile ? await readFileAsArrayBuffer(characterImageFile) : null;
     const backgroundBuffer = backgroundImageFile ? await readFileAsArrayBuffer(backgroundImageFile) : null;
     
-    let predominantColor = null;
-    // Otimização: Calcula a cor predominante apenas se uma nova imagem de fundo for fornecida.
-    if (backgroundBuffer && backgroundImageFile) {
-        const tempUrl = URL.createObjectURL(bufferToBlob(backgroundBuffer, backgroundImageFile.type));
-        predominantColor = await getPredominantColor(tempUrl).catch(() => '#4a5568');
-        URL.revokeObjectURL(tempUrl);
-    }
-
     let cardData;
     if (currentEditingCardId) {
         cardData = await getData('rpgCards', currentEditingCardId);
@@ -290,7 +236,6 @@ export async function saveCharacterCard(cardForm) {
             backgroundImage: backgroundBuffer || cardData.backgroundImage,
             imageMimeType: characterImageFile ? characterImageFile.type : cardData.imageMimeType,
             backgroundMimeType: backgroundImageFile ? backgroundImageFile.type : cardData.backgroundMimeType,
-            predominantColor: predominantColor || cardData.predominantColor || '#4a5568' // Mantém a cor antiga se não houver nova imagem
         });
     } else {
         cardData = {
@@ -305,8 +250,7 @@ export async function saveCharacterCard(cardForm) {
             backgroundImage: backgroundBuffer,
             imageMimeType: characterImageFile ? characterImageFile.type : null,
             backgroundMimeType: backgroundImageFile ? backgroundImageFile.type : null,
-            predominantColor: predominantColor || '#4a5568', // Define a cor na criação
-            inPlay: false,
+            inPlay: false, // Adiciona o novo status para controlar se está em jogo
         };
     }
 
@@ -408,6 +352,8 @@ export async function removeCard(cardId) {
 /**
  * Renderiza a lista de miniaturas de personagens na interface.
  */
+// Substitua a função renderCharacterList existente em character_manager.js por esta versão
+
 export async function renderCharacterList() {
     const contentDisplay = document.getElementById('content-display');
     contentDisplay.innerHTML = ''; // Limpa o conteúdo anterior

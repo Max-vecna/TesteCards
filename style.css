@@ -69,13 +69,7 @@ body {
   
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
   overflow: visible; /* Garante que o menu não seja cortado */
-  z-index: 1; /* Adiciona um contexto de empilhamento base */
 }
-
-.rpg-thumbnail.menu-active {
-    z-index: 100; /* Garante que o card com o menu ativo fique por cima dos outros */
-}
-
 .rpg-thumbnail:hover {
   transform: translateY(-4px);
   box-shadow: 0 6px 12px rgba(0,0,0,0.2);
@@ -104,20 +98,19 @@ body {
 /* Botões de Ação e Menu */
 .thumbnail-actions {
   position: absolute;
-  top: 10px;
-  right: -10px;
-  z-index: 150;
+  top: 8px;
+  right: 8px; /* Ajustado para não sair do card */
 }
 
-/* Modificador para ancorar o menu à esquerda do card */
-.thumbnail-actions.anchor-left {
-    right: auto;
-    left: 8px;
+.thumb-btn-menu
+{
+  
+    position: absolute;
+    right: -20px;
 }
-
 .thumb-btn {
   width: 24px;
-  height: 24px;
+  height: 24px;  
   border-radius: 50%;
   background-color: rgba(42, 52, 71, 0.8);
   backdrop-filter: blur(4px);
@@ -138,8 +131,8 @@ body {
 
 .thumbnail-menu {
   position: absolute;
-  top: 32px; /* Posição padrão: abaixo do botão */
-  right: 0; /* Posição padrão: alinhado à direita da âncora, abrindo para a esquerda */
+  top: calc(100% + 4px); /* Posição abaixo do botão de menu */
+  right: 0;
   background-color: #2a3447;
   border: 1px solid #4a5568;
   border-radius: 8px;
@@ -147,40 +140,32 @@ body {
   z-index: 200; 
   box-shadow: 0 5px 15px rgba(0,0,0,0.3);
   
+  /* Estado inicial (escondido) */
   opacity: 0;
   transform: scale(0.95) translateY(-10px);
-  transform-origin: top right; /* Animação padrão */
-  transition:  transform 0.15s ease-out;
+  transform-origin: top right;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
   pointer-events: none;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 150px; /* Largura mínima para o menu */
 }
 
-/* Modificador para abrir o menu para a direita */
-.thumbnail-menu.open-right {
+.thumbnail-menu.active {
+  /* Estado visível */
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+
+/* Novo estilo para o menu alinhado à esquerda */
+.thumbnail-menu.menu-left {
     right: auto;
     left: 0;
     transform-origin: top left;
 }
 
-/* Modificador para abrir o menu para cima */
-.thumbnail-menu.open-up {
-    top: auto;
-    bottom: 100%; /* Posiciona o menu acima do botão de âncora */
-    transform-origin: bottom right; /* Ajusta a origem da animação */
-}
-
-/* Combinação para abrir para cima e para a direita */
-.thumbnail-menu.open-up.open-right {
-    transform-origin: bottom left;
-}
-
-.thumbnail-menu.active {
-  opacity: 1;
-  transform: scale(1) translateY(0);
-  pointer-events: auto;
-}
 
 .menu-item {
   display: flex;
@@ -280,7 +265,6 @@ body {
   justify-content: center;
   align-items: center;  
   flex-direction: column;
-  margin-top: 10px;
 }
 
 .ellipse{
@@ -298,33 +282,51 @@ body {
   box-shadow: black 0px 0px 10px 0px inset;
 }
 
-.rpg-card-title-divider {
-    height: 2px;
-    width: 80%;
-    background: linear-gradient(to right, transparent, var(--border-color, #6b7280), transparent);
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.flex-max
+.descScroll
 {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  scroll-snap-align: start;
+  flex-shrink: 0;
+  width: 80%;
+  position: relative; 
+  z-index: 1; 
+  overflow-y: visible;
+  display: flex; 
+  flex-direction: column;    
+  border-radius: 5px;
+  background: linear-gradient(90deg, #0000008f, #000000a4, transparent, transparent);
+  justify-content: flex-end;
+  max-height: 180px;
+  overflow-y: scroll;
 }
 
-.outlined-bold{
-  font-weight: 700;            /* negrito */
-  color: #ffffff;              /* cor do texto: branco */
-  -webkit-text-stroke: 1px #000; /* contorno nativo (Chrome, Edge, Safari) */
-  text-stroke: 1px #000;         /* tentativa para padrões futuros */
-  /* fallback suave para navegadores sem text-stroke: cria um "contorno" com sombras múltiplas */
-  text-shadow:
-    -1px -1px 0 #000,
-     1px -1px 0 #000,
-    -1px  1px 0 #000,
-     1px  1px 0 #000;
-  /* opcional: ajusta legibilidade se o fundo for variável */
-  line-height: 1.1;
-  display: inline-block; /* evita que text-shadow fique cortado em alguns casos */
+.scrollable-content
+{
+  display: flex; 
+  flex-direction: row; 
+  overflow-y: scroll;
+  gap: 12px; scroll-snap-type: x mandatory;
+  display: flex;
+  align-items: flex-end;
+}
+
+::-webkit-scrollbar 
+{
+  width: 3px;
+  height: 3px;
+}
+  
+  
+/* Handle */
+::-webkit-scrollbar-thumb 
+{
+    background: transparent;
+    border-radius: 10px;
+}
+
+.sheet-card-divider {
+    height: 2px;
+    width: 4rem;
+    background: white;
+    margin: 0.75rem 0;
+    border-radius: 1px;
 }
