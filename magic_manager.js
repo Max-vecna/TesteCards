@@ -6,12 +6,12 @@ const AUMENTOS_DATA = {
     "Status": ["Vida", "Mana", "Armadura", "Esquiva", "Bloqueio", "Deslocamento"],
     "Atributos": ["Agilidade", "Carisma", "Força", "Inteligência", "Sabedoria", "Vigor"],
     "Perícias": {
-        "AGILIDADE": ["Acrobacia", "Montaria", "Furtividade", "Prestidigitação"],
+        "AGILIDADE": [ "Acrobacia", "Iniciativa", "Montaria", "Furtividade", "Pontaria", "Ladinagem", "Reflexos"],
         "CARISMA": ["Adestramento", "Enganação", "Intimidação", "Persuasão"],
-        "INTELIGÊNCIA": ["Arcanismo", "História", "Investigação", "Medicina"],
+        "INTELIGÊNCIA": ["Arcanismo", "História", "Investigação", "Ofício", "Religião", "Tecnologia"],
         "FORÇA": ["Atletismo", "Luta"],
-        "SABEDORIA": ["Intuição", "Percepção", "Natureza", "Vontade"],
-        "VIGOR": ["Sobrevivência", "Fortitude"]
+        "SABEDORIA": ["Intuição", "Percepção", "Natureza", "Vontade", "Medicina", "Sobrevivência"],
+        "VIGOR": ["Fortitude"]
     }
 };
 

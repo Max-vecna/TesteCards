@@ -4,35 +4,41 @@ import { renderFullCharacterSheet } from './card-renderer.js';
 // Lista de perícias
 const PERICIAS_DATA = {
     "AGILIDADE": {
-        "Acrobacia": "Capacidade de realizar manobras complexas no ar, saltos e se equilibrar em locais instáveis.",
+        "Acrobacia": "Capacidade de realizar movimentos ágeis e controlados...",
+        "Iniciativa": "Velocidade de reação quando o combate começa...",
         "Montaria": "Controle de veículos e montarias complexas...",
         "Furtividade": "A arte de mover-se sem ser notado...",
-        "Prestidigitação": "Coordenação motora fina. Usada para abrir fechaduras, desarmar armadilhas e realizar truques com as mãos."
+        "Pontaria": "Precisão com armas de longo alcance...",
+        "Ladinagem": "Manipulação veloz e precisa com as mãos...",
+        "Reflexos": "Rapidez em reagir a estímulos..."
     },
     "CARISMA": {
-        "Adestramento": "Habilidade de treinar, cuidar e se comunicar com animais. Permite entender as necessidades de uma criatura e comandá-la.",
-        "Enganação": "Habilidade de mentir, blefar ou disfarçar-se para enganar outros. Usada em interações sociais para induzir ao erro.",
+        "Adestramento": "Treinamento e comando de animais...",
+        "Enganação": "A arte de manipular a verdade...",
         "Intimidação": "Uso da força de personalidade para impor medo...",
-        "Persuasão": "Habilidade de convencer, influenciar ou negociar com outros. Usada para testes de diplomacia, negociação ou argumentação."
+        "Persuasão": "A habilidade de influenciar e inspirar..."
     },
     "INTELIGÊNCIA": {
-        "Arcanismo": "Conhecimento sobre magia, rituais, criaturas mágicas e mistérios arcanos.",
-        "História": "Conhecimento sobre o passado, eventos históricos, figuras importantes, reinos e culturas.",
-        "Investigação": "Capacidade de procurar por pistas e desvendar mistérios, como em uma cena de crime ou em uma busca por informações.",
-        "Medicina": "Conhecimento para diagnosticar doenças, tratar ferimentos e conhecer a anatomia de seres vivos."
+        "Arcanismo": "Conhecimento das artes místicas...",
+        "História": "Memória de tempos antigos...",
+        "Investigação": "Capacidade de analisar cenários e reunir pistas...",
+        "Ofício": "Criação, manutenção e reparo de objetos...",
+        "Religião": "Conhecimento sobre divindades e rituais...",
+        "Tecnologia": "Compreensão de mecanismos e engenhocas..."
     },
     "FORÇA": {
-        "Atletismo": "Habilidade atlética geral, incluindo correr, saltar, nadar e escalar. Usado para testes de esforço físico.",
+        "Atletismo": "Medida da força bruta aplicada com técnica...",
         "Luta": "Combate corpo a corpo com armas simples ou improvisadas..."
     },
     "SABEDORIA": {
-        "Intuição": "Percepção aguçada de situações e pessoas. Usada para identificar mentiras, prever perigos ou sentir a intenção dos outros.",
-        "Percepção": "Capacidade de perceber o ambiente ao redor usando os cinco sentidos. Usada para encontrar objetos escondidos, armadilhas ou inimigos à espreita.",
+        "Intuição": "Habilidade de ler emoções e detectar mentiras...",
+        "Percepção": "Capacidade de notar detalhes ao redor...",
+        "Medicina": "Conhecimento de curas e tratamento de feridas...",
         "Natureza": "Sabedoria sobre o mundo natural...",
-        "Vontade": "Resistência mental. Usada para resistir a efeitos de medo, ilusões e controle mental."
+        "Sobrevivência": "A perícia de se adaptar ao mundo selvagem...",
+        "Vontade": "Força interior e estabilidade emocional..."
     },
     "VIGOR": {
-        "Sobrevivência": "Capacidade de encontrar recursos no ambiente natural, como comida e água, e resistir a condições extremas.",
         "Fortitude": "Resistência física e imunológica do personagem..."
     }
 };

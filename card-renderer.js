@@ -3,12 +3,12 @@ import { renderFullItemSheet } from './item_renderer.js';
 import { renderFullSpellSheet } from './magic_renderer.js';
 
 const PERICIAS_DATA = {
-    "AGILIDADE": { "Acrobacia": "", "Montaria": "", "Furtividade": "", "Prestidigitação": "" },
-    "CARISMA": { "Adestramento": "", "Enganação": "", "Intimidação": "", "Persuasão": "" },
-    "INTELIGÊNCIA": { "Arcanismo": "", "História": "", "Investigação": "", "Medicina": "" },
-    "FORÇA": { "Atletismo": "", "Luta": "" },
-    "SABEDORIA": { "Intuição": "", "Percepção": "", "Natureza": "", "Vontade": "" },
-    "VIGOR": { "Sobrevivência": "", "Fortitude": "" }
+     "AGILIDADE": [ "Acrobacia", "Iniciativa", "Montaria", "Furtividade", "Pontaria", "Ladinagem", "Reflexos"],
+        "CARISMA": ["Adestramento", "Enganação", "Intimidação", "Persuasão"],
+        "INTELIGÊNCIA": ["Arcanismo", "História", "Investigação", "Ofício", "Religião", "Tecnologia"],
+        "FORÇA": ["Atletismo", "Luta"],
+        "SABEDORIA": ["Intuição", "Percepção", "Natureza", "Vontade", "Medicina", "Sobrevivência"],
+        "VIGOR": ["Fortitude"]
 };
 
 const periciaToAttributeMap = {};

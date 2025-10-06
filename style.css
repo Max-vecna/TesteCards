@@ -66,10 +66,16 @@ body {
   aspect-ratio: 120 / 160;
   border-radius: 12px;
   position: relative;
+  z-index: 10;
   
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
   overflow: visible; /* Garante que o menu não seja cortado */
 }
+
+.rpg-thumbnail.menu-active {
+    z-index: 300;
+}
+
 .rpg-thumbnail:hover {
   transform: translateY(-4px);
   box-shadow: 0 6px 12px rgba(0,0,0,0.2);
