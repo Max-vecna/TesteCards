@@ -31,13 +31,11 @@
 
         .form-container {
             background-color: #1a202c;
-            max-height: 95vh; /* Limita a altura para caber na tela */
+            max-height: 100%; /* Limita a altura para caber na tela */
             overflow-y: auto; /* Adiciona rolagem se o formulário for muito grande */
             padding: 2rem;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-            max-width: 600px;
             width: 100%;
-            border-radius: 0.75rem;
         }
 
     </style>
@@ -365,27 +363,27 @@
                 <h2 id="inventory-section-title" class="text-2xl font-bold text-amber-300">Gerenciar Inventário</h2>
                 <button id="close-inventory-btn" class="text-gray-400 hover:text-white text-3xl font-bold">&times;</button>
             </div>
-            <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700 space-y-4 max-h-[80vh] overflow-y-auto">
-                <div class="flex justify-between items-center sticky top-0 bg-gray-800 backdrop-blur-sm py-2 z-10 -m-4 p-4 mb-0">
-                    <div>
-                        <h3 class="text-xl font-bold text-amber-300">Inventário</h3>
-                        <p id="slots-info" class="text-sm text-gray-400">Slots: 0/0</p>
-                    </div>
-                    <button id="add-item-to-inventory-btn" class="py-2 px-4 rounded-full text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors flex items-center gap-2">
-                        <i class="fas fa-plus"></i> Item
-                    </button>
+            <div class="flex justify-between items-center sticky top-0 bg-gray-800 backdrop-blur-sm py-2 z-10 -m-4 p-4 mb-2 rounded-2xl">
+                <div>
+                    <h3 class="text-xl font-bold text-amber-300">Inventário</h3>
+                    <p id="slots-info" class="text-sm text-gray-400">Slots: 0/0</p>
                 </div>
+                <button id="add-item-to-inventory-btn" class="py-2 px-4 rounded-full text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors flex items-center gap-2">
+                    <i class="fas fa-plus"></i> Item
+                </button>
+            </div>
+            <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700 space-y-4 max-h-[80vh] overflow-y-auto">               
                 <div>
                     <h4 class="text-sm font-semibold text-gray-400 mb-2">Equipamento Especial (Concede Slots)</h4>
-                    <div id="special-equipment-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2"></div>
+                    <div id="special-equipment-container" class="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 gap-2"></div>
                 </div>
                 <div>
                     <h4 class="text-sm font-semibold text-gray-400 mb-2">Itens com Carga</h4>
-                    <div id="item-slots-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2"></div>
+                    <div id="item-slots-container" class="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 gap-2"></div>
                 </div>
                 <div>
                     <h4 class="text-sm font-semibold text-gray-400 mb-2">Itens de Carga Zero</h4>
-                    <div id="zero-charge-items-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2"></div>
+                    <div id="zero-charge-items-container" class="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 gap-2"></div>
                 </div>
             </div>
         </div>
