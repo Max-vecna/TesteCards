@@ -75,7 +75,14 @@ async function populateInventory(container, characterData, uniqueId) {
         const items = (await Promise.all(itemPromises)).filter(Boolean);
         if (items.length > 0) {
             items.forEach(item => {
-                inventoryHtml += `<div class="text-xs p-2 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2" data-id="${item.id}" data-type="item">${item.name}</div>`;
+                let iconHtml = '';
+                if (item.image) {
+                    const imageUrl = URL.createObjectURL(bufferToBlob(item.image, item.imageMimeType));
+                    iconHtml = `<img src="${imageUrl}" class="w-5 h-5 rounded-full object-cover flex-shrink-0" style="image-rendering: pixelated;">`;
+                } else {
+                    iconHtml = `<i class="fas fa-box w-5 text-center text-gray-400"></i>`;
+                }
+                inventoryHtml += `<div class="text-xs p-2 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2" data-id="${item.id}" data-type="item">${iconHtml}<span>${item.name}</span></div>`;
             });
         } else {
              inventoryHtml += '<p class="text-xs text-gray-400 italic px-2">Vazio</p>';
@@ -94,13 +101,31 @@ async function populateInventory(container, characterData, uniqueId) {
         const skills = magicsAndSkills.filter(ms => ms.type === 'habilidade');
 
         if (magics.length > 0) {
-            magics.forEach(magic => magicsHtml += `<div class="text-xs p-2 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2" data-id="${magic.id}" data-type="spell">${magic.name}</div>`);
+            magics.forEach(magic => {
+                let iconHtml = '';
+                if (magic.image) {
+                    const imageUrl = URL.createObjectURL(bufferToBlob(magic.image, magic.imageMimeType));
+                    iconHtml = `<img src="${imageUrl}" class="w-5 h-5 rounded-full object-cover flex-shrink-0" style="image-rendering: pixelated;">`;
+                } else {
+                    iconHtml = `<i class="fas fa-magic w-5 text-center text-gray-400"></i>`;
+                }
+                magicsHtml += `<div class="text-xs p-2 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2" data-id="${magic.id}" data-type="spell">${iconHtml}<span>${magic.name}</span></div>`;
+            });
         } else {
             magicsHtml += '<p class="text-xs text-gray-400 italic px-2">Nenhuma</p>';
         }
 
         if (skills.length > 0) {
-            skills.forEach(skill => skillsHtml += `<div class="text-xs p-2 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2" data-id="${skill.id}" data-type="spell">${skill.name}</div>`);
+            skills.forEach(skill => {
+                let iconHtml = '';
+                if (skill.image) {
+                    const imageUrl = URL.createObjectURL(bufferToBlob(skill.image, skill.imageMimeType));
+                    iconHtml = `<img src="${imageUrl}" class="w-5 h-5 rounded-full object-cover flex-shrink-0" style="image-rendering: pixelated;">`;
+                } else {
+                    iconHtml = `<i class="fas fa-fist-raised w-5 text-center text-gray-400"></i>`;
+                }
+                skillsHtml += `<div class="text-xs p-2 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2" data-id="${skill.id}" data-type="spell">${iconHtml}<span>${skill.name}</span></div>`;
+            });
         } else {
             skillsHtml += '<p class="text-xs text-gray-400 italic px-2">Nenhuma</p>';
         }
