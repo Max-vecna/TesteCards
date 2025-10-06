@@ -198,7 +198,7 @@ export async function editItem(itemId) {
 
     currentEditingItemId = itemId;
     document.getElementById('itemName').value = itemData.name;
-    document.getElementById('itemDescription').value = itemData.description;
+    document.getElementById('itemDescription').value = itemData.effect;
 
     // Limpa a lista de aumentos e a repopula
     const aumentosList = document.getElementById('item-aumentos-list');
