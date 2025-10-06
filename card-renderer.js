@@ -1,4 +1,4 @@
-import { saveData, getData } from './local_db.js'; // Adicionado para a funcionalidade de dinheiro
+import { saveData, getData } from './local_db.js'; 
 import { renderFullItemSheet } from './item_renderer.js';
 import { renderFullSpellSheet } from './magic_renderer.js';
 
@@ -13,9 +13,9 @@ const PERICIAS_DATA = {
 
 const periciaToAttributeMap = {};
 for (const attribute in PERICIAS_DATA) {
-    for (const periciaName in PERICIAS_DATA[attribute]) {
+    PERICIAS_DATA[attribute].forEach(periciaName => {
         periciaToAttributeMap[periciaName] = attribute;
-    }
+    });
 }
 
 
@@ -40,7 +40,7 @@ function getPredominantColor(imageUrl) {
                 const imageData = ctx.getImageData(0, 0, img.width, img.height).data;
                 let r = 0, g = 0, b = 0;
                 let count = 0;
-                const step = 4 * 10; // Pula alguns pixels para otimização
+                const step = 4 * 10; 
 
                 for (let i = 0; i < imageData.length; i += step) {
                     r += imageData[i];
@@ -72,10 +72,14 @@ async function populateInventory(container, characterData, uniqueId) {
     let inventoryHtml = '<h4 class="font-bold text-amber-300 border-b border-amber-300/30 pb-1 mb-1 px-2">Inventário</h4>';
     if (characterData.inventory && characterData.inventory.length > 0) {
         const itemPromises = characterData.inventory.map(id => getData('rpgItems', id));
-        const items = await Promise.all(itemPromises);
-        items.forEach(item => {
-            if (item) inventoryHtml += `<div class="text-xs p-2 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2" data-id="${item.id}" data-type="item">${item.name}</div>`;
-        });
+        const items = (await Promise.all(itemPromises)).filter(Boolean);
+        if (items.length > 0) {
+            items.forEach(item => {
+                inventoryHtml += `<div class="text-xs p-2 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2" data-id="${item.id}" data-type="item">${item.name}</div>`;
+            });
+        } else {
+             inventoryHtml += '<p class="text-xs text-gray-400 italic px-2">Vazio</p>';
+        }
     } else {
         inventoryHtml += '<p class="text-xs text-gray-400 italic px-2">Vazio</p>';
     }
@@ -186,8 +190,7 @@ function setupStatEditor(characterData, container) {
 
 export async function renderFullCharacterSheet(characterData, isModal, aspect, isInPlay, targetContainer) {
     const sheetContainer = targetContainer || document.getElementById('character-sheet-container');
-    if (!sheetContainer && (isModal || isInPlay)) return;
-
+    if (!sheetContainer && (isModal || isInPlay)) return '';
 
     const inventoryItems = characterData.inventory ? await Promise.all(characterData.inventory.map(id => getData('rpgItems', id))) : [];
     const magicItems = characterData.magics ? await Promise.all(characterData.magics.map(id => getData('rpgSpells', id))) : [];
@@ -220,10 +223,10 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     const windowHeight = window.innerHeight;
     let finalWidth, finalHeight;
 
-    if (targetContainer) { // If rendering in a specific container (like content-display)
+    if (targetContainer) {
         finalWidth = targetContainer.clientWidth;
         finalHeight = targetContainer.clientHeight;
-    } else { // Modal logic
+    } else { 
         if ((windowWidth * aspectRatio) > windowHeight) {
             finalHeight = windowHeight * 0.9;
             finalWidth = finalHeight / aspectRatio;
@@ -390,7 +393,6 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
                     <!-- Página 3: Inventário & Magias -->
                     <div class="pb-4 rounded-3xl w-full" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: flex-end;">
                         <div id="inventory-magic-scroll-area-${uniqueId}" class="flex flex-col gap-1" style="overflow-y: auto; max-height: 170px;">
-                            <!-- Conteúdo do inventário será injetado aqui -->
                         </div>
                     </div>
                 </div>
@@ -459,4 +461,5 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     if (isModal || isInPlay) {
         setupStatEditor(characterData, sheetContainer);
     }
+    return sheetHtml;
 }

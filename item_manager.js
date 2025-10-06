@@ -2,7 +2,6 @@ import { saveData, getData, removeData } from './local_db.js';
 import { renderFullItemSheet } from './item_renderer.js';
 import { openSelectionModal } from './navigation_manager.js';
 
-// Lista de perícias e atributos para popular o seletor de aumentos
 const AUMENTOS_DATA = {
     "Status": ["Vida", "Mana", "Armadura", "Esquiva", "Bloqueio", "Deslocamento"],
     "Atributos": ["Agilidade", "Carisma", "Força", "Inteligência", "Sabedoria", "Vigor"],
@@ -16,11 +15,9 @@ const AUMENTOS_DATA = {
     }
 };
 
-// Variáveis de estado
 let currentEditingItemId = null;
 let itemImageFile = null;
 
-// Funções auxiliares para imagens
 function showImagePreview(element, url) {
     if (url) {
         element.src = url;
@@ -63,15 +60,11 @@ function base64ToArrayBuffer(base64) {
     return bytes.buffer;
 }
 
-/**
- * Popula o select de aumentos no formulário de item.
- */
 export function populateItemAumentosSelect() {
     const select = document.getElementById('item-aumento-select');
     if (!select) return;
-    select.innerHTML = ''; // Limpa opções existentes
+    select.innerHTML = ''; 
 
-    // Adiciona Status
     const statusGroup = document.createElement('optgroup');
     statusGroup.label = 'Status';
     AUMENTOS_DATA.Status.forEach(stat => {
@@ -82,7 +75,6 @@ export function populateItemAumentosSelect() {
     });
     select.appendChild(statusGroup);
 
-    // Adiciona Atributos
     const atributosGroup = document.createElement('optgroup');
     atributosGroup.label = 'Atributos';
     AUMENTOS_DATA.Atributos.forEach(attr => {
@@ -93,7 +85,6 @@ export function populateItemAumentosSelect() {
     });
     select.appendChild(atributosGroup);
 
-    // Adiciona Perícias
     for (const attr in AUMENTOS_DATA.Perícias) {
         const periciasGroup = document.createElement('optgroup');
         periciasGroup.label = `Perícias (${attr})`;
@@ -107,11 +98,6 @@ export function populateItemAumentosSelect() {
     }
 }
 
-
-/**
- * Adiciona um elemento visual de aumento à lista no formulário.
- * @param {object} aumento - O objeto de aumento a ser renderizado.
- */
 function renderAumentoNaLista(aumento) {
     const list = document.getElementById('item-aumentos-list');
     if (!list) return;
@@ -138,11 +124,6 @@ function renderAumentoNaLista(aumento) {
     list.appendChild(div);
 }
 
-
-/**
- * Salva ou atualiza um item no IndexedDB.
- * @param {HTMLFormElement} itemForm - O formulário com os dados do item.
- */
 export async function saveItemCard(itemForm) {
     const itemNameInput = document.getElementById('itemName');
     const itemDescriptionInput = document.getElementById('itemDescription');
@@ -151,7 +132,6 @@ export async function saveItemCard(itemForm) {
     const itemChargeInput = document.getElementById('itemCharge');
     const itemPrerequisiteInput = document.getElementById('itemPrerequisite');
     
-    // Coleta os aumentos da lista
     const aumentosList = document.getElementById('item-aumentos-list');
     const aumentos = [];
     aumentosList.querySelectorAll('div[data-nome]').forEach(el => {
@@ -201,10 +181,6 @@ export async function saveItemCard(itemForm) {
     currentEditingItemId = null;
 }
 
-/**
- * Carrega os dados de um item no formulário para edição.
- * @param {string} itemId - O ID do item a ser editado.
- */
 export async function editItem(itemId) {
     const itemData = await getData('rpgItems', itemId);
     if (!itemData) return;
@@ -217,8 +193,6 @@ export async function editItem(itemId) {
     document.getElementById('itemCharge').value = itemData.charge || '';
     document.getElementById('itemPrerequisite').value = itemData.prerequisite || '';
 
-
-    // Limpa a lista de aumentos e a repopula
     const aumentosList = document.getElementById('item-aumentos-list');
     aumentosList.innerHTML = '';
     if (itemData.aumentos && Array.isArray(itemData.aumentos)) {
@@ -234,18 +208,10 @@ export async function editItem(itemId) {
     }
 }
 
-/**
- * Remove um item do IndexedDB.
- * @param {string} itemId - O ID do item a ser removido.
- */
 export async function removeItem(itemId) {
     await removeData('rpgItems', itemId);
 }
 
-/**
- * Exporta um único item para um arquivo JSON.
- * @param {string} itemId - O ID do item a ser exportado.
- */
 export async function exportItem(itemId) {
     const itemData = await getData('rpgItems', itemId);
     if (itemData) {
@@ -262,17 +228,13 @@ export async function exportItem(itemId) {
     }
 }
 
-/**
- * Importa um único item de um arquivo JSON.
- * @param {File} file - O arquivo JSON a ser importado.
- */
 export async function importItem(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
                 const importedItem = JSON.parse(e.target.result);
-                importedItem.id = Date.now().toString(); // Garante ID único
+                importedItem.id = Date.now().toString(); 
                 if (importedItem.image) {
                     importedItem.image = base64ToArrayBuffer(importedItem.image);
                 }
@@ -287,33 +249,26 @@ export async function importItem(file) {
     });
 }
 
-// Inicializa o select quando o DOM está pronto
 document.addEventListener('DOMContentLoaded', () => {
     populateItemAumentosSelect();
-
-    // Listener para o botão de adicionar aumento
     const addBtn = document.getElementById('add-item-aumento-btn');
     if (addBtn) {
         addBtn.addEventListener('click', () => {
             const select = document.getElementById('item-aumento-select');
             const valueInput = document.getElementById('item-aumento-value');
             const typeRadio = document.querySelector('input[name="item-aumento-type"]:checked');
-
             const nome = select.options[select.selectedIndex].text;
             const valor = parseInt(valueInput.value, 10) || 0;
             const tipo = typeRadio.value;
-            
             if (!nome || valor === 0) {
                 alert("Por favor, selecione um tipo de aumento e insira um valor diferente de zero.");
                 return;
             }
-
             renderAumentoNaLista({ nome, valor, tipo });
             valueInput.value = '0';
         });
     }
 });
-
 
 document.getElementById('itemImageUpload').addEventListener('change', (e) => {
     const file = e.target.files[0];
@@ -323,19 +278,16 @@ document.getElementById('itemImageUpload').addEventListener('change', (e) => {
     }
 });
 
-
-// --- INVENTORY SLOT SYSTEM ---
+// --- SISTEMA DE INVENTÁRIO ---
 
 let currentManagingCharacterId = null;
 
-// Helper function to handle the custom event for adding items
 function handleAddItemToInventory(e) {
     if (e.detail.type === 'item' && currentManagingCharacterId) {
         linkItem(e.detail.data.id, currentManagingCharacterId);
     }
 }
 
-// Function to clean up event listeners when the inventory view is closed
 export function cleanupInventoryManagementListeners() {
     document.removeEventListener('addItemToCharacter', handleAddItemToInventory);
     currentManagingCharacterId = null;
@@ -489,4 +441,3 @@ export async function renderInventoryManagement(characterId) {
         }
     });
 }
-

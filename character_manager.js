@@ -105,11 +105,8 @@ function createSelectedItemElement(data, type) {
     const containerId = type === 'item' ? 'selected-items-container' : 'selected-magics-container';
     const container = document.getElementById(containerId);
     
-    // FIX: Adiciona uma verificação para garantir que o contêiner exista antes de prosseguir.
-    // Isso evita o erro quando o formulário de edição não está visível.
     if (!container) return;
     
-    // Evita adicionar duplicatas
     if (container.querySelector(`[data-id="${data.id}"]`)) return;
 
     const itemElement = document.createElement('div');
@@ -150,7 +147,6 @@ export function populatePericiasCheckboxes(selectedPericias = []) {
     if (!container) return;
     container.innerHTML = '';
     
-    // Referências para o display de descrição
     const periciaDescriptionDisplay = document.getElementById('pericia-description-display');
     const periciaDescriptionTitle = document.getElementById('periciaDescriptionTitle');
     const periciaDescriptionText = document.getElementById('periciaDescriptionText');
@@ -306,7 +302,7 @@ export async function saveCharacterCard(cardForm) {
             backgroundImage: backgroundBuffer,
             imageMimeType: characterImageFile ? characterImageFile.type : null,
             backgroundMimeType: backgroundImageFile ? backgroundImageFile.type : null,
-            inPlay: false, // Adiciona o novo status para controlar se está em jogo
+            inPlay: false,
         };
     }
 
@@ -361,7 +357,7 @@ export async function editCard(cardId) {
     cardTitleInput.value = cardData.title;
     cardSubTitleInput.value = cardData.subTitle;
     cardLevelInput.value = cardData.level;
-    dinheiroInput.value = cardData.dinheiro;
+    dinheiroInput.value = cardData.dinheiro || 0;
     vidaInput.value = cardData.attributes.vida;
     manaInput.value = cardData.attributes.mana;
     vidaAtualInput.value = cardData.attributes.vidaAtual;
@@ -382,16 +378,13 @@ export async function editCard(cardId) {
 
     populatePericiasCheckboxes(cardData.attributes.pericias);
 
-    // Limpa e preenche magias (inventário é gerenciado separadamente)
     document.getElementById('selected-magics-container').innerHTML = '';
-
     if (cardData.magics && Array.isArray(cardData.magics)) {
         for (const magicId of cardData.magics) {
             const magicData = await getData('rpgSpells', magicId);
             if (magicData) createSelectedItemElement(magicData, 'magic');
         }
     }
-
 
     if (cardData.image) {
         const imageBlob = bufferToBlob(cardData.image, cardData.imageMimeType);
@@ -405,164 +398,8 @@ export async function editCard(cardId) {
     } else {
         showImagePreview(backgroundImagePreview, null, false);
     }
-}
-
-/**
- * Remove um cartão de personagem do IndexedDB.
- * @param {string} cardId - O ID do personagem a ser removido.
- */
-export async function removeCard(cardId) {
-    if (window.confirm('Tem certeza que deseja excluir este personagem?')) {
-        await removeData('rpgCards', cardId);
-    }
-}
-
-/**
- * Renderiza a lista de miniaturas de personagens na interface.
- */
-// Substitua a função renderCharacterList existente em character_manager.js por esta versão
-
-export async function renderCharacterList() {
-    const contentDisplay = document.getElementById('content-display');
-    contentDisplay.innerHTML = ''; // Limpa o conteúdo anterior
-    const allCharacters = await getData('rpgCards');
-
-    // Gera as miniaturas de forma assíncrona, assim como em renderSpellList
-    const charactersHtmlArray = await Promise.all(allCharacters.map(async (char) => {
-        const characterSheetHtml = await renderFullCharacterSheet(char, false, 16/11, false);
-        const backgroundImage = char.backgroundImage ? `url('${URL.createObjectURL(bufferToBlob(char.backgroundImage, char.backgroundMimeType))}')` : '#2d3748';
-
-        return `
-            <div class="rpg-thumbnail bg-cover bg-center relative" data-action="view" data-type="character" data-id="${char.id}" style="background-image: ${backgroundImage};">
-                <div class="miniCard absolute inset-0  flex flex-col items-center justify-center text-white p-2 rounded-lg overflow-hidden">
-                    ${characterSheetHtml}
-                </div>
-                <div class="thumbnail-actions absolute z-10">
-                    <button class="thumb-btn thumb-btn-menu">
-                        <i class="fas fa-ellipsis-v"></i>
-                    </button>
-                    <div class="thumbnail-menu" data-type="character">
-                        <button class="menu-item" data-action="edit" data-id="${char.id}"><i class="fas fa-edit"></i> Editar</button>
-                        <button class="menu-item" data-action="remove" data-id="${char.id}"><i class="fas fa-trash-alt"></i> Excluir</button>
-                        <button class="menu-item" data-action="export-json" data-id="${char.id}"><i class="fas fa-file-download"></i> Baixar</button>
-                        ${char.inPlay 
-                            ? `<button class="menu-item" data-action="remove-from-play" data-id="${char.id}"><i class="fas fa-sign-out-alt"></i> Remover de Jogo</button>` 
-                            : `<button class="menu-item" data-action="set-in-play" data-id="${char.id}"><i class="fas fa-play-circle"></i> Usar em Jogo</button>`}
-                    </div>
-                </div>
-            </div>
-        `;
-    }));
-
-    const charactersHtml = `
-        <div class="grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 overflow-y-auto p-6 pt-0">
-            <div class="relative w-full h-full aspect-square" style="aspect-ratio: 120 / 160;">
-                <button class="add-card-button absolute inset-0" data-action="add-character">
-                    <i class="fas fa-plus text-2xl mb-2"></i>
-                    <span class="text-sm font-semibold">Adicionar Personagem</span>
-                </button>
-                <div class="absolute -bottom-3 w-full flex justify-center gap-2">
-                     <button class="thumb-btn bg-indigo-500 hover:bg-indigo-600 rounded-full w-8 h-8 flex items-center justify-center" id="import-cards-btn" title="Importar Personagem (JSON)">
-                        <i class="fas fa-upload text-xs"></i>
-                    </button>
-                    <input type="file" id="import-json-input" accept=".json" class="hidden">
-                </div>
-            </div>
-            ${charactersHtmlArray.join('')}
-        </div>
-    `;
-    contentDisplay.innerHTML = charactersHtml;
-
-    // -------- LÓGICA DE CENTRALIZAÇÃO DINÂMICA (COPIADA E ADAPTADA DE MAGIC_MANAGER.JS) --------
-    function debounce(fn, wait = 100) {
-        let t;
-        return (...args) => {
-            clearTimeout(t);
-            t = setTimeout(() => fn(...args), wait);
-        };
-    }
-
-    function centerCharacterSheetInMiniCard(miniCard) {
-        const sheet = miniCard.querySelector('#character-sheet'); // Alvo alterado para #character-sheet
-        if (!sheet) return;
-
-        const thumbRect = miniCard.getBoundingClientRect();
-        const sheetRect = sheet.getBoundingClientRect();
-
-        if (!isFinite(thumbRect.width) || !isFinite(sheetRect.width)) return;
-
-        let left = (thumbRect.width - sheetRect.width) / 2;
-        let top = (thumbRect.height - sheetRect.height) / 2;
-
-        if (!isFinite(left)) left = 0;
-        if (!isFinite(top)) top = 0;
-        
-        // Impede que a ficha saia dos limites da miniatura
-        left = Math.max(left, 0);
-        top = Math.max(top, 0);
-
-        sheet.style.position = 'absolute';
-        sheet.style.left = `${left}px`;
-        sheet.style.top = `${top}px`;
-    }
-
-    function centerAllCharacterSheets() {
-        document.querySelectorAll('.miniCard').forEach(centerCharacterSheetInMiniCard);
-    }
-
-    // Limpa observadores antigos se já existirem
-    if (window.__characterCenterRO) {
-        try { window.__characterCenterRO.disconnect(); } catch(e) {}
-        try { window.__characterCenterMO.disconnect(); } catch(e) {}
-        window.__characterCenterRO = null;
-        window.__characterCenterMO = null;
-    }
-
-    const ro = new ResizeObserver(entries => {
-        for (const entry of entries) {
-            centerCharacterSheetInMiniCard(entry.target);
-        }
-    });
-    window.__characterCenterRO = ro;
-
-    const gridContainer = contentDisplay.querySelector('.grid') || contentDisplay;
-    const mo = new MutationObserver(debounce(() => {
-        ro.disconnect();
-        document.querySelectorAll('.miniCard').forEach(el => ro.observe(el));
-        centerAllCharacterSheets();
-    }, 80));
-    window.__characterCenterMO = mo;
-    mo.observe(gridContainer, { childList: true, subtree: true });
-
-    document.querySelectorAll('.miniCard').forEach(el => ro.observe(el));
-    centerAllCharacterSheets();
-
-    window.addEventListener('resize', debounce(centerAllCharacterSheets, 120));
-    // -----------------------------------------------------------------------------------
-
-    document.getElementById('import-cards-btn').addEventListener('click', () => {
-        document.getElementById('import-json-input').click();
-    });
-
-    document.getElementById('import-json-input').addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            try {
-                const importedCard = await importCard(file);
-                if (importedCard) {
-                     showCustomAlert(`Personagem '${importedCard.title}' importado com sucesso!`);
-                } else {
-                     showCustomAlert('Nenhum personagem encontrado no arquivo.');
-                }
-                contentDisplay.innerHTML = '';
-                renderCharacterList();
-            } catch (error) {
-                showCustomAlert('Erro ao importar arquivo. Verifique se é um JSON de personagem válido.');
-            } finally {
-                e.target.value = '';
-            }
-        }
-    });
+    
+    document.getElementById('manage-inventory-from-edit-btn').classList.remove('hidden');
 }
 
 /**
@@ -603,11 +440,9 @@ export async function importCard(file) {
                     throw new Error("Formato de arquivo inválido. Esperado um único objeto de personagem com um ID.");
                 }
 
-                // Altera o ID do cartão importado para garantir que ele seja único
                 importedCard.id = Date.now().toString();
-                importedCard.inPlay = false; // Garante que o personagem importado não esteja em jogo
+                importedCard.inPlay = false; 
 
-                // Converte Base64 de volta para ArrayBuffer
                 if (importedCard.image) {
                     importedCard.image = base64ToArrayBuffer(importedCard.image);
                 }
@@ -627,9 +462,6 @@ export async function importCard(file) {
     });
 }
 
-// Event listener for adding item/magia to the form
-// FIX: Este listener agora só processará magias. A adição de itens é 
-// completamente gerenciada pelo `item_manager.js` e o sistema de slots.
 document.addEventListener('addItemToCharacter', (e) => {
     const { data, type } = e.detail;
     if (type === 'magic') {
@@ -637,8 +469,6 @@ document.addEventListener('addItemToCharacter', (e) => {
     }
 });
 
-
-// Funções para upload de imagem
 document.getElementById('characterImageUpload').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -655,28 +485,21 @@ document.getElementById('backgroundImageUpload').addEventListener('change', (e) 
     }
 });
 
- // Funções auxiliares para modais customizados
-    function showCustomAlert(message) {
-        const modalHtml = `
-            <div id="custom-alert-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-                <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 w-full max-w-sm border border-gray-700">
-                    <p class="text-center text-lg mb-4">${message}</p>
-                    <button id="close-alert-btn" class="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-bold">OK</button>
-                </div>
+function showCustomAlert(message) {
+    const modalHtml = `
+        <div id="custom-alert-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 w-full max-w-sm border border-gray-700">
+                <p class="text-center text-lg mb-4">${message}</p>
+                <button id="close-alert-btn" class="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-bold">OK</button>
             </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        document.getElementById('close-alert-btn').addEventListener('click', () => {
-            document.getElementById('custom-alert-modal').remove();
-        });
-    }
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.getElementById('close-alert-btn').addEventListener('click', () => {
+        document.getElementById('custom-alert-modal').remove();
+    });
+}
 
-/**
- * Exporta uma função getter para o ID do card atualmente em edição.
- * Isso permite que outros módulos saibam qual card está sendo editado.
- * @returns {string|null} O ID do card ou null se nenhum estiver em edição.
- */
 export function getCurrentEditingCardId() {
     return currentEditingCardId;
 }
-
