@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="./style.css">
     <style>
         /* Estilos para o formulário de sobreposição */
-        #creation-section, #character-sheet-container, #spell-creation-section, #spell-sheet-container, #item-sheet-container, #item-creation-section {
+        #creation-section, #character-sheet-container, #spell-creation-section, #spell-sheet-container, #item-sheet-container, #item-creation-section, #inventory-management-section {
             position: fixed;
             top: 0;
             left: 0;
@@ -23,7 +23,7 @@
             transition: opacity 0.3s ease-in-out;
         }
 
-        #creation-section.hidden, #character-sheet-container.hidden, #spell-creation-section.hidden, #spell-sheet-container.hidden, #item-sheet-container.hidden, #item-creation-section.hidden {
+        #creation-section.hidden, #character-sheet-container.hidden, #spell-creation-section.hidden, #spell-sheet-container.hidden, #item-sheet-container.hidden, #item-creation-section.hidden, #inventory-management-section.hidden {
             display: none;
             opacity: 0;
             pointer-events: none; /* Impede cliques quando oculto */
@@ -31,12 +31,13 @@
 
         .form-container {
             background-color: #1a202c;
-            max-height: 100%; /* Limita a altura para caber na tela */
+            max-height: 95vh; /* Limita a altura para caber na tela */
             overflow-y: auto; /* Adiciona rolagem se o formulário for muito grande */
             padding: 2rem;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
             max-width: 600px;
             width: 100%;
+            border-radius: 0.75rem;
         }
 
     </style>
@@ -53,7 +54,7 @@
     <!-- Main Content -->
     <div id="main-content" class="main-content flex-grow w-full">
         <!-- Loader for content changes -->
-        <div id="content-loader" class="hidden absolute inset-0 flex items-center justify-center bg-gray-800/70 z-50 rounded-2xl">
+        <div id="content-loader" class="hidden absolute inset-0 flex items-center justify-center bg-gray-800/70 z-50">
             <div class="w-16 h-16 border-4 border-t-transparent border-indigo-400 rounded-full animate-spin"></div>
         </div>
 
@@ -162,10 +163,10 @@
                  <!-- Seção de Inventário -->
                 <div>
                     <h3 class="text-xl font-bold text-indigo-300 mb-2">Inventário</h3>
-                    <div id="selected-items-container" class="space-y-2 bg-gray-700 p-2 rounded-lg min-h-[50px]">
-                        <!-- Itens selecionados aparecerão aqui -->
-                    </div>
-                    <button type="button" id="add-item-to-char-btn" class="mt-2 w-full py-2 px-4 rounded-lg text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors">Adicionar Item</button>
+                    <button type="button" id="manage-inventory-from-edit-btn" class="mt-2 w-full py-2 px-4 rounded-lg text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-box-open"></i>
+                        Gerenciar Inventário (Slots)
+                    </button>
                 </div>
                 <!-- Seção de Magias -->
                 <div>
@@ -302,6 +303,27 @@
                 </div>
                 <div><label for="itemName" class="block text-sm font-semibold mb-1">Nome</label><input type="text" id="itemName" placeholder="Ex: Poção de Cura" required class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
                 
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="itemType" class="block text-sm font-semibold mb-1">Tipo</label>
+                        <input type="text" id="itemType" placeholder="Ex: Arma Leve" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600">
+                    </div>
+                    <div>
+                        <label for="itemDamage" class="block text-sm font-semibold mb-1">Dano</label>
+                        <input type="text" id="itemDamage" placeholder="Ex: 1d6+For" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600">
+                    </div>
+                </div>
+                 <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="itemCharge" class="block text-sm font-semibold mb-1">Carga</label>
+                        <input type="number" id="itemCharge" placeholder="Ex: 1" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600">
+                    </div>
+                    <div>
+                        <label for="itemPrerequisite" class="block text-sm font-semibold mb-1">Pré-requisito</label>
+                        <input type="text" id="itemPrerequisite" placeholder="Ex: Força 2" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600">
+                    </div>
+                </div>
+
                 <div><label for="itemDescription" class="block text-sm font-semibold mb-1">Descrição</label><textarea id="itemDescription" rows="4" placeholder="Ex: Uma poção que restaura a vitalidade." class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></textarea></div>
 
                 <!-- Seção de Aumentos Dinâmicos para Itens -->
@@ -333,6 +355,39 @@
                     Salvar Item
                 </button>
             </form>
+        </div>
+    </div>
+
+    <!-- Inventory Management Section -->
+    <div id="inventory-management-section" class="hidden">
+        <div class="form-container">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="inventory-section-title" class="text-2xl font-bold text-amber-300">Gerenciar Inventário</h2>
+                <button id="close-inventory-btn" class="text-gray-400 hover:text-white text-3xl font-bold">&times;</button>
+            </div>
+            <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700 space-y-4 max-h-[80vh] overflow-y-auto">
+                <div class="flex justify-between items-center sticky top-0 bg-gray-800 backdrop-blur-sm py-2 z-10 -m-4 p-4 mb-0">
+                    <div>
+                        <h3 class="text-xl font-bold text-amber-300">Inventário</h3>
+                        <p id="slots-info" class="text-sm text-gray-400">Slots: 0/0</p>
+                    </div>
+                    <button id="add-item-to-inventory-btn" class="py-2 px-4 rounded-full text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Item
+                    </button>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Equipamento Especial (Concede Slots)</h4>
+                    <div id="special-equipment-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2"></div>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Itens com Carga</h4>
+                    <div id="item-slots-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2"></div>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Itens de Carga Zero</h4>
+                    <div id="zero-charge-items-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2"></div>
+                </div>
+            </div>
         </div>
     </div>
 

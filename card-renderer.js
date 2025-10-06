@@ -333,6 +333,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
             <div id="lore-icon-${uniqueId}" class="absolute top-20 left-4 rounded-full p-3 bg-black/50 flex items-center justify-center text-lg text-yellow-200 cursor-pointer" data-action="toggle-lore">
                 <i class="fas fa-book"></i>
             </div>
+            
             <div class="absolute money-container top-32 left-4 rounded-full p-2 bg-black/50 flex items-center justify-center text-sm text-amber-300 font-bold cursor-pointer" data-action="edit-stat" data-stat-type="dinheiro" title="Alterar Dinheiro" style="writing-mode: vertical-rl; text-orientation: upright;">
                 💰$<span data-stat-current="dinheiro">${characterData.dinheiro || 0}</span>
             </div>
@@ -459,4 +460,3 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
         setupStatEditor(characterData, sheetContainer);
     }
 }
-

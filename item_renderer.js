@@ -64,6 +64,27 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
     const origin = isModal ? "" : "transform-origin: top left";
     const uniqueId = `item-${Date.now()}`;
 
+    let detailsHtml = '';
+    const details = [
+        { label: 'TP', title: 'Tipo', value: itemData.type },
+        { label: 'DN', title: 'Dano', value: itemData.damage },
+        { label: 'CG', title: 'Carga', value: itemData.charge },
+        { label: 'PR', title: 'Pré-requisito', value: itemData.prerequisite }
+    ];
+
+    if (details.some(d => d.value)) {
+        detailsHtml = `
+            <div class="grid grid-cols-4 gap-x-2 text-xs my-2 text-center text-gray-200">
+                ${details.map(d => `
+                    <div>
+                        <p class="font-bold tracking-wider">${d.label}</p>
+                        <p class="text-gray-300 truncate" title="${d.value || d.title}">${d.value || '-'}</p>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
     let aumentosHtml = '';
     const hasAumentos = itemData.aumentos && itemData.aumentos.length > 0;
     if (hasAumentos) {
@@ -97,6 +118,9 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
                     <div class="flex justify-between items-start">
                         <h2 class="text-2xl md:text-3xl font-bold tracking-tight text-white pr-2">${itemData.name}</h2>
                     </div>
+                    
+                    ${detailsHtml}
+
                     <div class="sheet-card-divider"></div>
 
                     <div class="space-y-3 max-h-40 overflow-y-auto pr-2">
@@ -142,3 +166,4 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
     };
     sheetContainer.addEventListener('click', overlayHandler);
 }
+

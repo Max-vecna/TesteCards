@@ -105,6 +105,10 @@ function createSelectedItemElement(data, type) {
     const containerId = type === 'item' ? 'selected-items-container' : 'selected-magics-container';
     const container = document.getElementById(containerId);
     
+    // FIX: Adiciona uma verificação para garantir que o contêiner exista antes de prosseguir.
+    // Isso evita o erro quando o formulário de edição não está visível.
+    if (!container) return;
+    
     // Evita adicionar duplicatas
     if (container.querySelector(`[data-id="${data.id}"]`)) return;
 
@@ -268,7 +272,6 @@ export async function saveCharacterCard(cardForm) {
     const imageBuffer = characterImageFile ? await readFileAsArrayBuffer(characterImageFile) : null;
     const backgroundBuffer = backgroundImageFile ? await readFileAsArrayBuffer(backgroundImageFile) : null;
 
-    const inventoryIds = Array.from(document.querySelectorAll('#selected-items-container [data-id]')).map(el => el.dataset.id);
     const magicIds = Array.from(document.querySelectorAll('#selected-magics-container [data-id]')).map(el => el.dataset.id);
     
     let cardData;
@@ -282,7 +285,6 @@ export async function saveCharacterCard(cardForm) {
             dinheiro: parseInt(dinheiroInput.value) || 0,
             attributes,
             lore,
-            inventory: inventoryIds,
             magics: magicIds,
             image: imageBuffer || cardData.image,
             backgroundImage: backgroundBuffer || cardData.backgroundImage,
@@ -298,7 +300,7 @@ export async function saveCharacterCard(cardForm) {
             dinheiro: parseInt(dinheiroInput.value) || 0,
             attributes,
             lore,
-            inventory: inventoryIds,
+            inventory: [],
             magics: magicIds,
             image: imageBuffer,
             backgroundImage: backgroundBuffer,
@@ -314,7 +316,6 @@ export async function saveCharacterCard(cardForm) {
     backgroundImageFile = null;
     showImagePreview(document.getElementById('characterImagePreview'), null, true);
     showImagePreview(document.getElementById('backgroundImagePreview'), null, false);
-    document.getElementById('selected-items-container').innerHTML = '';
     document.getElementById('selected-magics-container').innerHTML = '';
     currentEditingCardId = null;
 }
@@ -381,16 +382,9 @@ export async function editCard(cardId) {
 
     populatePericiasCheckboxes(cardData.attributes.pericias);
 
-    // Limpa e preenche o inventário e magias
-    document.getElementById('selected-items-container').innerHTML = '';
+    // Limpa e preenche magias (inventário é gerenciado separadamente)
     document.getElementById('selected-magics-container').innerHTML = '';
 
-    if (cardData.inventory && Array.isArray(cardData.inventory)) {
-        for (const itemId of cardData.inventory) {
-            const itemData = await getData('rpgItems', itemId);
-            if (itemData) createSelectedItemElement(itemData, 'item');
-        }
-    }
     if (cardData.magics && Array.isArray(cardData.magics)) {
         for (const magicId of cardData.magics) {
             const magicData = await getData('rpgSpells', magicId);
@@ -633,10 +627,14 @@ export async function importCard(file) {
     });
 }
 
-// Event listener para adicionar item/magia ao formulário do personagem
+// Event listener for adding item/magia to the form
+// FIX: Este listener agora só processará magias. A adição de itens é 
+// completamente gerenciada pelo `item_manager.js` e o sistema de slots.
 document.addEventListener('addItemToCharacter', (e) => {
     const { data, type } = e.detail;
-    createSelectedItemElement(data, type);
+    if (type === 'magic') {
+        createSelectedItemElement(data, type);
+    }
 });
 
 
@@ -672,3 +670,13 @@ document.getElementById('backgroundImageUpload').addEventListener('change', (e) 
             document.getElementById('custom-alert-modal').remove();
         });
     }
+
+/**
+ * Exporta uma função getter para o ID do card atualmente em edição.
+ * Isso permite que outros módulos saibam qual card está sendo editado.
+ * @returns {string|null} O ID do card ou null se nenhum estiver em edição.
+ */
+export function getCurrentEditingCardId() {
+    return currentEditingCardId;
+}
+

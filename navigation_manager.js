@@ -1,6 +1,6 @@
-import { populatePericiasCheckboxes, saveCharacterCard, editCard, importCard } from './character_manager.js';
+import { populatePericiasCheckboxes, saveCharacterCard, editCard, importCard, getCurrentEditingCardId } from './character_manager.js';
 import { populateSpellAumentosSelect, saveSpellCard, editSpell, importSpell } from './magic_manager.js';
-import { populateItemAumentosSelect, saveItemCard, editItem, importItem, removeItem, exportItem } from './item_manager.js';
+import { populateItemAumentosSelect, saveItemCard, editItem, importItem, removeItem, exportItem, renderInventoryManagement, cleanupInventoryManagementListeners } from './item_manager.js';
 import { openDatabase, removeData, getData, saveData } from './local_db.js';
 import { renderFullCharacterSheet } from './card-renderer.js';
 import { renderFullSpellSheet } from './magic_renderer.js';
@@ -12,6 +12,59 @@ let renderContent; // Declarado no escopo do módulo para ser acessível globalm
 // Função auxiliar para converter buffer em Blob
 function bufferToBlob(buffer, mimeType) {
     return new Blob([buffer], { type: mimeType });
+}
+
+export async function openSelectionModal(type) {
+    const selectionModal = document.getElementById('selection-modal');
+    const selectionModalTitle = document.getElementById('selection-modal-title');
+    const selectionModalList = document.getElementById('selection-modal-list');
+
+    selectionModalList.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></div>';
+    selectionModal.classList.remove('hidden');
+
+    const isItem = type === 'item';
+    const storeName = isItem ? 'rpgItems' : 'rpgSpells';
+    const title = isItem ? 'Selecionar Item' : 'Selecionar Magia/Habilidade';
+    const color = isItem ? 'text-amber-300' : 'text-teal-300';
+    
+    selectionModalTitle.className = `text-xl font-bold ${color}`;
+    selectionModalTitle.textContent = title;
+    
+    const data = await getData(storeName);
+    selectionModalList.innerHTML = '';
+
+    if (!data || data.length === 0) {
+        selectionModalList.innerHTML = `<p class="text-gray-400 text-center p-4">Nenhum ${isItem ? 'item' : 'conteúdo'} encontrado. Crie um primeiro!</p>`;
+        return;
+    }
+
+    data.forEach(item => {
+        const el = document.createElement('button');
+        el.className = 'w-full text-left p-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-3';
+        
+        let iconHtml = '';
+        if (item.image) {
+            const imageUrl = URL.createObjectURL(bufferToBlob(item.image, item.imageMimeType));
+            iconHtml = `<img src="${imageUrl}" class="w-8 h-8 rounded-full object-cover flex-shrink-0" style="image-rendering: pixelated;">`;
+        } else {
+            const iconClass = isItem ? 'fa-box' : 'fa-magic';
+            iconHtml = `<i class="fas ${iconClass} w-8 text-center text-xl text-gray-400"></i>`;
+        }
+
+        el.innerHTML = `
+            ${iconHtml}
+            <div>
+                <p class="font-semibold">${item.name}</p>
+                ${!isItem && item.type ? `<p class="text-xs text-gray-400 capitalize">${item.type}</p>` : ''}
+            </div>
+        `;
+
+        el.addEventListener('click', () => {
+            document.dispatchEvent(new CustomEvent('addItemToCharacter', { detail: { data: item, type: isItem ? 'item' : 'magic' } }));
+            selectionModal.classList.add('hidden');
+        });
+        selectionModalList.appendChild(el);
+    });
 }
 
 // --- Lógica de Centralização dos Mini Cards ---
@@ -366,6 +419,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const creationSection = document.getElementById('creation-section');
     const spellCreationSection = document.getElementById('spell-creation-section');
     const itemCreationSection = document.getElementById('item-creation-section');
+    const inventoryManagementSection = document.getElementById('inventory-management-section');
     const selectCharacterModal = document.getElementById('select-character-modal');
     const selectCharacterList = document.getElementById('select-character-list');
     
@@ -374,6 +428,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const closeFormBtn = document.getElementById('close-form-btn');
     const closeSpellFormBtn = document.getElementById('close-spell-form-btn');
     const closeItemFormBtn = document.getElementById('close-item-form-btn');
+    const closeInventoryBtn = document.getElementById('close-inventory-btn');
     
     // Formulários e seus componentes
     const cardForm = document.getElementById('cardForm');
@@ -411,6 +466,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         creationSection.classList.add('hidden');
         spellCreationSection.classList.add('hidden');
         itemCreationSection.classList.add('hidden');
+        inventoryManagementSection.classList.add('hidden');
 
         if (target !== 'personagem-em-jogo') {
             const titleText = document.querySelector(`.nav-button[data-target="${target}"] .hidden`)?.textContent || target.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -520,6 +576,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('selected-items-container').innerHTML = '';
             document.getElementById('selected-magics-container').innerHTML = '';
             populatePericiasCheckboxes();
+            document.getElementById('manage-inventory-from-edit-btn').classList.add('hidden');
         });
          if (action === "add-spell" || action === "add-habilidade") showView(spellCreationSection, false, () => {
             const isHabilidade = action === "add-habilidade";
@@ -539,6 +596,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         if (e.target.closest('#select-character-btn')) showCharacterSelectionModal();
     });
+
+    document.getElementById('manage-inventory-from-edit-btn').addEventListener('click', () => {
+        const characterId = getCurrentEditingCardId();
+        if (characterId) {
+            creationSection.classList.add('hidden');
+            inventoryManagementSection.classList.remove('hidden');
+            renderInventoryManagement(characterId);
+        }
+    });
     
     // Funções para fechar formulários
     const closeForm = (section, targetTab) => {
@@ -551,12 +617,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     closeFormBtn.addEventListener('click', () => closeForm(creationSection, 'personagem'));
     closeSpellFormBtn.addEventListener('click', () => closeForm(spellCreationSection, spellForm.dataset.type === 'habilidade' ? 'habilidades' : 'magias'));
     closeItemFormBtn.addEventListener('click', () => closeForm(itemCreationSection, 'itens'));
+    closeInventoryBtn.addEventListener('click', () => {
+        cleanupInventoryManagementListeners();
+        inventoryManagementSection.classList.add('hidden');
+        // Apenas mostra o formulário de criação novamente, não recarrega a página
+        if (getCurrentEditingCardId()) {
+            creationSection.classList.remove('hidden');
+        } else {
+            closeForm(inventoryManagementSection, 'personagem-em-jogo');
+        }
+    });
     selectCharacterCloseBtn.addEventListener('click', () => selectCharacterModal.classList.add('hidden'));
 
     // Submissão dos formulários
     cardForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const cardId = getCurrentEditingCardId(); // Pega o ID antes que seja limpo por saveCharacterCard
         await saveCharacterCard(cardForm);
+
+        
+        // Comportamento padrão: retorna para a lista de personagens.
         closeForm(creationSection, 'personagem');
     });
 
@@ -573,59 +653,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         closeForm(itemCreationSection, 'itens');
     });
 
-    // --- Lógica do Modal de Seleção de Itens/Magias ---
-    async function openSelectionModal(type) {
-        selectionModalList.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></div>';
-        selectionModal.classList.remove('hidden');
-
-        const isItem = type === 'item';
-        const storeName = isItem ? 'rpgItems' : 'rpgSpells';
-        const title = isItem ? 'Selecionar Item' : 'Selecionar Magia/Habilidade';
-        const color = isItem ? 'text-amber-300' : 'text-teal-300';
-        
-        selectionModalTitle.className = `text-xl font-bold ${color}`;
-        selectionModalTitle.textContent = title;
-        
-        const data = await getData(storeName);
-        selectionModalList.innerHTML = '';
-
-        if (!data || data.length === 0) {
-            selectionModalList.innerHTML = `<p class="text-gray-400 text-center p-4">Nenhum ${isItem ? 'item' : 'conteúdo'} encontrado. Crie um primeiro!</p>`;
-            return;
-        }
-
-        data.forEach(item => {
-            const el = document.createElement('button');
-            el.className = 'w-full text-left p-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-3';
-            
-            let iconHtml = '';
-            if (item.image) {
-                const imageUrl = URL.createObjectURL(bufferToBlob(item.image, item.imageMimeType));
-                iconHtml = `<img src="${imageUrl}" class="w-8 h-8 rounded-full object-cover flex-shrink-0" style="image-rendering: pixelated;">`;
-            } else {
-                const iconClass = isItem ? 'fa-box' : 'fa-magic';
-                iconHtml = `<i class="fas ${iconClass} w-8 text-center text-xl text-gray-400"></i>`;
-            }
-
-            el.innerHTML = `
-                ${iconHtml}
-                <div>
-                    <p class="font-semibold">${item.name}</p>
-                    ${!isItem && item.type ? `<p class="text-xs text-gray-400 capitalize">${item.type}</p>` : ''}
-                </div>
-            `;
-
-            el.addEventListener('click', () => {
-                document.dispatchEvent(new CustomEvent('addItemToCharacter', { detail: { data: item, type: isItem ? 'item' : 'magic' } }));
-                selectionModal.classList.add('hidden');
-            });
-            selectionModalList.appendChild(el);
-        });
-    }
-
-    document.getElementById('add-item-to-char-btn').addEventListener('click', () => openSelectionModal('item'));
     document.getElementById('add-magic-to-char-btn').addEventListener('click', () => openSelectionModal('magic'));
     selectionModalCloseBtn.addEventListener('click', () => selectionModal.classList.add('hidden'));
+
+    document.addEventListener('openItemSelectionModal', () => openSelectionModal('item'));
 
     // Evento para navegar para a home a partir do card "em jogo"
     document.addEventListener('navigateHome', () => {
@@ -702,10 +733,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const cardType = menuItem.closest('[data-type]').dataset.type;
             const activeNav = document.querySelector('.nav-button.active').dataset.target;
 
+            // Gerencia a ação de 'editar' para qualquer tipo de card.
             if (action === 'edit') {
+                // Para personagens, reutilizamos a seção de criação.
+                // Isso garante que a funcionalidade de adicionar/remover itens e magias permaneça ativa durante a edição.
                 if (cardType === 'character') {
                     showView(creationSection, true);
-                    await editCard(cardId);
+                    await editCard(cardId); // A função editCard preenche o formulário com os dados do personagem.
                 } else if (cardType === 'spell') {
                     const spellData = await getData('rpgSpells', cardId);
                     if (spellData) {

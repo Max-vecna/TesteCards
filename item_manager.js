@@ -1,5 +1,6 @@
 import { saveData, getData, removeData } from './local_db.js';
 import { renderFullItemSheet } from './item_renderer.js';
+import { openSelectionModal } from './navigation_manager.js';
 
 // Lista de perícias e atributos para popular o seletor de aumentos
 const AUMENTOS_DATA = {
@@ -145,6 +146,10 @@ function renderAumentoNaLista(aumento) {
 export async function saveItemCard(itemForm) {
     const itemNameInput = document.getElementById('itemName');
     const itemDescriptionInput = document.getElementById('itemDescription');
+    const itemTypeInput = document.getElementById('itemType');
+    const itemDamageInput = document.getElementById('itemDamage');
+    const itemChargeInput = document.getElementById('itemCharge');
+    const itemPrerequisiteInput = document.getElementById('itemPrerequisite');
     
     // Coleta os aumentos da lista
     const aumentosList = document.getElementById('item-aumentos-list');
@@ -165,6 +170,10 @@ export async function saveItemCard(itemForm) {
         Object.assign(itemData, {
             name: itemNameInput.value,
             effect: itemDescriptionInput.value,
+            type: itemTypeInput.value,
+            damage: itemDamageInput.value,
+            charge: itemChargeInput.value,
+            prerequisite: itemPrerequisiteInput.value,
             aumentos,
             image: imageBuffer || itemData.image,
             imageMimeType: itemImageFile ? itemImageFile.type : itemData.imageMimeType,
@@ -174,6 +183,10 @@ export async function saveItemCard(itemForm) {
             id: Date.now().toString(),
             name: itemNameInput.value,
             effect: itemDescriptionInput.value,
+            type: itemTypeInput.value,
+            damage: itemDamageInput.value,
+            charge: itemChargeInput.value,
+            prerequisite: itemPrerequisiteInput.value,
             aumentos,
             image: imageBuffer,
             imageMimeType: itemImageFile ? itemImageFile.type : null,
@@ -199,6 +212,11 @@ export async function editItem(itemId) {
     currentEditingItemId = itemId;
     document.getElementById('itemName').value = itemData.name;
     document.getElementById('itemDescription').value = itemData.effect;
+    document.getElementById('itemType').value = itemData.type || '';
+    document.getElementById('itemDamage').value = itemData.damage || '';
+    document.getElementById('itemCharge').value = itemData.charge || '';
+    document.getElementById('itemPrerequisite').value = itemData.prerequisite || '';
+
 
     // Limpa a lista de aumentos e a repopula
     const aumentosList = document.getElementById('item-aumentos-list');
@@ -304,3 +322,171 @@ document.getElementById('itemImageUpload').addEventListener('change', (e) => {
         showImagePreview(document.getElementById('itemImagePreview'), URL.createObjectURL(file));
     }
 });
+
+
+// --- INVENTORY SLOT SYSTEM ---
+
+let currentManagingCharacterId = null;
+
+// Helper function to handle the custom event for adding items
+function handleAddItemToInventory(e) {
+    if (e.detail.type === 'item' && currentManagingCharacterId) {
+        linkItem(e.detail.data.id, currentManagingCharacterId);
+    }
+}
+
+// Function to clean up event listeners when the inventory view is closed
+export function cleanupInventoryManagementListeners() {
+    document.removeEventListener('addItemToCharacter', handleAddItemToInventory);
+    currentManagingCharacterId = null;
+}
+
+async function getInventoryStatus(characterId) {
+    const character = await getData('rpgCards', characterId);
+    if (!character) return { totalSlots: 0, usedSlots: 0 };
+
+    const allMasterItems = await getData('rpgItems');
+    const itemsMap = new Map(allMasterItems.map(i => [i.id, i]));
+    const charItems = (character.inventory || []).map(id => itemsMap.get(id)).filter(Boolean);
+
+    const strength = parseInt(character.attributes.forca) || 0;
+    const slotAddingItems = charItems.filter(item => parseInt(item.charge) < 0);
+    const regularItems = charItems.filter(item => parseInt(item.charge) > 0);
+    
+    const extraSlots = slotAddingItems.reduce((acc, item) => acc + Math.abs(parseInt(item.charge)), 0);
+    const totalSlots = (strength * 2) + 5 + extraSlots;
+    
+    const totalCharge = regularItems.reduce((acc, item) => acc + parseInt(item.charge), 0);
+
+    return { totalSlots, usedSlots: totalCharge };
+}
+
+export async function unlinkItem(itemIndexInCharacterArray, characterId) {
+    const character = await getData('rpgCards', characterId);
+    if (!character || !character.inventory) return;
+
+    character.inventory.splice(itemIndexInCharacterArray, 1);
+    await saveData('rpgCards', character);
+    await renderInventoryManagement(characterId);
+}
+
+export async function linkItem(templateId, characterId) {
+    const character = await getData('rpgCards', characterId);
+    const itemToAdd = await getData('rpgItems', templateId);
+    if (!character || !itemToAdd) return;
+
+    const inventoryStatus = await getInventoryStatus(characterId);
+    if (parseInt(itemToAdd.charge) > 0 && (inventoryStatus.usedSlots + parseInt(itemToAdd.charge)) > inventoryStatus.totalSlots) {
+        alert("Não há espaço suficiente no inventário para este item.");
+        return;
+    }
+
+    character.inventory = character.inventory || [];
+    character.inventory.push(templateId);
+    await saveData('rpgCards', character);
+    await renderInventoryManagement(characterId);
+    document.getElementById('selection-modal').classList.add('hidden');
+}
+
+export async function renderInventoryManagement(characterId) {
+    currentManagingCharacterId = characterId;
+
+    const character = await getData('rpgCards', characterId);
+    if (!character) return;
+    
+    document.getElementById('inventory-section-title').textContent = `Inventário de: ${character.title}`;
+
+    document.removeEventListener('addItemToCharacter', handleAddItemToInventory);
+    document.addEventListener('addItemToCharacter', handleAddItemToInventory);
+    
+    const addItemBtn = document.getElementById('add-item-to-inventory-btn');
+    const newAddItemBtn = addItemBtn.cloneNode(true);
+    addItemBtn.parentNode.replaceChild(newAddItemBtn, addItemBtn);
+    newAddItemBtn.addEventListener('click', () => openSelectionModal('item'));
+
+    const allMasterItems = await getData('rpgItems');
+    const itemsMap = new Map(allMasterItems.map(i => [i.id, i]));
+    const charItemsWithOriginalIndex = (character.inventory || []).map((id, index) => ({ ...itemsMap.get(id), originalIndex: index })).filter(item => item.id);
+
+    const strength = parseInt(character.attributes.forca) || 0;
+    const slotAddingItems = charItemsWithOriginalIndex.filter(item => parseInt(item.charge) < 0);
+    const zeroChargeItems = charItemsWithOriginalIndex.filter(item => parseInt(item.charge) == 0);
+    const regularItems = charItemsWithOriginalIndex.filter(item => parseInt(item.charge) > 0);
+    
+    const extraSlots = slotAddingItems.reduce((acc, item) => acc + Math.abs(parseInt(item.charge)), 0);
+    const totalSlots = (strength * 2) + 5 + extraSlots;
+    const totalCharge = regularItems.reduce((acc, item) => acc + parseInt(item.charge), 0);
+    
+    document.getElementById('slots-info').textContent = `Força: ${strength} | Carga: ${totalCharge}/${totalSlots}`;
+
+    const specialContainer = document.getElementById('special-equipment-container');
+    const slotsContainer = document.getElementById('item-slots-container');
+    const zeroChargeContainer = document.getElementById('zero-charge-items-container');
+    
+    specialContainer.innerHTML = '';
+    slotsContainer.innerHTML = '';
+    zeroChargeContainer.innerHTML = '';
+
+    if (slotAddingItems.length > 0) {
+        slotAddingItems.forEach(item => {
+            const slot = document.createElement('div');
+            slot.className = 'slot slot-occupied';
+            slot.title = `Clique para remover "${item.name}"`;
+            let imageURL = 'https://placehold.co/60x60/d2a679/422006?text=B';
+            if (item.image) imageURL = URL.createObjectURL(bufferToBlob(item.image, item.imageMimeType));
+            slot.innerHTML = `<img src="${imageURL}" alt="${item.name}"><span class="slot-item-name">${item.name} (${item.charge})</span>`;
+            slot.addEventListener('click', () => unlinkItem(item.originalIndex, characterId));
+            specialContainer.appendChild(slot);
+        });
+    } else {
+        specialContainer.innerHTML = '<p class="col-span-5 text-center text-xs text-gray-500">Nenhum equipamento especial.</p>';
+    }
+
+    if (zeroChargeItems.length > 0) {
+        zeroChargeItems.forEach(item => {
+            const slot = document.createElement('div');
+            slot.className = 'slot slot-occupied';
+            slot.title = `Clique para remover "${item.name}"`;
+            let imageURL = 'https://placehold.co/60x60/9ca3af/1f2937?text=0';
+            if (item.image) imageURL = URL.createObjectURL(bufferToBlob(item.image, item.imageMimeType));
+            slot.innerHTML = `<img src="${imageURL}" alt="${item.name}"><span class="slot-item-name">${item.name}</span>`;
+            slot.addEventListener('click', () => unlinkItem(item.originalIndex, characterId));
+            zeroChargeContainer.appendChild(slot);
+        });
+    } else {
+        zeroChargeContainer.innerHTML = '<p class="col-span-5 text-center text-xs text-gray-500">Nenhum item de carga zero.</p>';
+    }
+
+    for (let i = 0; i < totalSlots; i++) {
+        const slotEl = document.createElement('div');
+        slotEl.className = i < totalCharge ? 'slot slot-occupied' : 'slot slot-available';
+        slotsContainer.appendChild(slotEl);
+    }
+    
+    let currentSlot = 0;
+    regularItems.forEach(item => {
+        if(currentSlot >= totalSlots) return;
+        
+        const occupiedSlot = slotsContainer.children[currentSlot];
+        if (occupiedSlot) {
+            let imageURL = 'https://placehold.co/60x60/f59e0b/422006?text=I';
+            if (item.image) imageURL = URL.createObjectURL(bufferToBlob(item.image, item.imageMimeType));
+            occupiedSlot.innerHTML = `<img src="${imageURL}" alt="${item.name}"><span class="slot-item-name">${item.name} (${item.charge})</span>`;
+            occupiedSlot.title = `Clique para remover "${item.name}"`;
+            
+            const newSlot = occupiedSlot.cloneNode(true);
+            occupiedSlot.parentNode.replaceChild(newSlot, occupiedSlot);
+            newSlot.addEventListener('click', () => unlinkItem(item.originalIndex, characterId));
+
+            for (let i = 1; i < parseInt(item.charge); i++) {
+                const nextSlotIndex = currentSlot + i;
+                if (nextSlotIndex < totalSlots) {
+                    slotsContainer.children[nextSlotIndex].className = 'slot slot-blocked';
+                    slotsContainer.children[nextSlotIndex].innerHTML = '';
+                }
+            }
+            currentSlot += parseInt(item.charge);
+        }
+    });
+}
+
