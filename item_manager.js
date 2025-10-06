@@ -164,7 +164,7 @@ export async function saveItemCard(itemForm) {
         itemData = await getData('rpgItems', currentEditingItemId);
         Object.assign(itemData, {
             name: itemNameInput.value,
-            description: itemDescriptionInput.value,
+            effect: itemDescriptionInput.value,
             aumentos,
             image: imageBuffer || itemData.image,
             imageMimeType: itemImageFile ? itemImageFile.type : itemData.imageMimeType,
@@ -173,7 +173,7 @@ export async function saveItemCard(itemForm) {
         itemData = {
             id: Date.now().toString(),
             name: itemNameInput.value,
-            description: itemDescriptionInput.value,
+            effect: itemDescriptionInput.value,
             aumentos,
             image: imageBuffer,
             imageMimeType: itemImageFile ? itemImageFile.type : null,

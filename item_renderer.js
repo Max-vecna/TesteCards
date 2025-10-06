@@ -100,10 +100,10 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
                     <div class="sheet-card-divider"></div>
 
                     <div class="space-y-3 max-h-40 overflow-y-auto pr-2">
-                        ${itemData.description ? `
+                        ${itemData.effect ? `
                             <div class="pt-2">
                                 <h3 class="text-sm font-semibold flex items-center gap-2">Descrição</h3>
-                                <p class="text-gray-300 text-xs leading-relaxed mt-1 pl-6" style="white-space:pre-line;">${itemData.description}</p>
+                                <p class="text-gray-300 text-xs leading-relaxed mt-1 pl-6" style="white-space:pre-line;">${itemData.effect}</p>
                             </div>
                         ` : ''}
                         
