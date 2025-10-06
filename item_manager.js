@@ -299,7 +299,7 @@ async function getInventoryStatus(characterId) {
 
     const allMasterItems = await getData('rpgItems');
     const itemsMap = new Map(allMasterItems.map(i => [i.id, i]));
-    const charItems = (character.inventory || []).map(id => itemsMap.get(id)).filter(Boolean);
+    const charItems = (character.items || []).map(id => itemsMap.get(id)).filter(Boolean);
 
     const strength = parseInt(character.attributes.forca) || 0;
     const slotAddingItems = charItems.filter(item => parseInt(item.charge) < 0);
@@ -315,9 +315,9 @@ async function getInventoryStatus(characterId) {
 
 export async function unlinkItem(itemIndexInCharacterArray, characterId) {
     const character = await getData('rpgCards', characterId);
-    if (!character || !character.inventory) return;
+    if (!character || !character.items) return;
 
-    character.inventory.splice(itemIndexInCharacterArray, 1);
+    character.items.splice(itemIndexInCharacterArray, 1);
     await saveData('rpgCards', character);
     await renderInventoryManagement(characterId);
 }
@@ -333,8 +333,8 @@ export async function linkItem(templateId, characterId) {
         return;
     }
 
-    character.inventory = character.inventory || [];
-    character.inventory.push(templateId);
+    character.items = character.items || [];
+    character.items.push(templateId);
     await saveData('rpgCards', character);
     await renderInventoryManagement(characterId);
     document.getElementById('selection-modal').classList.add('hidden');
@@ -358,7 +358,7 @@ export async function renderInventoryManagement(characterId) {
 
     const allMasterItems = await getData('rpgItems');
     const itemsMap = new Map(allMasterItems.map(i => [i.id, i]));
-    const charItemsWithOriginalIndex = (character.inventory || []).map((id, index) => ({ ...itemsMap.get(id), originalIndex: index })).filter(item => item.id);
+    const charItemsWithOriginalIndex = (character.items || []).map((id, index) => ({ ...itemsMap.get(id), originalIndex: index })).filter(item => item.id);
 
     const strength = parseInt(character.attributes.forca) || 0;
     const slotAddingItems = charItemsWithOriginalIndex.filter(item => parseInt(item.charge) < 0);

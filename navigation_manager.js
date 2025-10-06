@@ -1,5 +1,5 @@
-import { populatePericiasCheckboxes, saveCharacterCard, editCard, importCard, getCurrentEditingCardId } from './character_manager.js';
-import { populateSpellAumentosSelect, saveSpellCard, editSpell, importSpell } from './magic_manager.js';
+import { populatePericiasCheckboxes, saveCharacterCard, editCard, importCard, getCurrentEditingCardId, exportCard } from './character_manager.js';
+import { populateSpellAumentosSelect, saveSpellCard, editSpell, importSpell, exportSpell } from './magic_manager.js';
 import { populateItemAumentosSelect, saveItemCard, editItem, importItem, removeItem, exportItem, renderInventoryManagement, cleanupInventoryManagementListeners } from './item_manager.js';
 import { openDatabase, removeData, getData, saveData } from './local_db.js';
 import { renderFullCharacterSheet } from './card-renderer.js';
@@ -173,7 +173,6 @@ async function renderCharacterList() {
         cardWrapper.dataset.action = "view";
         cardWrapper.dataset.type = "character";
         cardWrapper.dataset.id = char.id;
-        //cardWrapper.style.backgroundImage = backgroundImage;
         
         cardWrapper.innerHTML = `
             <div class="miniCard absolute inset-0  flex flex-col items-center justify-center text-white p-2 rounded-lg overflow-hidden">
@@ -396,7 +395,6 @@ async function renderItemList() {
 
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Adiciona o estilo para a animação de entrada dos cards
     const style = document.createElement('style');
     style.innerHTML = `
         .rpg-thumbnail {
@@ -411,7 +409,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
     document.head.appendChild(style);
 
-    // Seletores de elementos do DOM
     const contentLoader = document.getElementById('content-loader');
     const navButtons = document.querySelectorAll('.nav-button');
     const contentDisplay = document.getElementById('content-display');
@@ -423,40 +420,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     const selectCharacterModal = document.getElementById('select-character-modal');
     const selectCharacterList = document.getElementById('select-character-list');
     
-    // Botões de fechar
     const selectCharacterCloseBtn = document.getElementById('select-character-close-btn');
     const closeFormBtn = document.getElementById('close-form-btn');
     const closeSpellFormBtn = document.getElementById('close-spell-form-btn');
     const closeItemFormBtn = document.getElementById('close-item-form-btn');
     const closeInventoryBtn = document.getElementById('close-inventory-btn');
     
-    // Formulários e seus componentes
     const cardForm = document.getElementById('cardForm');
     const formTitle = document.getElementById('form-title');
     const submitButton = document.getElementById('submitButton');
-    const vidaInput = document.getElementById('vida');
-    const manaInput = document.getElementById('mana');
-    const vidaAtualInput = document.getElementById('vidaAtual');
-    const manaAtualInput = document.getElementById('manaAtual');
 
     const spellForm = document.getElementById('spellForm');
     const spellFormTitle = document.getElementById('spell-form-title');
     const spellSubmitButton = document.getElementById('spellSubmitButton');
     const enhanceWrapper = document.getElementById('enhance-wrapper');
     const trueWrapper = document.getElementById('true-wrapper');
-    const manaCostWrapper = document.getElementById('mana-cost-wrapper');
 
     const itemForm = document.getElementById('itemForm');
     const itemFormTitle = document.getElementById('item-form-title');
     const itemSubmitButton = document.getElementById('itemSubmitButton');
 
-    // Modal de Seleção Genérico
     const selectionModal = document.getElementById('selection-modal');
-    const selectionModalTitle = document.getElementById('selection-modal-title');
-    const selectionModalList = document.getElementById('selection-modal-list');
     const selectionModalCloseBtn = document.getElementById('selection-modal-close-btn');
     
-    // Função principal para renderizar o conteúdo da aba selecionada
     renderContent = async (target) => {
         contentDisplay.innerHTML = '';
         contentLoader.classList.remove('hidden');
@@ -486,7 +472,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         contentLoader.classList.add('hidden');
     };
     
-    // Funções para mostrar formulários
     function showView(section, isEditing, setupFunction) {
         section.classList.remove('hidden');
         document.getElementById('main-content').classList.add('hidden');
@@ -494,7 +479,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!isEditing && setupFunction) setupFunction();
     }
 
-    // Renderiza o personagem que está "em jogo"
     const renderCharacterInGame = async () => {
         const allCharacters = await getData('rpgCards');
         const characterInPlay = allCharacters.find(char => char.inPlay);
@@ -519,7 +503,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
     
-    // Mostra o modal para selecionar um personagem para colocar "em jogo"
     const showCharacterSelectionModal = async () => {
         selectCharacterList.innerHTML = '';
         const allCharacters = await getData('rpgCards');
@@ -554,7 +537,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         selectCharacterModal.classList.remove('hidden');
     };
     
-    // Gerencia a navegação entre as abas
     navButtons.forEach(button => {
         button.addEventListener('click', (event) => {
             const target = event.currentTarget.dataset.target;
@@ -564,7 +546,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
-    // Listener de cliques global para ações
     document.addEventListener('click', (e) => {
         const action = e.target.closest('[data-action]')?.dataset.action;
         if (!action) return;
@@ -573,7 +554,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             cardForm.reset();
             formTitle.textContent = 'Novo Personagem';
             submitButton.textContent = 'Criar Cartão';
-            document.getElementById('selected-items-container').innerHTML = '';
             document.getElementById('selected-magics-container').innerHTML = '';
             populatePericiasCheckboxes();
             document.getElementById('manage-inventory-from-edit-btn').classList.add('hidden');
@@ -606,7 +586,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     
-    // Funções para fechar formulários
     const closeForm = (section, targetTab) => {
         section.classList.add('hidden');
         document.getElementById('main-content').classList.remove('hidden');
@@ -620,7 +599,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     closeInventoryBtn.addEventListener('click', () => {
         cleanupInventoryManagementListeners();
         inventoryManagementSection.classList.add('hidden');
-        // Apenas mostra o formulário de criação novamente, não recarrega a página
         if (getCurrentEditingCardId()) {
             creationSection.classList.remove('hidden');
         } else {
@@ -629,14 +607,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     selectCharacterCloseBtn.addEventListener('click', () => selectCharacterModal.classList.add('hidden'));
 
-    // Submissão dos formulários
     cardForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const cardId = getCurrentEditingCardId(); // Pega o ID antes que seja limpo por saveCharacterCard
         await saveCharacterCard(cardForm);
-
-        
-        // Comportamento padrão: retorna para a lista de personagens.
         closeForm(creationSection, 'personagem');
     });
 
@@ -658,7 +631,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.addEventListener('openItemSelectionModal', () => openSelectionModal('item'));
 
-    // Evento para navegar para a home a partir do card "em jogo"
     document.addEventListener('navigateHome', () => {
         const charactersButton = document.querySelector('.nav-button[data-target="personagem"]');
         if (charactersButton) {
@@ -666,11 +638,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Abre o banco de dados e renderiza o conteúdo inicial
     await openDatabase();
     renderContent('personagem-em-jogo');
     
-    // Listener de cliques global para ações nos cards
     document.addEventListener('click', async (e) => {
         const thumbCard = e.target.closest('.rpg-thumbnail');
         const menuBtn = e.target.closest('.thumb-btn-menu');
@@ -691,7 +661,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const menu = menuBtn.nextElementSibling;
             const parentThumbnail = menuBtn.closest('.rpg-thumbnail');
 
-            // Fecha outros menus, remove o estado ativo e reseta o z-index
             document.querySelectorAll('.rpg-thumbnail.menu-active').forEach(activeThumb => {
                 if (activeThumb !== parentThumbnail) {
                     activeThumb.classList.remove('menu-active');
@@ -703,12 +672,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
             
-            // Alterna o menu atual e o estado do thumbnail
             const isActive = menu.classList.toggle('active');
             parentThumbnail.classList.toggle('menu-active', isActive);
 
             if (isActive) {
-                parentThumbnail.style.zIndex = '100'; // Eleva o z-index do card atual
+                parentThumbnail.style.zIndex = '100'; 
                 const parentRect = parentThumbnail.getBoundingClientRect();
                 const viewportMidpoint = window.innerWidth / 2;
 
@@ -718,7 +686,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     menu.classList.remove('menu-left');
                 }
             } else {
-                 parentThumbnail.style.zIndex = ''; // Reseta ao fechar
+                 parentThumbnail.style.zIndex = ''; 
                  menu.classList.remove('menu-left');
             }
 
@@ -733,18 +701,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const cardType = menuItem.closest('[data-type]').dataset.type;
             const activeNav = document.querySelector('.nav-button.active').dataset.target;
 
-            // Gerencia a ação de 'editar' para qualquer tipo de card.
             if (action === 'edit') {
-                // Para personagens, reutilizamos a seção de criação.
-                // Isso garante que a funcionalidade de adicionar/remover itens e magias permaneça ativa durante a edição.
                 if (cardType === 'character') {
                     showView(creationSection, true);
-                    await editCard(cardId); // A função editCard preenche o formulário com os dados do personagem.
+                    await editCard(cardId);
                 } else if (cardType === 'spell') {
                     const spellData = await getData('rpgSpells', cardId);
                     if (spellData) {
                         const isHabilidade = spellData.type === 'habilidade';
-                        // Atualiza a UI do formulário ANTES de mostrar
                         spellForm.dataset.type = spellData.type || 'magia';
                         spellFormTitle.textContent = isHabilidade ? 'Editando Habilidade' : 'Editando Magia';
                         spellSubmitButton.textContent = isHabilidade ? 'Salvar Habilidade' : 'Salvar Magia';
@@ -767,8 +731,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     renderContent(activeNav);
                 }
             } else if (action === 'export-json') {
-                 if (cardType === 'character') await (await import('./character_manager.js')).exportCard(cardId);
-                 if (cardType === 'spell') await (await import('./magic_manager.js')).exportSpell(cardId);
+                 if (cardType === 'character') await exportCard(cardId);
+                 if (cardType === 'spell') await exportSpell(cardId);
                  if (cardType === 'item') await exportItem(cardId);
             } else if (action === 'set-in-play' || action === 'remove-from-play') {
                 const isSettingInPlay = action === 'set-in-play';
@@ -810,4 +774,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 });
-

@@ -296,7 +296,7 @@ export async function saveCharacterCard(cardForm) {
             dinheiro: parseInt(dinheiroInput.value) || 0,
             attributes,
             lore,
-            inventory: [],
+            items: [],
             magics: magicIds,
             image: imageBuffer,
             backgroundImage: backgroundBuffer,

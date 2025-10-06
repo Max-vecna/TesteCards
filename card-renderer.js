@@ -70,8 +70,8 @@ async function populateInventory(container, characterData, uniqueId) {
     scrollArea.innerHTML = '<div class="p-4 text-center"><i class="fas fa-spinner fa-spin text-gray-400"></i></div>';
 
     let inventoryHtml = '<h4 class="font-bold text-amber-300 border-b border-amber-300/30 pb-1 mb-1 px-2">Inventário</h4>';
-    if (characterData.inventory && characterData.inventory.length > 0) {
-        const itemPromises = characterData.inventory.map(id => getData('rpgItems', id));
+    if (characterData.items && characterData.items.length > 0) {
+        const itemPromises = characterData.items.map(id => getData('rpgItems', id));
         const items = (await Promise.all(itemPromises)).filter(Boolean);
         if (items.length > 0) {
             items.forEach(item => {
@@ -192,7 +192,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     const sheetContainer = targetContainer || document.getElementById('character-sheet-container');
     if (!sheetContainer && (isModal || isInPlay)) return '';
 
-    const inventoryItems = characterData.inventory ? await Promise.all(characterData.inventory.map(id => getData('rpgItems', id))) : [];
+    const inventoryItems = characterData.items ? await Promise.all(characterData.items.map(id => getData('rpgItems', id))) : [];
     const magicItems = characterData.magics ? await Promise.all(characterData.magics.map(id => getData('rpgSpells', id))) : [];
     
     const totalFixedBonuses = {
@@ -402,7 +402,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     `;
     
     if (!isModal && !isInPlay) {
-        const inventoryCount = characterData.inventory?.length || 0;
+        const inventoryCount = characterData.items?.length || 0;
         const magicCount = characterData.magics?.length || 0;
         const thumbnailInventoryHtml = `
             <div class="absolute bottom-2 right-2 flex flex-col items-end text-xs opacity-80 bg-black/50 p-1 rounded">
