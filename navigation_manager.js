@@ -266,7 +266,7 @@ async function renderSpellList(type = 'magias') {
     const cardElements = await Promise.all(allSpells.map(async (spell) => {
         const spellSheetHtml = await renderFullSpellSheet(spell, false, 16/11);
         const cardWrapper = document.createElement('div');
-        cardWrapper.className = 'rpg-thumbnail bg-cover bg-center shadow-lg relative';
+        cardWrapper.className = 'rpg-thumbnail bg-cover bg-center relative';
         cardWrapper.dataset.action = "view";
         cardWrapper.dataset.type = "spell";
         cardWrapper.dataset.id = spell.id;
@@ -346,7 +346,7 @@ async function renderItemList() {
     const cardElements = await Promise.all(allItems.map(async (item) => {
         const itemSheetHtml = await renderFullItemSheet(item, false, 16/11);
         const cardWrapper = document.createElement('div');
-        cardWrapper.className = 'rpg-thumbnail bg-cover bg-center shadow-lg relative';
+        cardWrapper.className = 'rpg-thumbnail bg-cover bg-center relative';
         cardWrapper.dataset.action = "view";
         cardWrapper.dataset.type = "item";
         cardWrapper.dataset.id = item.id;

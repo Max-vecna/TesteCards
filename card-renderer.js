@@ -143,10 +143,10 @@ async function populateInventory(container, characterData, uniqueId) {
         const { id, type } = target.dataset;
         if (type === 'item') {
             const itemData = await getData('rpgItems', id);
-            if (itemData) await renderFullItemSheet(itemData, true);
+            if (itemData) await renderFullItemSheet(itemData, true, 16/9);
         } else if (type === 'spell') {
             const spellData = await getData('rpgSpells', id);
-            if (spellData) await renderFullSpellSheet(spellData, true);
+            if (spellData) await renderFullSpellSheet(spellData, true, 16/9);
         }
     });
 }
