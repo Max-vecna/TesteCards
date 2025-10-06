@@ -276,10 +276,10 @@ body {
 
 .miniCard
 {
-  background: url('icons/back.png');
+  background: /*url('icons/back.png')*/ transparent;
   background-size: cover;
   background-position: center;
-  box-shadow: black 0px 0px 10px 0px inset;
+  /*box-shadow: black 0px 0px 10px 0px inset;*/
 }
 
 .descScroll

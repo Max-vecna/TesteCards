@@ -1,41 +1,20 @@
 import { openDatabase, saveData, getData, removeData } from './local_db.js';
 import { renderFullSpellSheet } from './magic_renderer.js';
 
-// Lista de perícias
-const PERICIAS_DATA = {
-    "AGILIDADE": {
-        "Acrobacia": "Capacidade de realizar manobras complexas no ar, saltos e se equilibrar em locais instáveis.",
-        "Montaria": "Controle de veículos e montarias complexas...",
-        "Furtividade": "A arte de mover-se sem ser notado...",
-        "Prestidigitação": "Coordenação motora fina. Usada para abrir fechaduras, desarmar armadilhas e realizar truques com as mãos."
-    },
-    "CARISMA": {
-        "Adestramento": "Habilidade de treinar, cuidar e se comunicar com animais. Permite entender as necessidades de uma criatura e comandá-la.",
-        "Enganação": "Habilidade de mentir, blefar ou disfarçar-se para enganar outros. Usada em interações sociais para induzir ao erro.",
-        "Intimidação": "Uso da força de personalidade para impor medo...",
-        "Persuasão": "Habilidade de convencer, influenciar ou negociar com outros. Usada para testes de diplomacia, negociação ou argumentação."
-    },
-    "INTELIGÊNCIA": {
-        "Arcanismo": "Conhecimento sobre magia, rituais, criaturas mágicas e mistérios arcanos.",
-        "História": "Conhecimento sobre o passado, eventos históricos, figuras importantes, reinos e culturas.",
-        "Investigação": "Capacidade de procurar por pistas e desvendar mistérios, como em uma cena de crime ou em uma busca por informações.",
-        "Medicina": "Conhecimento para diagnosticar doenças, tratar ferimentos e conhecer a anatomia de seres vivos."
-    },
-    "FORÇA": {
-        "Atletismo": "Habilidade atlética geral, incluindo correr, saltar, nadar e escalar. Usado para testes de esforço físico.",
-        "Luta": "Combate corpo a corpo com armas simples ou improvisadas..."
-    },
-    "SABEDORIA": {
-        "Intuição": "Percepção aguçada de situações e pessoas. Usada para identificar mentiras, prever perigos ou sentir a intenção dos outros.",
-        "Percepção": "Capacidade de perceber o ambiente ao redor usando os cinco sentidos. Usada para encontrar objetos escondidos, armadilhas ou inimigos à espreita.",
-        "Natureza": "Sabedoria sobre o mundo natural...",
-        "Vontade": "Resistência mental. Usada para resistir a efeitos de medo, ilusões e controle mental."
-    },
-    "VIGOR": {
-        "Sobrevivência": "Capacidade de encontrar recursos no ambiente natural, como comida e água, e resistir a condições extremas.",
-        "Fortitude": "Resistência física e imunológica do personagem..."
+// Lista de perícias e atributos para popular o seletor de aumentos
+const AUMENTOS_DATA = {
+    "Status": ["Vida", "Mana", "Armadura", "Esquiva", "Bloqueio", "Deslocamento"],
+    "Atributos": ["Agilidade", "Carisma", "Força", "Inteligência", "Sabedoria", "Vigor"],
+    "Perícias": {
+        "AGILIDADE": ["Acrobacia", "Montaria", "Furtividade", "Prestidigitação"],
+        "CARISMA": ["Adestramento", "Enganação", "Intimidação", "Persuasão"],
+        "INTELIGÊNCIA": ["Arcanismo", "História", "Investigação", "Medicina"],
+        "FORÇA": ["Atletismo", "Luta"],
+        "SABEDORIA": ["Intuição", "Percepção", "Natureza", "Vontade"],
+        "VIGOR": ["Sobrevivência", "Fortitude"]
     }
 };
+
 
 // Variáveis de estado
 let currentEditingSpellId = null;
@@ -90,69 +69,78 @@ function base64ToArrayBuffer(base64) {
 }
 
 /**
- * Função para renderizar as perícias no formulário de magia.
- * @param {Array} [selectedPericias] - Um array de objetos de perícias para pré-selecionar.
+ * Popula o select de aumentos no formulário de magia/habilidade.
  */
-export function populateSpellPericiasCheckboxes(selectedPericias = []) {
-    const container = document.getElementById('spell-pericias-checkboxes-container');
-    if (!container) return;
-    container.innerHTML = '';
-    
-    // Referências para o display de descrição
-    const periciaDescriptionDisplay = document.getElementById('spell-pericia-description-display');
-    const periciaDescriptionTitle = document.getElementById('spellPericiaDescriptionTitle');
-    const periciaDescriptionText = document.getElementById('spellPericiaDescriptionText');
+export function populateSpellAumentosSelect() {
+    const select = document.getElementById('spell-aumento-select');
+    if (!select) return;
+    select.innerHTML = ''; // Limpa opções existentes
 
-    for (const attribute in PERICIAS_DATA) {
-        const details = document.createElement('details');
-        details.className = 'bg-gray-700 rounded-lg p-2 transition-all duration-300';
-        details.innerHTML = `
-            <summary class="flex items-center justify-between cursor-pointer font-semibold text-teal-200">
-                <span>${attribute}</span>
-                <svg class="w-4 h-4 transform transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-            </summary>
-            <div class="mt-2 space-y-2 pl-4 border-l border-gray-600 pericias-list"></div>
-        `;
+    // Adiciona Status
+    const statusGroup = document.createElement('optgroup');
+    statusGroup.label = 'Status';
+    AUMENTOS_DATA.Status.forEach(stat => {
+        const option = document.createElement('option');
+        option.value = stat.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        option.textContent = stat;
+        statusGroup.appendChild(option);
+    });
+    select.appendChild(statusGroup);
 
-        const periciasList = details.querySelector('.pericias-list');
-        details.querySelector('summary').addEventListener('click', () => {
-            setTimeout(() => {
-                details.querySelector('svg').style.transform = details.open ? 'rotate(90deg)' : 'rotate(0deg)';
-            }, 300);
+    // Adiciona Atributos
+    const atributosGroup = document.createElement('optgroup');
+    atributosGroup.label = 'Atributos';
+    AUMENTOS_DATA.Atributos.forEach(attr => {
+        const option = document.createElement('option');
+        option.value = attr.toLowerCase();
+        option.textContent = attr;
+        atributosGroup.appendChild(option);
+    });
+    select.appendChild(atributosGroup);
+
+    // Adiciona Perícias
+    for (const attr in AUMENTOS_DATA.Perícias) {
+        const periciasGroup = document.createElement('optgroup');
+        periciasGroup.label = `Perícias (${attr})`;
+        AUMENTOS_DATA.Perícias[attr].forEach(pericia => {
+            const option = document.createElement('option');
+            option.value = pericia;
+            option.textContent = pericia;
+            periciasGroup.appendChild(option);
         });
-
-        for (const periciaName in PERICIAS_DATA[attribute]) {
-            const periciaItem = document.createElement('div');
-            periciaItem.className = 'flex items-center justify-between pericia-item rounded-md p-1';
-            const periciaId = `spell-pericia-${periciaName.replace(/\s+/g, '-')}`;
-            
-            const selectedPericia = selectedPericias.find(p => p.name === periciaName);
-            const isChecked = selectedPericia ? 'checked' : '';
-            const value = selectedPericia ? selectedPericia.value : '';
-
-            periciaItem.innerHTML = `
-                <div class="flex items-center">
-                    <input type="checkbox" id="${periciaId}" name="pericia" value="${periciaName}" class="form-checkbox h-4 w-4 text-teal-500 rounded border-gray-600 focus:ring-teal-500" ${isChecked}>
-                    <label for="${periciaId}" class="ml-2 text-sm text-gray-200 cursor-pointer">${periciaName}</label>
-                </div>
-                <input type="number" id="${periciaId}-value" placeholder="0" value="${value}" class="w-16 px-2 py-1 bg-gray-800 text-white text-sm rounded-md border border-gray-600 focus:border-teal-500">
-            `;
-            periciasList.appendChild(periciaItem);
-
-            periciaItem.querySelector('label').addEventListener('mouseenter', () => {
-                periciaDescriptionTitle.textContent = periciaName;
-                periciaDescriptionText.textContent = PERICIAS_DATA[attribute][periciaName];
-                periciaDescriptionDisplay.classList.remove('hidden');
-            });
-
-            periciaItem.querySelector('label').addEventListener('mouseleave', () => {
-                periciaDescriptionDisplay.classList.add('hidden');
-            });
-        }
-        container.appendChild(details);
+        select.appendChild(periciasGroup);
     }
+}
+
+
+/**
+ * Adiciona um elemento visual de aumento à lista no formulário.
+ * @param {object} aumento - O objeto de aumento a ser renderizado.
+ */
+function renderAumentoNaLista(aumento) {
+    const list = document.getElementById('spell-aumentos-list');
+    if (!list) return;
+
+    const div = document.createElement('div');
+    div.className = 'flex items-center justify-between bg-gray-800 p-2 rounded-lg';
+    div.dataset.nome = aumento.nome;
+    div.dataset.valor = aumento.valor;
+    div.dataset.tipo = aumento.tipo;
+
+    div.innerHTML = `
+        <div>
+            <span class="font-semibold text-teal-300">${aumento.nome}</span>
+            <span class="text-white ml-2">${aumento.valor > 0 ? '+' : ''}${aumento.valor}</span>
+            <span class="text-xs ${aumento.tipo === 'fixo' ? 'text-green-400' : 'text-blue-400'} ml-2 capitalize">(${aumento.tipo})</span>
+        </div>
+        <button type="button" class="text-red-500 hover:text-red-400 remove-aumento-btn text-xl leading-none">&times;</button>
+    `;
+
+    div.querySelector('.remove-aumento-btn').addEventListener('click', () => {
+        div.remove();
+    });
+
+    list.appendChild(div);
 }
 
 /**
@@ -163,8 +151,9 @@ export function populateSpellPericiasCheckboxes(selectedPericias = []) {
  */
 export async function saveSpellCard(spellForm, type) {
     const spellNameInput = document.getElementById('spellName');
+    const spellCircleInput = document.getElementById('spellCircle');
     const spellExecutionInput = document.getElementById('spellExecution');
-    const spellManaCostInput = document.getElementById('spellManaCost'); // Novo campo
+    const spellManaCostInput = document.getElementById('spellManaCost');
     const spellRangeInput = document.getElementById('spellRange');
     const spellTargetInput = document.getElementById('spellTarget');
     const spellDurationInput = document.getElementById('spellDuration');
@@ -172,45 +161,17 @@ export async function saveSpellCard(spellForm, type) {
     const spellDescriptionInput = document.getElementById('spellDescription');
     const spellEnhanceInput = document.getElementById('spellEnhance');
     const spellTrueInput = document.getElementById('spellTrue');
-    const vidaAumentoInput = document.getElementById('vida-aumento');
-    const manaAumentoInput = document.getElementById('mana-aumento');
-    const agilidadeAumentoInput = document.getElementById('agilidade-aumento');
-    const carismaAumentoInput = document.getElementById('carisma-aumento');
-    const forcaAumentoInput = document.getElementById('forca-aumento');
-    const inteligenciaAumentoInput = document.getElementById('inteligencia-aumento');
-    const sabedoriaAumentoInput = document.getElementById('sabedoria-aumento');
-    const vigorAumentoInput = document.getElementById('vigor-aumento');
-    const armaduraInput = document.getElementById('spell-armadura');
-    const esquivaInput = document.getElementById('spell-esquiva');
-    const bloqueioInput = document.getElementById('spell-bloqueio');
-    const deslocamentoInput = document.getElementById('spell-deslocamento');
 
-    const selectedPericias = [];
-    document.querySelectorAll('#spell-pericias-checkboxes-container input[type="checkbox"]:checked').forEach(cb => {
-        const periciaName = cb.value;
-        const periciaId = `spell-pericia-${periciaName.replace(/\s+/g, '-')}`;
-        const valueInput = document.getElementById(`${periciaId}-value`);
-        selectedPericias.push({
-            name: periciaName,
-            value: parseInt(valueInput.value) || 0
+    // Coleta os aumentos da lista
+    const aumentosList = document.getElementById('spell-aumentos-list');
+    const aumentos = [];
+    aumentosList.querySelectorAll('div[data-nome]').forEach(el => {
+        aumentos.push({
+            nome: el.dataset.nome,
+            valor: parseInt(el.dataset.valor, 10),
+            tipo: el.dataset.tipo
         });
     });
-
-    const attributesAumento = {
-        vida: parseInt(vidaAumentoInput.value) || 0,
-        mana: parseInt(manaAumentoInput.value) || 0,
-        agilidade: parseInt(agilidadeAumentoInput.value) || 0,
-        carisma: parseInt(carismaAumentoInput.value) || 0,
-        forca: parseInt(forcaAumentoInput.value) || 0,
-        inteligencia: parseInt(inteligenciaAumentoInput.value) || 0,
-        sabedoria: parseInt(sabedoriaAumentoInput.value) || 0,
-        vigor: parseInt(vigorAumentoInput.value) || 0,
-        armadura: parseInt(armaduraInput.value) || 0,
-        esquiva: parseInt(esquivaInput.value) || 0,
-        bloqueio: parseInt(bloqueioInput.value) || 0,
-        deslocamento: parseInt(deslocamentoInput.value) || 0,
-        pericias: selectedPericias
-    };
     
     const imageBuffer = spellImageFile ? await readFileAsArrayBuffer(spellImageFile) : null;
     
@@ -220,8 +181,9 @@ export async function saveSpellCard(spellForm, type) {
         if (!spellData) return;
         Object.assign(spellData, {
             name: spellNameInput.value,
+            circle: parseInt(spellCircleInput.value) || 0,
             execution: spellExecutionInput.value,
-            manaCost: parseInt(spellManaCostInput.value) || 0, // Salva o custo de mana
+            manaCost: parseInt(spellManaCostInput.value) || 0,
             range: spellRangeInput.value,
             target: spellTargetInput.value,
             duration: spellDurationInput.value,
@@ -229,8 +191,8 @@ export async function saveSpellCard(spellForm, type) {
             description: spellDescriptionInput.value,
             enhance: spellEnhanceInput.value,
             true: spellTrueInput.value,
-            aumentos: attributesAumento,
-            type: type, // Atualiza o tipo em caso de edição
+            aumentos: aumentos,
+            type: type,
             image: imageBuffer || spellData.image,
             imageMimeType: spellImageFile ? spellImageFile.type : spellData.imageMimeType,
         });
@@ -238,8 +200,9 @@ export async function saveSpellCard(spellForm, type) {
         spellData = {
             id: Date.now().toString(),
             name: spellNameInput.value,
+            circle: parseInt(spellCircleInput.value) || 0,
             execution: spellExecutionInput.value,
-            manaCost: parseInt(spellManaCostInput.value) || 0, // Salva o custo de mana
+            manaCost: parseInt(spellManaCostInput.value) || 0,
             range: spellRangeInput.value,
             target: spellTargetInput.value,
             duration: spellDurationInput.value,
@@ -247,8 +210,8 @@ export async function saveSpellCard(spellForm, type) {
             description: spellDescriptionInput.value,
             enhance: spellEnhanceInput.value,
             true: spellTrueInput.value,
-            aumentos: attributesAumento,
-            type: type, // Define o tipo na criação
+            aumentos: aumentos,
+            type: type,
             image: imageBuffer,
             imageMimeType: spellImageFile ? spellImageFile.type : null,
         };
@@ -257,6 +220,7 @@ export async function saveSpellCard(spellForm, type) {
     await saveData('rpgSpells', spellData);
     spellForm.reset();
     spellImageFile = null;
+    document.getElementById('spell-aumentos-list').innerHTML = '';
     showImagePreview(document.getElementById('spellImagePreview'), null, true);
     currentEditingSpellId = null;
 }
@@ -269,66 +233,28 @@ export async function editSpell(spellId) {
     const spellData = await getData('rpgSpells', spellId);
     if (!spellData) return;
 
-    const spellFormTitle = document.getElementById('spell-form-title');
-    const spellSubmitButton = document.getElementById('spellSubmitButton');
-    const spellNameInput = document.getElementById('spellName');
-    const spellExecutionInput = document.getElementById('spellExecution');
-    const spellManaCostInput = document.getElementById('spellManaCost'); // Novo campo
-    const spellRangeInput = document.getElementById('spellRange');
-    const spellTargetInput = document.getElementById('spellTarget');
-    const spellDurationInput = document.getElementById('spellDuration');
-    const spellResistenciaInput = document.getElementById('spellResistencia');
-    const spellDescriptionInput = document.getElementById('spellDescription');
-    const spellEnhanceInput = document.getElementById('spellEnhance');
-    const spellTrueInput = document.getElementById('spellTrue');
-    
-    // Alinha os IDs com os nomes das variáveis
-    const vidaAumentoInput = document.getElementById('vida-aumento');
-    const manaAumentoInput = document.getElementById('mana-aumento');
-    const agilidadeAumentoInput = document.getElementById('agilidade-aumento');
-    const carismaAumentoInput = document.getElementById('carisma-aumento');
-    const forcaAumentoInput = document.getElementById('forca-aumento');
-    const inteligenciaAumentoInput = document.getElementById('inteligencia-aumento');
-    const sabedoriaAumentoInput = document.getElementById('sabedoria-aumento');
-    const vigorAumentoInput = document.getElementById('vigor-aumento');
-    const armaduraInput = document.getElementById('spell-armadura');
-    const esquivaInput = document.getElementById('spell-esquiva');
-    const bloqueioInput = document.getElementById('spell-bloqueio');
-    const deslocamentoInput = document.getElementById('spell-deslocamento');
-
-    const spellImagePreview = document.getElementById('spellImagePreview');
-
-    // Título e botão são definidos no navigation_manager.js
     currentEditingSpellId = spellId;
     
-    spellNameInput.value = spellData.name;
-    spellExecutionInput.value = spellData.execution;
-    spellManaCostInput.value = spellData.manaCost || ''; // Carrega o custo de mana
-    spellRangeInput.value = spellData.range;
-    spellTargetInput.value = spellData.target;
-    spellDurationInput.value = spellData.duration;
-    spellResistenciaInput.value = spellData.resistencia;
-    spellDescriptionInput.value = spellData.description;
-    spellEnhanceInput.value = spellData.enhance;
-    spellTrueInput.value = spellData.true;
+    document.getElementById('spellName').value = spellData.name;
+    document.getElementById('spellCircle').value = spellData.circle || '';
+    document.getElementById('spellExecution').value = spellData.execution;
+    document.getElementById('spellManaCost').value = spellData.manaCost || '';
+    document.getElementById('spellRange').value = spellData.range;
+    document.getElementById('spellTarget').value = spellData.target;
+    document.getElementById('spellDuration').value = spellData.duration;
+    document.getElementById('spellResistencia').value = spellData.resistencia;
+    document.getElementById('spellDescription').value = spellData.description;
+    document.getElementById('spellEnhance').value = spellData.enhance;
+    document.getElementById('spellTrue').value = spellData.true;
     
-    // Agora os valores serão definidos corretamente
-    if (vidaAumentoInput) vidaAumentoInput.value = spellData.aumentos?.vida || 0;
-    if (manaAumentoInput) manaAumentoInput.value = spellData.aumentos?.mana || 0;
-    if (agilidadeAumentoInput) agilidadeAumentoInput.value = spellData.aumentos?.agilidade || 0;
-    if (carismaAumentoInput) carismaAumentoInput.value = spellData.aumentos?.carisma || 0;
-    if (forcaAumentoInput) forcaAumentoInput.value = spellData.aumentos?.forca || 0;
-    if (inteligenciaAumentoInput) inteligenciaAumentoInput.value = spellData.aumentos?.inteligencia || 0;
-    if (sabedoriaAumentoInput) sabedoriaAumentoInput.value = spellData.aumentos?.sabedoria || 0;
-    if (vigorAumentoInput) vigorAumentoInput.value = spellData.aumentos?.vigor || 0;
-    if (armaduraInput) armaduraInput.value = spellData.aumentos?.armadura || 0;
-    if (esquivaInput) esquivaInput.value = spellData.aumentos?.esquiva || 0;
-    if (bloqueioInput) bloqueioInput.value = spellData.aumentos?.bloqueio || 0;
-    if (deslocamentoInput) deslocamentoInput.value = spellData.aumentos?.deslocamento || 0;
+    // Limpa a lista de aumentos e a repopula
+    const aumentosList = document.getElementById('spell-aumentos-list');
+    aumentosList.innerHTML = '';
+    if (spellData.aumentos && Array.isArray(spellData.aumentos)) {
+        spellData.aumentos.forEach(aumento => renderAumentoNaLista(aumento));
+    }
 
-    // AQUI: A chamada para popular as perícias com os dados da magia.
-    populateSpellPericiasCheckboxes(spellData.aumentos?.pericias || []);
-
+    const spellImagePreview = document.getElementById('spellImagePreview');
     if (spellData.image) {
         const imageBlob = bufferToBlob(spellData.image, spellData.imageMimeType);
         showImagePreview(spellImagePreview, URL.createObjectURL(imageBlob), true);
@@ -369,8 +295,8 @@ export async function renderSpellList(type = 'magias') {
         const spellSheetHtml = await renderFullSpellSheet(spell, false, 16/11);
         
         return `
-            <div class="rpg-thumbnail bg-cover bg-center shadow-lg relative " data-action="viewSpell" data-type="spell" data-id="${spell.id}">
-                <div class="miniCard absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg">
+            <div class="rpg-thumbnail bg-cover bg-center relative " data-action="viewSpell" data-type="spell" data-id="${spell.id}">
+                <div class="miniCard absolute inset-0  flex flex-col items-center justify-center text-white p-2 rounded-lg">
                     ${spellSheetHtml}
                 </div>
                 <div class="thumbnail-actions absolute z-10">
@@ -573,6 +499,33 @@ export async function importSpell(file, type) {
         reader.readAsText(file);
     });
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    populateSpellAumentosSelect();
+
+    // Listener para o botão de adicionar aumento
+    const addBtn = document.getElementById('add-spell-aumento-btn');
+    if (addBtn) {
+        addBtn.addEventListener('click', () => {
+            const select = document.getElementById('spell-aumento-select');
+            const valueInput = document.getElementById('spell-aumento-value');
+            const typeRadio = document.querySelector('input[name="spell-aumento-type"]:checked');
+
+            const nome = select.options[select.selectedIndex].text;
+            const valor = parseInt(valueInput.value, 10) || 0;
+            const tipo = typeRadio.value;
+            
+            if (!nome || valor === 0) {
+                alert("Por favor, selecione um tipo de aumento e insira um valor diferente de zero.");
+                return;
+            }
+
+            renderAumentoNaLista({ nome, valor, tipo });
+            valueInput.value = '0';
+        });
+    }
+});
+
 
 document.getElementById('spellImageUpload').addEventListener('change', (e) => {
     const file = e.target.files[0];

@@ -1,14 +1,28 @@
 import { saveData, getData } from './local_db.js'; // Adicionado para a funcionalidade de dinheiro
+import { renderFullItemSheet } from './item_renderer.js';
+import { renderFullSpellSheet } from './magic_renderer.js';
+
+const PERICIAS_DATA = {
+    "AGILIDADE": { "Acrobacia": "", "Montaria": "", "Furtividade": "", "Prestidigitação": "" },
+    "CARISMA": { "Adestramento": "", "Enganação": "", "Intimidação": "", "Persuasão": "" },
+    "INTELIGÊNCIA": { "Arcanismo": "", "História": "", "Investigação": "", "Medicina": "" },
+    "FORÇA": { "Atletismo": "", "Luta": "" },
+    "SABEDORIA": { "Intuição": "", "Percepção": "", "Natureza": "", "Vontade": "" },
+    "VIGOR": { "Sobrevivência": "", "Fortitude": "" }
+};
+
+const periciaToAttributeMap = {};
+for (const attribute in PERICIAS_DATA) {
+    for (const periciaName in PERICIAS_DATA[attribute]) {
+        periciaToAttributeMap[periciaName] = attribute;
+    }
+}
+
 
 function bufferToBlob(buffer, mimeType) {
     return new Blob([buffer], { type: mimeType });
 }
 
-/**
- * Extrai a cor média de uma imagem.
- * @param {string} imageUrl - URL da imagem.
- * @returns {Promise<string>} Uma promessa que resolve com a cor média em formato rgb().
- */
 function getPredominantColor(imageUrl) {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -49,109 +63,264 @@ function getPredominantColor(imageUrl) {
     });
 }
 
+async function populateInventory(container, characterData, uniqueId) {
+    const scrollArea = container.querySelector(`#inventory-magic-scroll-area-${uniqueId}`);
+    if (!scrollArea) return;
 
-export async function renderFullCharacterSheet(characterData, isModal, aspect, isInPlay) {
-    const sheetContainer = document.getElementById('character-sheet-container');
-    // Se o container não existir e estivermos em modo modal, não faz nada.
-    if (!sheetContainer) return;
+    scrollArea.innerHTML = '<div class="p-4 text-center"><i class="fas fa-spinner fa-spin text-gray-400"></i></div>';
 
-    // Proporção base 248x346
-    const aspectRatio = aspect || 16 / 9;
-
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-
-    let finalWidth;
-    let finalHeight;
-
-    // Calcular a largura e altura máximas, mantendo a proporção de 248x346
-    if ((windowWidth * aspectRatio) > windowHeight) {
-        finalHeight = windowHeight * 0.9;
-        finalWidth = finalHeight / aspectRatio;
+    let inventoryHtml = '<h4 class="font-bold text-amber-300 border-b border-amber-300/30 pb-1 mb-1 px-2">Inventário</h4>';
+    if (characterData.inventory && characterData.inventory.length > 0) {
+        const itemPromises = characterData.inventory.map(id => getData('rpgItems', id));
+        const items = await Promise.all(itemPromises);
+        items.forEach(item => {
+            if (item) inventoryHtml += `<div class="text-xs p-2 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2" data-id="${item.id}" data-type="item">${item.name}</div>`;
+        });
     } else {
-        finalWidth = windowWidth * 0.9;
-        finalHeight = finalWidth * aspectRatio;
+        inventoryHtml += '<p class="text-xs text-gray-400 italic px-2">Vazio</p>';
     }
-    
-    const imageUrl = characterData.image ? URL.createObjectURL(bufferToBlob(characterData.image, characterData.imageMimeType)) : 'https://placehold.co/800x600/4a5568/a0aec0?text=Personagem';
-    const imageBack = characterData.backgroundImage ? URL.createObjectURL(bufferToBlob(characterData.backgroundImage, characterData.backgroundMimeType)) : 'https://placehold.co/800x600/4a5568/a0aec0?text=Personagem';
-    
-    // Gerar um ID dinâmico para evitar conflitos se houver vários cards
-    const uniqueId = Date.now();
 
-    // Extrai a cor média da imagem de fundo
-    const predominantColor = await getPredominantColor(imageBack).catch(e => {
-        console.error("Erro ao extrair cor média:", e);
-        return '#4a5568'; // Cor de fallback
+    let magicsHtml = '<h4 class="font-bold text-teal-300 border-b border-teal-300/30 pb-1 mt-3 mb-1 px-2">Magias</h4>';
+    let skillsHtml = '<h4 class="font-bold text-cyan-300 border-b border-cyan-300/30 pb-1 mt-3 mb-1 px-2">Habilidades</h4>';
+    if (characterData.magics && characterData.magics.length > 0) {
+        const magicPromises = characterData.magics.map(id => getData('rpgSpells', id));
+        const magicsAndSkills = (await Promise.all(magicPromises)).filter(Boolean);
+
+        const magics = magicsAndSkills.filter(ms => ms.type === 'magia' || !ms.type);
+        const skills = magicsAndSkills.filter(ms => ms.type === 'habilidade');
+
+        if (magics.length > 0) {
+            magics.forEach(magic => magicsHtml += `<div class="text-xs p-2 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2" data-id="${magic.id}" data-type="spell">${magic.name}</div>`);
+        } else {
+            magicsHtml += '<p class="text-xs text-gray-400 italic px-2">Nenhuma</p>';
+        }
+
+        if (skills.length > 0) {
+            skills.forEach(skill => skillsHtml += `<div class="text-xs p-2 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2" data-id="${skill.id}" data-type="spell">${skill.name}</div>`);
+        } else {
+            skillsHtml += '<p class="text-xs text-gray-400 italic px-2">Nenhuma</p>';
+        }
+    } else {
+        magicsHtml += '<p class="text-xs text-gray-400 italic px-2">Nenhuma</p>';
+        skillsHtml += '<p class="text-xs text-gray-400 italic px-2">Nenhuma</p>';
+    }
+
+    scrollArea.innerHTML = inventoryHtml + magicsHtml + skillsHtml;
+
+    scrollArea.addEventListener('click', async (e) => {
+        const target = e.target.closest('[data-id][data-type]');
+        if (!target) return;
+
+        const { id, type } = target.dataset;
+        if (type === 'item') {
+            const itemData = await getData('rpgItems', id);
+            if (itemData) await renderFullItemSheet(itemData, true);
+        } else if (type === 'spell') {
+            const spellData = await getData('rpgSpells', id);
+            if (spellData) await renderFullSpellSheet(spellData, true);
+        }
     });
+}
 
-    const mainAttributes = ['agilidade', 'carisma', 'forca', 'inteligencia', 'sabedoria', 'vigor'];
-    characterData.attributes = characterData.attributes || {
-        agilidade: 0,
-        carisma: 0,
-        forca: 0,
-        inteligencia: 0,
-        sabedoria: 0,
-        vigor: 0,
-        vida: 0,
-        vidaAtual: 0,
-        mana: 0,
-        manaAtual: 0,
-        armadura: 0,
-        esquiva: 0,
-        bloqueio: 0,
-        deslocamento: 0
+function setupStatEditor(characterData, container) {
+    const sheetContainer = container || document.getElementById('character-sheet-container');
+    const modal = document.getElementById('stat-editor-modal');
+    if (!sheetContainer || !modal) return;
+
+    const titleEl = modal.querySelector('#stat-editor-title');
+    const inputEl = modal.querySelector('#stat-editor-value');
+    const addBtn = modal.querySelector('#stat-editor-add-btn');
+    const subtractBtn = modal.querySelector('#stat-editor-subtract-btn');
+    const closeBtn = modal.querySelector('#stat-editor-close-btn');
+
+    let currentStat = null;
+    let statMax = Infinity;
+
+    const openModal = (type, max) => {
+        currentStat = type;
+        statMax = max;
+        titleEl.textContent = `Editar ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+        inputEl.value = '';
+        modal.classList.remove('hidden');
     };
 
-    const attributeValues = mainAttributes.map(attr => parseInt(characterData.attributes[attr]) || 0);
-    const maxAttributeValue = Math.max(...attributeValues, 1);
-    const cdValue = 10 + (parseInt(characterData.level) || 0) + (parseInt(characterData.attributes.sabedoria) || 0);
-    const palette = { borderColor: predominantColor };
+    const closeModal = () => modal.classList.add('hidden');
 
-    var scale = isModal ? 1 : .17;
-    if(isInPlay) scale = 1;
+    const updateStat = (amount) => {
+        if (!currentStat) return;
+        let currentValue;
 
-    var origin = isModal ?  "" : "transform-origin: top left";
+        if (currentStat === 'vida') {
+            currentValue = characterData.attributes.vidaAtual;
+            let newValue = Math.min(statMax, currentValue + amount);
+            characterData.attributes.vidaAtual = Math.max(0, newValue);
+            sheetContainer.querySelector('[data-stat-current="vida"]').textContent = characterData.attributes.vidaAtual;
+        } else if (currentStat === 'mana') {
+            currentValue = characterData.attributes.manaAtual;
+             let newValue = Math.min(statMax, currentValue + amount);
+            characterData.attributes.manaAtual = Math.max(0, newValue);
+            sheetContainer.querySelector('[data-stat-current="mana"]').textContent = characterData.attributes.manaAtual;
+        } else if (currentStat === 'dinheiro') {
+            currentValue = characterData.dinheiro;
+            characterData.dinheiro = Math.max(0, currentValue + amount);
+            sheetContainer.querySelector('[data-stat-current="dinheiro"]').textContent = characterData.dinheiro;
+        }
+        
+        saveData('rpgCards', characterData);
+        closeModal();
+    };
 
-    let periciasHtml = '<p class="text-xs text-gray-400 italic">Nenhuma perícia selecionada.</p>';
-    if (Array.isArray(characterData.attributes.pericias) && characterData.attributes.pericias.length > 0) {
-        const groupedPericias = characterData.attributes.pericias.reduce((acc, pericia) => {
-            const className = pericia.class || 'Outras';
-            if (!acc[className]) acc[className] = [];
-            acc[className].push(pericia);
-            return acc;
-        }, {});
-        const sortedClasses = Object.keys(groupedPericias)
-            .sort();
-        periciasHtml = sortedClasses.map(className => {
-            const periciasList = groupedPericias[className].map(p => `<span class="text-xs text-gray-400 italic">${p.name} +${p.value}; </span>`)
-                .join('');
-            return `<div class="text-left mt-1"><p class="text-xs text-gray-400 italic" style="font-size: 11px;">${className}</p><div class="flex flex-wrap gap-1 mb-1">${periciasList}</div></div>`;
-        })
-            .join('');
+    sheetContainer.querySelectorAll('[data-action="edit-stat"]').forEach(el => {
+        el.addEventListener('click', () => {
+            const type = el.dataset.statType;
+            const max = el.dataset.statMax ? parseInt(el.dataset.statMax, 10) : Infinity;
+            openModal(type, max);
+        });
+    });
+
+    addBtn.onclick = () => updateStat(Math.abs(parseInt(inputEl.value, 10) || 0));
+    subtractBtn.onclick = () => updateStat(-Math.abs(parseInt(inputEl.value, 10) || 0));
+    closeBtn.onclick = closeModal;
+}
+
+
+export async function renderFullCharacterSheet(characterData, isModal, aspect, isInPlay, targetContainer) {
+    const sheetContainer = targetContainer || document.getElementById('character-sheet-container');
+    if (!sheetContainer && (isModal || isInPlay)) return;
+
+
+    const inventoryItems = characterData.inventory ? await Promise.all(characterData.inventory.map(id => getData('rpgItems', id))) : [];
+    const magicItems = characterData.magics ? await Promise.all(characterData.magics.map(id => getData('rpgSpells', id))) : [];
+    
+    const totalFixedBonuses = {
+        vida: 0, mana: 0, armadura: 0, esquiva: 0, bloqueio: 0, deslocamento: 0,
+        agilidade: 0, carisma: 0, forca: 0, inteligencia: 0, sabedoria: 0, vigor: 0,
+        pericias: {}
+    };
+
+    const allBonusSources = [...inventoryItems, ...magicItems].filter(Boolean);
+
+    for (const source of allBonusSources) {
+        if (Array.isArray(source.aumentos)) {
+            for (const aumento of source.aumentos) {
+                if (aumento.tipo === 'fixo') {
+                    const statName = aumento.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    if (totalFixedBonuses.hasOwnProperty(statName)) {
+                        totalFixedBonuses[statName] += (aumento.valor || 0);
+                    } else {
+                        totalFixedBonuses.pericias[aumento.nome] = (totalFixedBonuses.pericias[aumento.nome] || 0) + (aumento.valor || 0);
+                    }
+                }
+            }
+        }
+    }
+    
+    const aspectRatio = aspect || 16 / 9;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    let finalWidth, finalHeight;
+
+    if (targetContainer) { // If rendering in a specific container (like content-display)
+        finalWidth = targetContainer.clientWidth;
+        finalHeight = targetContainer.clientHeight;
+    } else { // Modal logic
+        if ((windowWidth * aspectRatio) > windowHeight) {
+            finalHeight = windowHeight * 0.9;
+            finalWidth = finalHeight / aspectRatio;
+        } else {
+            finalWidth = windowWidth * 0.9;
+            finalHeight = finalWidth * aspectRatio;
+        }
     }
 
+    const imageUrl = characterData.image ? URL.createObjectURL(bufferToBlob(characterData.image, characterData.imageMimeType)) : 'https://placehold.co/800x600/4a5568/a0aec0?text=Personagem';
+    const imageBack = characterData.backgroundImage ? URL.createObjectURL(bufferToBlob(characterData.backgroundImage, characterData.backgroundMimeType)) : 'https://placehold.co/800x600/4a5568/a0aec0?text=Fundo';
+    
+    const uniqueId = `char-${characterData.id}`;
+    const predominantColor = await getPredominantColor(imageBack).catch(() => '#4a5568');
+
+    const mainAttributes = ['agilidade', 'carisma', 'forca', 'inteligencia', 'sabedoria', 'vigor'];
+    characterData.attributes = characterData.attributes || {};
+
+    const attributeValues = mainAttributes.map(attr => (parseInt(characterData.attributes[attr]) || 0) + (totalFixedBonuses[attr] || 0));
+    const maxAttributeValue = Math.max(...attributeValues, 1);
+    const cdValue = 10 + (parseInt(characterData.level) || 0) + (parseInt(characterData.attributes.sabedoria) || 0) + (totalFixedBonuses.sabedoria || 0);
+    const palette = { borderColor: predominantColor };
+
+    var scale = isModal || isInPlay ? 1 : .24;
+    var origin = isModal || isInPlay ? "transform-origin: bottom left" : "transform-origin: top left";
+    
+    let periciasHtml = '<p class="text-xs text-gray-400 italic px-2">Nenhuma perícia selecionada.</p>';
+    const allPericias = {};
+    if (characterData.attributes.pericias) {
+        characterData.attributes.pericias.forEach(p => {
+            allPericias[p.name] = { base: p.value, bonus: 0 };
+        });
+    }
+    for (const pName in totalFixedBonuses.pericias) {
+        if (!allPericias[pName]) {
+            allPericias[pName] = { base: 0, bonus: totalFixedBonuses.pericias[pName] };
+        } else {
+            allPericias[pName].bonus += totalFixedBonuses.pericias[pName];
+        }
+    }
+    const periciasForGrouping = Object.entries(allPericias).map(([name, values]) => ({ name, ...values }));
+
+    if (periciasForGrouping.length > 0) {
+        const groupedPericias = periciasForGrouping.reduce((acc, pericia) => {
+            const attribute = periciaToAttributeMap[pericia.name] || 'OUTRAS';
+            if (!acc[attribute]) acc[attribute] = [];
+            acc[attribute].push(pericia);
+            return acc;
+        }, {});
+        
+        const sortedAttributes = Object.keys(groupedPericias).sort();
+        periciasHtml = sortedAttributes.map(attribute => {
+            const periciasList = groupedPericias[attribute].map(p => {
+                const bonusHtml = p.bonus > 0 ? ` + ${p.bonus}` : '';
+                return `<span class="text-xs text-gray-300">${p.name} ${p.base}<span class="text-green-400 font-semibold">${bonusHtml}</span>;</span>`;
+            }).join(' ');
+            return `<div class="text-left mt-1"><p class="text-xs font-bold text-gray-200 uppercase" style="font-size: 11px;">${attribute}</p><div class="flex flex-wrap gap-x-2 gap-y-1 mb-1">${periciasList}</div></div>`;
+        }).join('');
+    }
+
+    const combatStats = { armadura: 'CA', esquiva: 'ES', bloqueio: 'BL', deslocamento: 'DL' };
+    const combatStatsHtml = Object.entries(combatStats).map(([stat, label]) => {
+        const baseValue = characterData.attributes[stat] || 0;
+        const bonus = totalFixedBonuses[stat] || 0;
+        const bonusHtml = bonus > 0 ? `<span class="text-green-400 font-bold ml-1">+${bonus}</span>` : '';
+        const suffix = stat === 'deslocamento' ? 'm' : '';
+        return `<div class="text-center">${label}<br>${baseValue}${suffix}${bonusHtml}</div>`;
+    }).join('');
+    
     const sheetHtml = `
-            <button id="close-sheet-btn-${uniqueId}" class="absolute top-4 right-4 bg-red-600 hover:text-white z-10 thumb-btn" style="display: ${isModal ? 'block' : 'none'}"><i class="fa-solid fa-xmark"></i></button>
-            <div id="character-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
+            <div class="absolute top-4 right-4 z-20 flex flex-col gap-2">
+                 <button id="close-sheet-btn-${uniqueId}" class="bg-red-600 hover:text-white thumb-btn" style="display: ${isModal ? 'flex' : 'none'}"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="character-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white transition-transform duration-300 ease-in-out" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
                 <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
             
-            <div class="absolute top-4 right-2 p-2 rounded-full text-center">
+            <div class="absolute top-4 right-2 p-2 rounded-full text-center cursor-pointer" data-action="edit-stat" data-stat-type="vida" data-stat-max="${(characterData.attributes.vida || 0) + (totalFixedBonuses.vida || 0)}">
                 <i class="fas fa-heart text-red-500 text-5xl"></i>
-                <div class="absolute inset-0 flex flex-col items-center justify-center font-bold text-white text-xs">
-                    <span>${characterData.attributes.vidaAtual || 0}</span>
+                <div class="absolute inset-0 flex flex-col items-center justify-center font-bold text-white text-xs pointer-events-none">
+                    <span data-stat-current="vida">${characterData.attributes.vidaAtual || 0}</span>
                     <hr style="width: 15px;">
-                    <span>${characterData.attributes.vida || 0}</span>
+                    <span>
+                        ${characterData.attributes.vida || 0}
+                        ${totalFixedBonuses.vida > 0 ? `<span class="text-green-400 font-semibold"> + ${totalFixedBonuses.vida}</span>` : ''}
+                    </span>
                 </div>
             </div>
 
-            <div class="absolute top-4 left-2 p-2 rounded-full text-center">
+            <div class="absolute top-4 left-2 p-2 rounded-full text-center cursor-pointer" data-action="edit-stat" data-stat-type="mana" data-stat-max="${(characterData.attributes.mana || 0) + (totalFixedBonuses.mana || 0)}">
                 <div class="icon-container mana-icon-container">
                     <i class="fas fa-fire text-blue-500 text-5xl"></i>
-                    <div class="absolute inset-0 flex flex-col items-center justify-center font-bold text-white text-xs">
-                        <span>${characterData.attributes.manaAtual || 0}</span>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center font-bold text-white text-xs pointer-events-none">
+                        <span data-stat-current="mana">${characterData.attributes.manaAtual || 0}</span>
                         <hr style="width: 15px;">
-                        <span>${characterData.attributes.mana || 0}</span>
+                        <span>
+                           ${characterData.attributes.mana || 0}${totalFixedBonuses.mana > 0 ? `<span class="text-green-400 font-semibold"> + ${totalFixedBonuses.mana}</span>` : ''}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -164,8 +333,8 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
             <div id="lore-icon-${uniqueId}" class="absolute top-20 left-4 rounded-full p-3 bg-black/50 flex items-center justify-center text-lg text-yellow-200 cursor-pointer" data-action="toggle-lore">
                 <i class="fas fa-book"></i>
             </div>
-            <div id="money-icon" class="absolute money-container top-32 left-4 rounded-full p-2 bg-black/50 flex items-center justify-center text-sm text-amber-300 font-bold" data-action="open-money-modal" title="Alterar Dinheiro" style="writing-mode: vertical-rl; text-orientation: upright;">
-                💰$<span data-status="money">${characterData.dinheiro || 0}</span>
+            <div class="absolute money-container top-32 left-4 rounded-full p-2 bg-black/50 flex items-center justify-center text-sm text-amber-300 font-bold cursor-pointer" data-action="edit-stat" data-stat-type="dinheiro" title="Alterar Dinheiro" style="writing-mode: vertical-rl; text-orientation: upright;">
+                💰$<span data-stat-current="dinheiro">${characterData.dinheiro || 0}</span>
             </div>
             
             <div id="lore-modal-${uniqueId}" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 hidden transition-opacity duration-300">
@@ -187,55 +356,76 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
 
             <div class="absolute bottom-0 w-full p-4">               
                 <div class="pb-4 scrollable-content text-sm text-left" style="display: flex; flex-direction: row; overflow-y: scroll;gap: 12px; scroll-snap-type: x mandatory;">
+                    <!-- Página 1: Atributos -->
                     <div class="rounded-3xl w-full" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; border-color: ${palette.borderColor}; position: relative; z-index: 1; overflow-y: visible; display: flex; flex-direction: column; justify-content: flex-end;">
                         <div class="grid grid-cols-6 gap-x-4 gap-y-1 text-xs my-2 mb-4">
                             <div class="text-center font-bold" style="color: rgb(0 247 85);">LV<br>${characterData.level || 0}</div>
-                            <div class="text-center">CA<br>${characterData.attributes.armadura || 0}</div>
-                            <div class="text-center">ES<br>${characterData.attributes.esquiva || 0}</div>
-                            <div class="text-center">BL<br>${characterData.attributes.bloqueio || 0}</div>
-                            <div class="text-center">DL<br>${characterData.attributes.deslocamento || 0}m</div>                            
+                            ${combatStatsHtml}
                             <div class="text-center">CD<br>${cdValue}</div>                            
                         </div>
                         ${mainAttributes.map(key => {
-                        const value = parseInt(characterData.attributes[key]) || 0; 
-                        const percentage = maxAttributeValue > 0 ? (value * 100) / maxAttributeValue : 0;
+                        const baseValue = parseInt(characterData.attributes[key]) || 0;
+                        const bonus = totalFixedBonuses[key] || 0;
+                        const bonusHtml = bonus > 0 ? ` + ${bonus}` : '';
+                        const totalValue = baseValue + bonus;
+                        const percentage = maxAttributeValue > 0 ? (totalValue * 100) / maxAttributeValue : 0;
                         return `
                         <div class="mt-2 flex items-center space-x-2 text-xs">
                             <span class="font-bold w-8">${key.slice(0, 3).toUpperCase()}</span>
                             <div class="stat-bar flex-grow rounded-3xl" style="margin-top: 0">
                                 <div class="stat-fill h-full rounded-3xl" style="width: ${percentage}%; background: ${palette.borderColor}"></div>
                             </div>
-                            <span class="text-xs font-bold ml-auto">${value} / ${maxAttributeValue}</span>
+                            <span class="text-xs font-bold ml-auto">${baseValue}<span class="text-green-400 font-semibold">${bonusHtml}</span></span>
                         </div>
                         `;
                         }).join('')}
                     </div>
+                    <!-- Página 2: Perícias -->
                     <div class="pb-4 rounded-3xl w-full" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; border-color: ${palette.borderColor}; position: relative; z-index: 1; overflow-y: visible; display: flex; flex-direction: column; justify-content: flex-end;">
-                        <div class="pericias-scroll-area flex flex-col gap-2" style="overflow-y: auto; max-height: 170px;">
+                        <div class="pericias-scroll-area flex flex-col gap-2 px-2" style="overflow-y: auto; max-height: 170px;">
                             ${periciasHtml}
+                        </div>
+                    </div>
+                    <!-- Página 3: Inventário & Magias -->
+                    <div class="pb-4 rounded-3xl w-full" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: flex-end;">
+                        <div id="inventory-magic-scroll-area-${uniqueId}" class="flex flex-col gap-1" style="overflow-y: auto; max-height: 170px;">
+                            <!-- Conteúdo do inventário será injetado aqui -->
                         </div>
                     </div>
                 </div>
             </div>
+             <!-- THUMBNAIL_EXTRAS -->
         </div>
     `;
-
-    if (!isModal) {
-        
-        return sheetHtml;
+    
+    if (!isModal && !isInPlay) {
+        const inventoryCount = characterData.inventory?.length || 0;
+        const magicCount = characterData.magics?.length || 0;
+        const thumbnailInventoryHtml = `
+            <div class="absolute bottom-2 right-2 flex flex-col items-end text-xs opacity-80 bg-black/50 p-1 rounded">
+                <div class="flex items-center gap-1"><i class="fas fa-box"></i> ${inventoryCount}</div>
+                <div class="flex items-center gap-1"><i class="fas fa-magic"></i> ${magicCount}</div>
+            </div>
+        `;
+        return sheetHtml.replace('<!-- THUMBNAIL_EXTRAS -->', thumbnailInventoryHtml);
     }
-
+    
     sheetContainer.style.background = `url('${imageBack}')`;
     sheetContainer.style.backgroundSize = 'cover';
     sheetContainer.style.backgroundPosition = 'center';
     sheetContainer.style.boxShadow = 'inset 0px 0px 10px 0px black';
     sheetContainer.innerHTML = sheetHtml;
-    sheetContainer.classList.remove('hidden');
+    
+    populateInventory(sheetContainer, characterData, uniqueId);
+
+    if (!targetContainer) {
+       sheetContainer.classList.remove('hidden');
+    }
 
     const loreIcon = sheetContainer.querySelector(`#lore-icon-${uniqueId}`);
     const loreModal = sheetContainer.querySelector(`#lore-modal-${uniqueId}`);
     const closeLoreModalBtn = sheetContainer.querySelector(`#close-lore-modal-btn-${uniqueId}`);
-    const closeSheetBtn = sheetContainer.querySelector(`#close-sheet-btn-${uniqueId}`); // <-- ALTERADO
+    const closeSheetBtn = sheetContainer.querySelector(`#close-sheet-btn-${uniqueId}`);
 
     const closeSheet = () => {
         sheetContainer.classList.add('hidden');
@@ -249,17 +439,24 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
         closeLoreModalBtn.addEventListener('click', () => loreModal.classList.add('hidden'));
     }
 
-    // LÓGICA CORRIGIDA E MAIS ROBUSTA
     if (closeSheetBtn) {
-        // Clonar o botão remove event listeners antigos e garante que o novo será adicionado
-        const newBtn = closeSheetBtn.cloneNode(true);
-        closeSheetBtn.parentNode.replaceChild(newBtn, closeSheetBtn);
-        newBtn.addEventListener('click', closeSheet);
+        if (isInPlay) {
+            closeSheetBtn.addEventListener('click', () => {
+                document.dispatchEvent(new CustomEvent('navigateHome'));
+            });
+        } else {
+            closeSheetBtn.addEventListener('click', closeSheet);
+        }
     }
     
     sheetContainer.addEventListener('click', (e) => {
-        if (e.target === sheetContainer) {
+        if (e.target === sheetContainer && !targetContainer) {
             closeSheet();
         }
     });
+
+    if (isModal || isInPlay) {
+        setupStatEditor(characterData, sheetContainer);
+    }
 }
+

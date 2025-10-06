@@ -64,7 +64,6 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
         finalHeight = finalWidth * aspectRatio;
     }
 
-    // Criar objectURL apenas quando houver imagem e guardar para revogar depois
     let imageUrl;
     let createdObjectUrl = null;
     if (spellData.image) {
@@ -74,56 +73,32 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
         imageUrl = 'https://placehold.co/400x400/00796B/B2DFDB?text=Magia';
     }
 
-    // Extrai a cor média da imagem de fundo
     const predominantColor = await getPredominantColor(imageUrl).catch(e => {
         console.error("Erro ao extrair cor média:", e);
-        return '#4a5568'; // Cor de fallback
+        return '#4a5568';
     });
 
     var scale = isModal? 1 : .24;
     var origin = isModal?  "" : "transform-origin: top left";
     
-    const aumentos = spellData.aumentos || {};
+    // Processar aumentos
     let aumentosHtml = '';
+    if (spellData.aumentos && spellData.aumentos.length > 0) {
+        const aumentosFixos = spellData.aumentos.filter(a => a.tipo === 'fixo');
+        const aumentosTemporarios = spellData.aumentos.filter(a => a.tipo === 'temporario');
 
-    const energiasItems = [];
-    if (aumentos.vida > 0) energiasItems.push(`Vida +${aumentos.vida}`);
-    if (aumentos.mana > 0) energiasItems.push(`Mana +${aumentos.mana}`);
-
-    const combateItems = [];
-    if (aumentos.armadura > 0) combateItems.push(`Armadura +${aumentos.armadura}`);
-    if (aumentos.esquiva > 0) combateItems.push(`Esquiva +${aumentos.esquiva}`);
-    if (aumentos.bloqueio > 0) combateItems.push(`Bloqueio +${aumentos.bloqueio}`);
-    if (aumentos.deslocamento > 0) combateItems.push(`Deslocamento +${aumentos.deslocamento}m`);
-
-    const atributosItems = [];
-    if (aumentos.agilidade > 0) atributosItems.push(`Agilidade +${aumentos.agilidade}`);
-    if (aumentos.carisma > 0) atributosItems.push(`Carisma +${aumentos.carisma}`);
-    if (aumentos.forca > 0) atributosItems.push(`Força +${aumentos.forca}`);
-    if (aumentos.inteligencia > 0) atributosItems.push(`Inteligência +${aumentos.inteligencia}`);
-    if (aumentos.sabedoria > 0) atributosItems.push(`Sabedoria +${aumentos.sabedoria}`);
-    if (aumentos.vigor > 0) atributosItems.push(`Vigor +${aumentos.vigor}`);
-
-    const periciasItems = [];
-    if (Array.isArray(aumentos.pericias) && aumentos.pericias.length > 0) {
-        aumentos.pericias.forEach(p => {
-            if (p.value > 0) {
-                periciasItems.push(`${p.name} +${p.value}`);
-            }
-        });
-    }
-
-    const hasAumentos = energiasItems.length > 0 || combateItems.length > 0 || atributosItems.length > 0 || periciasItems.length > 0;
-
-    if (hasAumentos) {
+        const createList = (list, title, color) => {
+            if (list.length === 0) return '';
+            const items = list.map(a => `<li><span class="font-semibold">${a.nome}:</span> ${a.valor > 0 ? '+' : ''}${a.valor}</li>`).join('');
+            return `<div class="mb-2"><h5 class="font-bold text-sm ${color}">${title}</h5><ul class="list-disc list-inside text-xs">${items}</ul></div>`;
+        };
+        
         aumentosHtml = `
             <div class="pt-2">
                 <h3 class="text-sm font-semibold flex items-center gap-2">Aumentos</h3>
                 <div class="text-gray-300 text-xs leading-relaxed mt-1 pl-6 space-y-1">
-                    ${energiasItems.length > 0 ? `<div><strong class="font-semibold text-gray-200">Energias:</strong> ${energiasItems.join(', ')}</div>` : ''}
-                    ${combateItems.length > 0 ? `<div><strong class="font-semibold text-gray-200">Status de Combate:</strong> ${combateItems.join(', ')}</div>` : ''}
-                    ${atributosItems.length > 0 ? `<div><strong class="font-semibold text-gray-200">Atributos:</strong> ${atributosItems.join(', ')}</div>` : ''}
-                    ${periciasItems.length > 0 ? `<div><strong class="font-semibold text-gray-200">Perícias:</strong> ${periciasItems.join(', ')}</div>` : ''}
+                    ${createList(aumentosFixos, 'Bônus Fixos', 'text-green-300')}
+                    ${createList(aumentosTemporarios, 'Bônus Temporários', 'text-blue-300')}
                 </div>
             </div>
         `;
@@ -156,6 +131,8 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
         </div>
     `;
 
+    const circleHtml = spellData.circle ? `<span class="text-lg font-normal text-gray-300">${spellData.circle}º Círculo</span>` : '';
+
     const sheetHtml = `
         <button id="close-spell-sheet-btn-${uniqueId}" class="absolute top-4 right-4 bg-red-600 hover:text-white z-20 thumb-btn" style="display:${isModal? "block": "none"};"><i class="fa-solid fa-xmark"></i></button>
         <div id="spell-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
@@ -163,10 +140,9 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
             
             <div class="mt-auto p-4 md:p-6 w-full text-left absolute bottom-0" style="background: ${predominantColor}">
                 <div class="sheet-card-text-panel">
-                    <div class="flex justify-between items-start">
-                        <h2 class="text-2xl md:text-3xl font-bold tracking-tight text-white pr-2">${spellData.name}</h2>
-                        <span class="text-sm text-center font-medium bg-black/20 px-2 py-1 rounded whitespace-nowrap">${spellData.manaCost} PM</span>
-                    </div>
+                    <p class="text-sm font-medium">${circleHtml} - ${spellData.manaCost} PM</p>
+                    <h2 class="text-2xl md:text-3xl font-bold tracking-tight text-white">${spellData.name}</h2>
+                
                     <div class="sheet-card-divider"></div>
                     ${statsHtml}
                     <div class="space-y-3 max-h-32 overflow-y-auto pr-2">
@@ -196,14 +172,11 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
     `;
 
    
-    // Se não for modal, retorna o HTML (miniatura)
     if (!isModal) return sheetHtml;
 
-    // --- é modal: injeta no container e adiciona listeners APÓS inserir ---
     sheetContainer.innerHTML = sheetHtml;
     sheetContainer.classList.remove('hidden');
 
-    // Botão fechar: substitui o nó pra limpar listeners anteriores e adiciona o handler
     const closeSheetBtn = sheetContainer.querySelector(`#close-spell-sheet-btn-${uniqueId}`);
     if (closeSheetBtn) {
         const btn = closeSheetBtn.cloneNode(true);
@@ -215,7 +188,6 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
         });
     }
 
-    // Fecha clicando no overlay (fora do card)
     const overlayHandler = (e) => {
         if (e.target === sheetContainer) {
             sheetContainer.classList.add('hidden');
@@ -226,4 +198,3 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
     };
     sheetContainer.addEventListener('click', overlayHandler);
 }
-

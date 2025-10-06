@@ -1,6 +1,6 @@
 import { populatePericiasCheckboxes, saveCharacterCard, editCard, importCard } from './character_manager.js';
-import { populateSpellPericiasCheckboxes, saveSpellCard, editSpell, importSpell } from './magic_manager.js';
-import { populateItemPericiasCheckboxes, saveItemCard, editItem, importItem, removeItem, exportItem } from './item_manager.js';
+import { populateSpellAumentosSelect, saveSpellCard, editSpell, importSpell } from './magic_manager.js';
+import { populateItemAumentosSelect, saveItemCard, editItem, importItem, removeItem, exportItem } from './item_manager.js';
 import { openDatabase, removeData, getData, saveData } from './local_db.js';
 import { renderFullCharacterSheet } from './card-renderer.js';
 import { renderFullSpellSheet } from './magic_renderer.js';
@@ -92,7 +92,7 @@ async function renderCharacterList() {
     const allCharacters = await getData('rpgCards');
 
     const container = document.createElement('div');
-    container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 overflow-y-auto p-6 pt-0';
+    container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 p-6 pt-0';
     
     const addButtonWrapper = document.createElement('div');
     addButtonWrapper.className = 'relative w-full h-full aspect-square';
@@ -116,14 +116,14 @@ async function renderCharacterList() {
         const backgroundImage = char.backgroundImage ? `url('${URL.createObjectURL(bufferToBlob(char.backgroundImage, char.backgroundMimeType))}')` : '#2d3748';
 
         const cardWrapper = document.createElement('div');
-        cardWrapper.className = 'rpg-thumbnail bg-cover bg-center shadow-lg relative';
+        cardWrapper.className = 'rpg-thumbnail bg-cover bg-center relative';
         cardWrapper.dataset.action = "view";
         cardWrapper.dataset.type = "character";
         cardWrapper.dataset.id = char.id;
-        cardWrapper.style.backgroundImage = backgroundImage;
+        //cardWrapper.style.backgroundImage = backgroundImage;
         
         cardWrapper.innerHTML = `
-            <div class="miniCard absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg overflow-hidden">
+            <div class="miniCard absolute inset-0  flex flex-col items-center justify-center text-white p-2 rounded-lg overflow-hidden">
                 ${characterSheetHtml}
             </div>
             <div class="thumbnail-actions absolute z-10">
@@ -185,7 +185,7 @@ async function renderSpellList(type = 'magias') {
     }
 
     const gridContainer = document.createElement('div');
-    gridContainer.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 overflow-y-auto p-6 pt-0';
+    gridContainer.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 p-6 pt-0';
     
     const buttonText = type === 'magias' ? 'Adicionar Magia' : 'Adicionar Habilidade';
     const buttonAction = type === 'magias' ? 'add-spell' : 'add-habilidade';
@@ -219,7 +219,7 @@ async function renderSpellList(type = 'magias') {
         cardWrapper.dataset.type = "spell";
         cardWrapper.dataset.id = spell.id;
         cardWrapper.innerHTML = `
-            <div class="miniCard absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg">
+            <div class="miniCard absolute inset-0  flex flex-col items-center justify-center text-white p-2 rounded-lg">
                 ${spellSheetHtml}
             </div>
             <div class="thumbnail-actions absolute z-10">
@@ -272,7 +272,7 @@ async function renderItemList() {
     const allItems = await getData('rpgItems');
 
     const container = document.createElement('div');
-    container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 overflow-y-auto p-6 pt-0';
+    container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 p-6 pt-0';
 
     const addButtonWrapper = document.createElement('div');
     addButtonWrapper.className = 'relative w-full h-full aspect-square';
@@ -299,7 +299,7 @@ async function renderItemList() {
         cardWrapper.dataset.type = "item";
         cardWrapper.dataset.id = item.id;
         cardWrapper.innerHTML = `
-            <div class="miniCard absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg">
+            <div class="miniCard absolute inset-0  flex flex-col items-center justify-center text-white p-2 rounded-lg">
                 ${itemSheetHtml}
             </div>
             <div class="thumbnail-actions absolute z-10">
@@ -362,6 +362,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const contentLoader = document.getElementById('content-loader');
     const navButtons = document.querySelectorAll('.nav-button');
     const contentDisplay = document.getElementById('content-display');
+    const mainContainer = document.querySelector('main.max-w-6xl');
     const creationSection = document.getElementById('creation-section');
     const spellCreationSection = document.getElementById('spell-creation-section');
     const itemCreationSection = document.getElementById('item-creation-section');
@@ -393,6 +394,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const itemForm = document.getElementById('itemForm');
     const itemFormTitle = document.getElementById('item-form-title');
     const itemSubmitButton = document.getElementById('itemSubmitButton');
+
+    // Modal de Seleção Genérico
+    const selectionModal = document.getElementById('selection-modal');
+    const selectionModalTitle = document.getElementById('selection-modal-title');
+    const selectionModalList = document.getElementById('selection-modal-list');
+    const selectionModalCloseBtn = document.getElementById('selection-modal-close-btn');
     
     // Função principal para renderizar o conteúdo da aba selecionada
     renderContent = async (target) => {
@@ -405,8 +412,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         spellCreationSection.classList.add('hidden');
         itemCreationSection.classList.add('hidden');
 
-        const titleText = document.querySelector(`.nav-button[data-target="${target}"] .hidden`)?.textContent || target.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
-        contentDisplay.innerHTML = `<div class="w-full text-center mb-2 mt-2"><h2 class="text-3xl font-bold text-gray-200">${titleText}</h2></div>`;
+        if (target !== 'personagem-em-jogo') {
+            const titleText = document.querySelector(`.nav-button[data-target="${target}"] .hidden`)?.textContent || target.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+            contentDisplay.innerHTML = `<div class="w-full text-center mb-2 mt-2"><h2 class="text-3xl font-bold text-gray-200">${titleText}</h2></div>`;
+            contentDisplay.style.background = '';
+            contentDisplay.style.boxShadow = '';
+            if (mainContainer) mainContainer.style.overflowY = 'auto';
+            contentDisplay.style.overflowY = 'visible';
+        }
 
         if (target === 'personagem') await renderCharacterList();
         else if (target === 'magias') await renderSpellList('magias');
@@ -429,11 +442,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const renderCharacterInGame = async () => {
         const allCharacters = await getData('rpgCards');
         const characterInPlay = allCharacters.find(char => char.inPlay);
-        const titleElement = contentDisplay.querySelector('h2');
-        if(titleElement) titleElement.remove();
+        
+        contentDisplay.innerHTML = '';
+        contentDisplay.style.background = '';
+        contentDisplay.style.boxShadow = '';
+        if (mainContainer) mainContainer.style.overflowY = 'hidden';
+        contentDisplay.style.overflowY = 'visible';
 
         if (characterInPlay) {
-            contentDisplay.innerHTML = await renderFullCharacterSheet(characterInPlay, false, 16/9, true);
+            await renderFullCharacterSheet(characterInPlay, false, null, true, contentDisplay);
         } else {
             contentDisplay.innerHTML = `
                 <div class="w-full h-full flex flex-col items-center justify-center">
@@ -500,9 +517,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             cardForm.reset();
             formTitle.textContent = 'Novo Personagem';
             submitButton.textContent = 'Criar Cartão';
+            document.getElementById('selected-items-container').innerHTML = '';
+            document.getElementById('selected-magics-container').innerHTML = '';
             populatePericiasCheckboxes();
         });
-        if (action === "add-spell" || action === "add-habilidade") showView(spellCreationSection, false, () => {
+         if (action === "add-spell" || action === "add-habilidade") showView(spellCreationSection, false, () => {
             const isHabilidade = action === "add-habilidade";
             spellForm.reset();
             spellForm.dataset.type = isHabilidade ? 'habilidade' : 'magia';
@@ -510,14 +529,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             spellSubmitButton.textContent = isHabilidade ? 'Criar Habilidade' : 'Criar Magia';
             enhanceWrapper.classList.toggle('hidden', isHabilidade);
             trueWrapper.classList.toggle('hidden', isHabilidade);
-            // manaCostWrapper.classList.toggle('hidden', isHabilidade); // Removido para mostrar sempre
-            populateSpellPericiasCheckboxes();
+            populateSpellAumentosSelect();
         });
         if (action === "add-item") showView(itemCreationSection, false, () => {
             itemForm.reset();
             itemFormTitle.textContent = 'Novo Item';
             itemSubmitButton.textContent = 'Criar Item';
-            populateItemPericiasCheckboxes();
+            populateItemAumentosSelect();
         });
         if (e.target.closest('#select-character-btn')) showCharacterSelectionModal();
     });
@@ -555,6 +573,67 @@ document.addEventListener('DOMContentLoaded', async () => {
         closeForm(itemCreationSection, 'itens');
     });
 
+    // --- Lógica do Modal de Seleção de Itens/Magias ---
+    async function openSelectionModal(type) {
+        selectionModalList.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></div>';
+        selectionModal.classList.remove('hidden');
+
+        const isItem = type === 'item';
+        const storeName = isItem ? 'rpgItems' : 'rpgSpells';
+        const title = isItem ? 'Selecionar Item' : 'Selecionar Magia/Habilidade';
+        const color = isItem ? 'text-amber-300' : 'text-teal-300';
+        
+        selectionModalTitle.className = `text-xl font-bold ${color}`;
+        selectionModalTitle.textContent = title;
+        
+        const data = await getData(storeName);
+        selectionModalList.innerHTML = '';
+
+        if (!data || data.length === 0) {
+            selectionModalList.innerHTML = `<p class="text-gray-400 text-center p-4">Nenhum ${isItem ? 'item' : 'conteúdo'} encontrado. Crie um primeiro!</p>`;
+            return;
+        }
+
+        data.forEach(item => {
+            const el = document.createElement('button');
+            el.className = 'w-full text-left p-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-3';
+            
+            let iconHtml = '';
+            if (item.image) {
+                const imageUrl = URL.createObjectURL(bufferToBlob(item.image, item.imageMimeType));
+                iconHtml = `<img src="${imageUrl}" class="w-8 h-8 rounded-full object-cover flex-shrink-0" style="image-rendering: pixelated;">`;
+            } else {
+                const iconClass = isItem ? 'fa-box' : 'fa-magic';
+                iconHtml = `<i class="fas ${iconClass} w-8 text-center text-xl text-gray-400"></i>`;
+            }
+
+            el.innerHTML = `
+                ${iconHtml}
+                <div>
+                    <p class="font-semibold">${item.name}</p>
+                    ${!isItem && item.type ? `<p class="text-xs text-gray-400 capitalize">${item.type}</p>` : ''}
+                </div>
+            `;
+
+            el.addEventListener('click', () => {
+                document.dispatchEvent(new CustomEvent('addItemToCharacter', { detail: { data: item, type: isItem ? 'item' : 'magic' } }));
+                selectionModal.classList.add('hidden');
+            });
+            selectionModalList.appendChild(el);
+        });
+    }
+
+    document.getElementById('add-item-to-char-btn').addEventListener('click', () => openSelectionModal('item'));
+    document.getElementById('add-magic-to-char-btn').addEventListener('click', () => openSelectionModal('magic'));
+    selectionModalCloseBtn.addEventListener('click', () => selectionModal.classList.add('hidden'));
+
+    // Evento para navegar para a home a partir do card "em jogo"
+    document.addEventListener('navigateHome', () => {
+        const charactersButton = document.querySelector('.nav-button[data-target="personagem"]');
+        if (charactersButton) {
+            charactersButton.click();
+        }
+    });
 
     // Abre o banco de dados e renderiza o conteúdo inicial
     await openDatabase();
@@ -579,23 +658,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.preventDefault();
             e.stopPropagation();
             const menu = menuBtn.nextElementSibling;
-            
-            document.querySelectorAll('.thumbnail-menu.active').forEach(m => {
-                if (m !== menu) m.classList.remove('active', 'menu-left');
+            const parentThumbnail = menuBtn.closest('.rpg-thumbnail');
+
+            // Fecha outros menus, remove o estado ativo e reseta o z-index
+            document.querySelectorAll('.rpg-thumbnail.menu-active').forEach(activeThumb => {
+                if (activeThumb !== parentThumbnail) {
+                    activeThumb.classList.remove('menu-active');
+                    activeThumb.style.zIndex = '';
+                    const activeMenu = activeThumb.querySelector('.thumbnail-menu');
+                    if (activeMenu) {
+                        activeMenu.classList.remove('active', 'menu-left');
+                    }
+                }
             });
             
-            menu.classList.toggle('active');
+            // Alterna o menu atual e o estado do thumbnail
+            const isActive = menu.classList.toggle('active');
+            parentThumbnail.classList.toggle('menu-active', isActive);
 
-            if (menu.classList.contains('active')) {
-                const menuRect = menu.getBoundingClientRect();
-                const bodyRect = document.body.getBoundingClientRect();
+            if (isActive) {
+                parentThumbnail.style.zIndex = '100'; // Eleva o z-index do card atual
+                const parentRect = parentThumbnail.getBoundingClientRect();
+                const viewportMidpoint = window.innerWidth / 2;
 
-                if (menuRect.right > bodyRect.right - 10) { // 10px de margem
+                if ((parentRect.left + parentRect.width / 2) < viewportMidpoint) {
                     menu.classList.add('menu-left');
                 } else {
                     menu.classList.remove('menu-left');
                 }
             } else {
+                 parentThumbnail.style.zIndex = ''; // Reseta ao fechar
                  menu.classList.remove('menu-left');
             }
 
@@ -624,7 +716,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         spellSubmitButton.textContent = isHabilidade ? 'Salvar Habilidade' : 'Salvar Magia';
                         enhanceWrapper.classList.toggle('hidden', isHabilidade);
                         trueWrapper.classList.toggle('hidden', isHabilidade);
-                        // manaCostWrapper.classList.toggle('hidden', isHabilidade); // Removido para mostrar sempre
                         
                         showView(spellCreationSection, true);
                         await editSpell(cardId);
@@ -661,12 +752,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 renderContent(activeNav);
             }
-            menuItem.closest('.thumbnail-menu').classList.remove('active');
+            const parentThumbnail = menuItem.closest('.rpg-thumbnail');
+            if(parentThumbnail){
+                parentThumbnail.classList.remove('menu-active');
+                parentThumbnail.style.zIndex = '';
+            }
+            const parentMenu = menuItem.closest('.thumbnail-menu');
+            if(parentMenu){
+                parentMenu.classList.remove('active', 'menu-left');
+            }
             return;
         }
 
-        if (!e.target.closest('.thumbnail-menu')) {
-            document.querySelectorAll('.thumbnail-menu.active').forEach(m => m.classList.remove('active', 'menu-left'));
+        if (!e.target.closest('.thumbnail-menu') && !e.target.closest('.thumb-btn-menu')) {
+            document.querySelectorAll('.rpg-thumbnail.menu-active').forEach(activeThumb => {
+                activeThumb.classList.remove('menu-active');
+                activeThumb.style.zIndex = '';
+                const activeMenu = activeThumb.querySelector('.thumbnail-menu');
+                if (activeMenu) {
+                    activeMenu.classList.remove('active', 'menu-left');
+                }
+            });
         }
     });
 });

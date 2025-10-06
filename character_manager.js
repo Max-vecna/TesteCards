@@ -91,6 +91,47 @@ function base64ToArrayBuffer(base64) {
 }
 
 /**
+ * Cria o elemento visual para um item/magia selecionado no formulário.
+ * @param {object} data - Os dados do item ou magia.
+ * @param {string} type - 'item' ou 'magic'.
+ */
+function createSelectedItemElement(data, type) {
+    const containerId = type === 'item' ? 'selected-items-container' : 'selected-magics-container';
+    const container = document.getElementById(containerId);
+    
+    // Evita adicionar duplicatas
+    if (container.querySelector(`[data-id="${data.id}"]`)) return;
+
+    const itemElement = document.createElement('div');
+    itemElement.className = 'flex items-center justify-between bg-gray-800 p-2 rounded';
+    itemElement.dataset.id = data.id;
+    
+    let iconHtml = '';
+    if (data.image) {
+        const imageUrl = URL.createObjectURL(bufferToBlob(data.image, data.imageMimeType));
+        iconHtml = `<img src="${imageUrl}" class="w-6 h-6 rounded-full mr-2 object-cover" style="image-rendering: pixelated;">`;
+    } else {
+        const iconClass = type === 'item' ? 'fa-box' : 'fa-magic';
+        iconHtml = `<i class="fas ${iconClass} w-6 text-center mr-2"></i>`;
+    }
+
+    itemElement.innerHTML = `
+        <div class="flex items-center">
+            ${iconHtml}
+            <span class="text-sm">${data.name}</span>
+        </div>
+        <button type="button" class="text-red-500 hover:text-red-400 remove-selection-btn text-xl leading-none">&times;</button>
+    `;
+
+    itemElement.querySelector('.remove-selection-btn').addEventListener('click', () => {
+        itemElement.remove();
+    });
+
+    container.appendChild(itemElement);
+}
+
+
+/**
  * Função para renderizar as perícias no formulário.
  * @param {Array} [selectedPericias] - Um array de objetos de perícias para pré-selecionar.
  */
@@ -220,6 +261,9 @@ export async function saveCharacterCard(cardForm) {
 
     const imageBuffer = characterImageFile ? await readFileAsArrayBuffer(characterImageFile) : null;
     const backgroundBuffer = backgroundImageFile ? await readFileAsArrayBuffer(backgroundImageFile) : null;
+
+    const inventoryIds = Array.from(document.querySelectorAll('#selected-items-container [data-id]')).map(el => el.dataset.id);
+    const magicIds = Array.from(document.querySelectorAll('#selected-magics-container [data-id]')).map(el => el.dataset.id);
     
     let cardData;
     if (currentEditingCardId) {
@@ -232,6 +276,8 @@ export async function saveCharacterCard(cardForm) {
             dinheiro: parseInt(dinheiroInput.value) || 0,
             attributes,
             lore,
+            inventory: inventoryIds,
+            magics: magicIds,
             image: imageBuffer || cardData.image,
             backgroundImage: backgroundBuffer || cardData.backgroundImage,
             imageMimeType: characterImageFile ? characterImageFile.type : cardData.imageMimeType,
@@ -246,6 +292,8 @@ export async function saveCharacterCard(cardForm) {
             dinheiro: parseInt(dinheiroInput.value) || 0,
             attributes,
             lore,
+            inventory: inventoryIds,
+            magics: magicIds,
             image: imageBuffer,
             backgroundImage: backgroundBuffer,
             imageMimeType: characterImageFile ? characterImageFile.type : null,
@@ -260,6 +308,8 @@ export async function saveCharacterCard(cardForm) {
     backgroundImageFile = null;
     showImagePreview(document.getElementById('characterImagePreview'), null, true);
     showImagePreview(document.getElementById('backgroundImagePreview'), null, false);
+    document.getElementById('selected-items-container').innerHTML = '';
+    document.getElementById('selected-magics-container').innerHTML = '';
     currentEditingCardId = null;
 }
 
@@ -325,6 +375,24 @@ export async function editCard(cardId) {
 
     populatePericiasCheckboxes(cardData.attributes.pericias);
 
+    // Limpa e preenche o inventário e magias
+    document.getElementById('selected-items-container').innerHTML = '';
+    document.getElementById('selected-magics-container').innerHTML = '';
+
+    if (cardData.inventory && Array.isArray(cardData.inventory)) {
+        for (const itemId of cardData.inventory) {
+            const itemData = await getData('rpgItems', itemId);
+            if (itemData) createSelectedItemElement(itemData, 'item');
+        }
+    }
+    if (cardData.magics && Array.isArray(cardData.magics)) {
+        for (const magicId of cardData.magics) {
+            const magicData = await getData('rpgSpells', magicId);
+            if (magicData) createSelectedItemElement(magicData, 'magic');
+        }
+    }
+
+
     if (cardData.image) {
         const imageBlob = bufferToBlob(cardData.image, cardData.imageMimeType);
         showImagePreview(characterImagePreview, URL.createObjectURL(imageBlob), true);
@@ -365,8 +433,8 @@ export async function renderCharacterList() {
         const backgroundImage = char.backgroundImage ? `url('${URL.createObjectURL(bufferToBlob(char.backgroundImage, char.backgroundMimeType))}')` : '#2d3748';
 
         return `
-            <div class="rpg-thumbnail bg-cover bg-center shadow-lg relative" data-action="view" data-type="character" data-id="${char.id}" style="background-image: ${backgroundImage};">
-                <div class="miniCard absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-2 rounded-lg overflow-hidden">
+            <div class="rpg-thumbnail bg-cover bg-center relative" data-action="view" data-type="character" data-id="${char.id}" style="background-image: ${backgroundImage};">
+                <div class="miniCard absolute inset-0  flex flex-col items-center justify-center text-white p-2 rounded-lg overflow-hidden">
                     ${characterSheetHtml}
                 </div>
                 <div class="thumbnail-actions absolute z-10">
@@ -558,6 +626,13 @@ export async function importCard(file) {
         reader.readAsText(file);
     });
 }
+
+// Event listener para adicionar item/magia ao formulário do personagem
+document.addEventListener('addItemToCharacter', (e) => {
+    const { data, type } = e.detail;
+    createSelectedItemElement(data, type);
+});
+
 
 // Funções para upload de imagem
 document.getElementById('characterImageUpload').addEventListener('change', (e) => {
