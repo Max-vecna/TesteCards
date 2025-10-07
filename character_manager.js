@@ -281,7 +281,7 @@ export async function saveCharacterCard(cardForm) {
             dinheiro: parseInt(dinheiroInput.value) || 0,
             attributes,
             lore,
-            magics: magicIds,
+            spells: magicIds,
             image: imageBuffer || cardData.image,
             backgroundImage: backgroundBuffer || cardData.backgroundImage,
             imageMimeType: characterImageFile ? characterImageFile.type : cardData.imageMimeType,
@@ -297,7 +297,7 @@ export async function saveCharacterCard(cardForm) {
             attributes,
             lore,
             items: [],
-            magics: magicIds,
+            spells: magicIds,
             image: imageBuffer,
             backgroundImage: backgroundBuffer,
             imageMimeType: characterImageFile ? characterImageFile.type : null,
@@ -379,8 +379,8 @@ export async function editCard(cardId) {
     populatePericiasCheckboxes(cardData.attributes.pericias);
 
     document.getElementById('selected-magics-container').innerHTML = '';
-    if (cardData.magics && Array.isArray(cardData.magics)) {
-        for (const magicId of cardData.magics) {
+    if (cardData.spells && Array.isArray(cardData.spells)) {
+        for (const magicId of cardData.spells) {
             const magicData = await getData('rpgSpells', magicId);
             if (magicData) createSelectedItemElement(magicData, 'magic');
         }

@@ -93,15 +93,15 @@ async function populateInventory(container, characterData, uniqueId) {
 
     let magicsHtml = '<h4 class="font-bold text-teal-300 border-b border-teal-300/30 pb-1 mt-3 mb-1 px-2">Magias</h4>';
     let skillsHtml = '<h4 class="font-bold text-cyan-300 border-b border-cyan-300/30 pb-1 mt-3 mb-1 px-2">Habilidades</h4>';
-    if (characterData.magics && characterData.magics.length > 0) {
-        const magicPromises = characterData.magics.map(id => getData('rpgSpells', id));
+    if (characterData.spells && characterData.spells.length > 0) {
+        const magicPromises = characterData.spells.map(id => getData('rpgSpells', id));
         const magicsAndSkills = (await Promise.all(magicPromises)).filter(Boolean);
 
-        const magics = magicsAndSkills.filter(ms => ms.type === 'magia' || !ms.type);
+        const spells = magicsAndSkills.filter(ms => ms.type === 'magia' || !ms.type);
         const skills = magicsAndSkills.filter(ms => ms.type === 'habilidade');
 
-        if (magics.length > 0) {
-            magics.forEach(magic => {
+        if (spells.length > 0) {
+            spells.forEach(magic => {
                 let iconHtml = '';
                 if (magic.image) {
                     const imageUrl = URL.createObjectURL(bufferToBlob(magic.image, magic.imageMimeType));
@@ -218,7 +218,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     if (!sheetContainer && (isModal || isInPlay)) return '';
 
     const inventoryItems = characterData.items ? await Promise.all(characterData.items.map(id => getData('rpgItems', id))) : [];
-    const magicItems = characterData.magics ? await Promise.all(characterData.magics.map(id => getData('rpgSpells', id))) : [];
+    const magicItems = characterData.spells ? await Promise.all(characterData.spells.map(id => getData('rpgSpells', id))) : [];
     
     const totalFixedBonuses = {
         vida: 0, mana: 0, armadura: 0, esquiva: 0, bloqueio: 0, deslocamento: 0,
@@ -428,7 +428,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     
     if (!isModal && !isInPlay) {
         const inventoryCount = characterData.items?.length || 0;
-        const magicCount = characterData.magics?.length || 0;
+        const magicCount = characterData.spells?.length || 0;
         const thumbnailInventoryHtml = `
             <div class="absolute bottom-2 right-2 flex flex-col items-end text-xs opacity-80 bg-black/50 p-1 rounded">
                 <div class="flex items-center gap-1"><i class="fas fa-box"></i> ${inventoryCount}</div>
