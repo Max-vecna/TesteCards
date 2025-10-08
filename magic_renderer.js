@@ -84,7 +84,7 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
         return '#4a5568';
     });
 console.log(predominantColor);
-    var scale = isModal? 1 : .24;
+    var scale = isModal? .9 : .24;
     var origin = isModal?  "" : "transform-origin: top left";
     
     // Processar aumentos

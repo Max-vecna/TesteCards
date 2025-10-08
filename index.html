@@ -204,6 +204,14 @@
                     </div>
                     <button type="button" id="add-magic-to-char-btn" class="mt-2 w-full py-2 px-4 rounded-lg text-sm font-bold text-white bg-teal-600 hover:bg-teal-700 transition-colors">Adicionar Magia/Habilidade</button>
                 </div>
+                <!-- Seção de Relacionamentos -->
+                <div>
+                    <h3 class="text-xl font-bold text-indigo-300 mb-2">Relacionamentos</h3>
+                    <div id="selected-relationships-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 bg-gray-700 p-2 rounded-lg min-h-[50px]">
+                        <!-- Personagens relacionados aparecerão aqui -->
+                    </div>
+                    <button type="button" id="add-relationship-btn" class="mt-2 w-full py-2 px-4 rounded-lg text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors">Adicionar Relacionamento</button>
+                </div>
                 <button type="submit" id="submitButton" class="w-full py-3 px-4 rounded-full text-lg font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 focus:outline-none transition duration-300 ease-in-out transform hover:scale-105 shadow-xl btn-gradient-pulse">
                     Criar Cartão
                 </button>
@@ -420,7 +428,7 @@
     </div>
 
     <!-- Modal de Seleção de Personagem -->
-    <div id="select-character-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
+    <div id="select-character-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4" style="z-index: 1000000000000000000;">
         <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 w-full max-w-sm border border-gray-700">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-bold text-indigo-300">Selecionar Personagem</h3>

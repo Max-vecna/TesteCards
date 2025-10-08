@@ -1,7 +1,7 @@
 import { openDatabase, saveData, getData, removeData } from './local_db.js';
 import { renderFullCharacterSheet } from './card-renderer.js';
+import { openCharacterSelectionForRelationship } from './navigation_manager.js';
 
-// Lista de perícias PADRÃO
 const PERICIAS_DATA = {
     "AGILIDADE": {
         "Acrobacia": "Capacidade de realizar movimentos ágeis e controlados...",
@@ -43,22 +43,10 @@ const PERICIAS_DATA = {
     }
 };
 
-// --- NOVAS FUNÇÕES PARA PERÍCIAS CUSTOMIZADAS ---
-
-/**
- * Pega as perícias customizadas do localStorage.
- * @returns {object} As perícias customizadas.
- */
 function getCustomPericias() {
     return JSON.parse(localStorage.getItem('customPericias')) || {};
 }
 
-/**
- * Salva uma nova perícia customizada no localStorage.
- * @param {string} attribute - O atributo associado (e.g., 'INTELIGÊNCIA').
- * @param {string} periciaName - O nome da nova perícia.
- * @param {string} periciaDescription - A descrição da perícia.
- */
 function saveCustomPericia(attribute, periciaName, periciaDescription) {
     const customPericias = getCustomPericias();
     if (!customPericias[attribute]) {
@@ -68,13 +56,9 @@ function saveCustomPericia(attribute, periciaName, periciaDescription) {
     localStorage.setItem('customPericias', JSON.stringify(customPericias));
 }
 
-/**
- * Junta as perícias padrão com as customizadas.
- * @returns {object} O objeto de perícias completo.
- */
 function getMergedPericiasData() {
     const customPericias = getCustomPericias();
-    const merged = JSON.parse(JSON.stringify(PERICIAS_DATA)); // Cópia profunda para não modificar o objeto original
+    const merged = JSON.parse(JSON.stringify(PERICIAS_DATA)); 
     
     for (const attr in customPericias) {
         if (!merged[attr]) {
@@ -85,10 +69,6 @@ function getMergedPericiasData() {
     return merged;
 }
 
-/**
- * Gera os dados para os dropdowns de Aumentos, incluindo perícias customizadas.
- * @returns {object}
- */
 export function getAumentosData() {
     const mergedPericias = getMergedPericiasData();
     const aumentosData = {
@@ -108,12 +88,10 @@ export function getAumentosData() {
 }
 
 
-// Variáveis de estado
 let currentEditingCardId = null;
 let characterImageFile = null;
 let backgroundImageFile = null;
 
-// Funções auxiliares para imagens
 function showImagePreview(element, url, isImageElement) {
     if (url) {
         if (isImageElement) element.src = url;
@@ -161,18 +139,11 @@ function base64ToArrayBuffer(base64) {
     return bytes.buffer;
 }
 
-/**
- * Cria o elemento visual para um item/magia selecionado no formulário.
- * @param {object} data - Os dados do item ou magia.
- * @param {string} type - 'item' ou 'magic'.
- */
 function createSelectedItemElement(data, type) {
     const containerId = type === 'item' ? 'selected-items-container' : 'selected-magics-container';
     const container = document.getElementById(containerId);
     
-    if (!container) return;
-    
-    if (container.querySelector(`[data-id="${data.id}"]`)) return;
+    if (!container || container.querySelector(`[data-id="${data.id}"]`)) return;
 
     const itemElement = document.createElement('div');
     itemElement.className = 'flex items-center justify-between bg-gray-800 p-2 rounded';
@@ -200,6 +171,27 @@ function createSelectedItemElement(data, type) {
     });
 
     container.appendChild(itemElement);
+}
+
+async function createSelectedRelationshipElement(data) {
+    const container = document.getElementById('selected-relationships-container');
+    if (!container || container.querySelector(`[data-id="${data.id}"]`)) return;
+
+    const miniSheetHtml = await renderFullCharacterSheet(data, false, 12/16, false);
+
+    const el = document.createElement('div');
+    el.className = 'relative aspect-[120/160]';
+    el.dataset.id = data.id;
+
+    el.innerHTML = `
+        <div class="relationship-form-thumbnail overflow-hidden rounded-lg">
+             ${miniSheetHtml.replace('id="character-sheet"', `id="form-related-sheet-${data.id}"`)}
+        </div>
+        <button type="button" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs leading-none remove-selection-btn z-10">&times;</button>
+    `;
+
+    el.querySelector('.remove-selection-btn').addEventListener('click', () => el.remove());
+    container.appendChild(el);
 }
 
 
@@ -270,11 +262,6 @@ export function populatePericiasCheckboxes(selectedPericias = []) {
     }
 }
 
-/**
- * Salva ou atualiza um cartão de personagem no IndexedDB.
- * @param {HTMLFormElement} cardForm - O formulário com os dados do personagem.
- * @returns {Promise<void>}
- */
 export async function saveCharacterCard(cardForm) {
     const cardTitleInput = document.getElementById('cardTitle');
     const cardSubTitleInput = document.getElementById('cardSubTitle');
@@ -336,6 +323,7 @@ export async function saveCharacterCard(cardForm) {
     const backgroundBuffer = backgroundImageFile ? await readFileAsArrayBuffer(backgroundImageFile) : null;
 
     const magicIds = Array.from(document.querySelectorAll('#selected-magics-container [data-id]')).map(el => el.dataset.id);
+    const relationshipIds = Array.from(document.querySelectorAll('#selected-relationships-container [data-id]')).map(el => el.dataset.id);
     
     let cardData;
     if (currentEditingCardId) {
@@ -349,6 +337,7 @@ export async function saveCharacterCard(cardForm) {
             attributes,
             lore,
             spells: magicIds,
+            relationships: relationshipIds,
             image: imageBuffer || cardData.image,
             backgroundImage: backgroundBuffer || cardData.backgroundImage,
             imageMimeType: characterImageFile ? characterImageFile.type : cardData.imageMimeType,
@@ -365,6 +354,7 @@ export async function saveCharacterCard(cardForm) {
             lore,
             items: [],
             spells: magicIds,
+            relationships: relationshipIds,
             image: imageBuffer,
             backgroundImage: backgroundBuffer,
             imageMimeType: characterImageFile ? characterImageFile.type : null,
@@ -380,13 +370,10 @@ export async function saveCharacterCard(cardForm) {
     showImagePreview(document.getElementById('characterImagePreview'), null, true);
     showImagePreview(document.getElementById('backgroundImagePreview'), null, false);
     document.getElementById('selected-magics-container').innerHTML = '';
+    document.getElementById('selected-relationships-container').innerHTML = '';
     currentEditingCardId = null;
 }
 
-/**
- * Carrega os dados de um personagem existente no formulário para edição.
- * @param {string} cardId - O ID do personagem a ser editado.
- */
 export async function editCard(cardId) {
     const cardData = await getData('rpgCards', cardId);
     if (!cardData) return;
@@ -453,6 +440,14 @@ export async function editCard(cardId) {
         }
     }
 
+    document.getElementById('selected-relationships-container').innerHTML = '';
+      if (cardData.relationships && Array.isArray(cardData.relationships)) {
+          for (const charId of cardData.relationships) {
+              const relatedCharData = await getData('rpgCards', charId);
+              if (relatedCharData) createSelectedRelationshipElement(relatedCharData);
+          }
+      }
+
     if (cardData.image) {
         const imageBlob = bufferToBlob(cardData.image, cardData.imageMimeType);
         showImagePreview(characterImagePreview, URL.createObjectURL(imageBlob), true);
@@ -469,10 +464,6 @@ export async function editCard(cardId) {
     document.getElementById('manage-inventory-from-edit-btn').classList.remove('hidden');
 }
 
-/**
- * Exporta um único cartão de personagem para um arquivo JSON.
- * @param {string} cardId - O ID do personagem a ser exportado.
- */
 export async function exportCard(cardId) {
     const cardData = await getData('rpgCards', cardId);
     if (cardData) {
@@ -493,10 +484,6 @@ export async function exportCard(cardId) {
     }
 }
 
-/**
- * Importa um único cartão de personagem a partir de um arquivo JSON.
- * @param {File} file - O arquivo JSON a ser importado.
- */
 export async function importCard(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -548,7 +535,6 @@ export function getCurrentEditingCardId() {
     return currentEditingCardId;
 }
 
-// Helper para obter os valores das perícias selecionadas antes de recarregar a lista
 function getCurrentlySelectedPericias() {
     const selectedPericias = [];
     document.querySelectorAll('#pericias-checkboxes-container input[type="checkbox"]:checked').forEach(cb => {
@@ -565,7 +551,6 @@ function getCurrentlySelectedPericias() {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Event listeners para uploads de imagem
     document.getElementById('characterImageUpload').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -578,7 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const file = e.target.files[0];
         if (file) {
             backgroundImageFile = file;
-            showImagePreview(document.getElementById('backgroundImagePreview'), URL.createObjectURL(file), false);
+            showImagePreview(document.getElementById('backgroundImagePreview'), null, false);
         }
     });
 
@@ -589,7 +574,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // --- Event listeners para o formulário de adicionar nova perícia ---
+    document.addEventListener('addRelationshipToCharacter', (e) => {
+        const { data } = e.detail;
+        createSelectedRelationshipElement(data);
+    });
+
     const showBtn = document.getElementById('show-add-pericia-form-btn');
     const addForm = document.getElementById('add-pericia-form');
     const addBtn = document.getElementById('add-new-pericia-btn');
@@ -626,7 +615,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 nameInput.value = '';
                 descriptionInput.value = '';
 
-                // Dispara um evento global para notificar outros módulos da atualização
                 document.dispatchEvent(new CustomEvent('periciasUpdated'));
 
             } else {
@@ -635,3 +623,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+

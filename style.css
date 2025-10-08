@@ -412,3 +412,69 @@ body {
     transform: scale(1);
     opacity: 1;
 }
+
+/* Relationship Styles */
+.relationships-grid {
+    display: flex;
+    align-items: center;
+    padding-bottom: 8px;
+    transition: all 0.5s ease;
+    cursor: pointer;
+}
+
+.related-character-grid-item {
+    flex-shrink: 0;
+    width: 56px;
+    height: 81px;
+    position: relative;
+    cursor: pointer;
+    transition: margin 0.4s ease-in-out, transform 0.4s ease-in-out;
+    margin-left: -45px; /* Sobrepõe os cards para empilhá-los */
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    border-radius: 5px; /* Raio da borda para um visual mais limpo */
+    overflow: hidden; /* Garante que o conteúdo interno respeite o border-radius */
+}
+
+.related-character-grid-item:first-child {
+    margin-left: 0;
+}
+
+.related-character-grid-item:hover {
+    transform: translateY(-6px);
+}
+
+/* Estado expandido: cards lado a lado */
+.relationships-grid.expanded .related-character-grid-item {
+    margin-left: 4px;
+    margin-right: 4px;
+}
+
+.relationships-grid.expanded .related-character-grid-item:first-child {
+    margin-left: 4px;
+}
+
+
+.related-character-grid-item > div { /* This targets the character-sheet div inside */
+    transform: scale(0.15) !important;
+    transform-origin: top left;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.7) !important;
+    border-width: 3px !important;
+    pointer-events: none; /* Make sure clicks go to the parent */
+}
+
+#selected-relationships-container {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+}
+
+.relationship-form-thumbnail > div {
+    transform: scale(0.24) !important;
+    transform-origin: top left;
+}
+
+#selected-relationships-container .remove-selection-btn {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+#selected-relationships-container > div:hover .remove-selection-btn {
+    opacity: 1;
+}

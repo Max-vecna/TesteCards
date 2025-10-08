@@ -7,11 +7,53 @@ import { renderFullSpellSheet } from './magic_renderer.js';
 import { renderFullItemSheet } from './item_renderer.js';
 
 
-let renderContent; // Declarado no escopo do módulo para ser acessível globalmente
+let renderContent; 
 
-// Função auxiliar para converter buffer em Blob
 function bufferToBlob(buffer, mimeType) {
     return new Blob([buffer], { type: mimeType });
+}
+
+export async function openCharacterSelectionForRelationship() {
+    const selectCharacterModal = document.getElementById('select-character-modal');
+    const selectCharacterList = document.getElementById('select-character-list');
+    const modalTitleEl = selectCharacterModal.querySelector('h3');
+
+    modalTitleEl.textContent = 'Adicionar Relacionamento';
+    selectCharacterList.innerHTML = '';
+    const allCharacters = await getData('rpgCards');
+    const currentCharacterId = getCurrentEditingCardId();
+
+    const charactersToShow = allCharacters.filter(c => c.id !== currentCharacterId);
+
+    if (charactersToShow.length === 0) {
+        selectCharacterList.innerHTML = '<p class="text-gray-400 text-center p-4">Não há outros personagens para relacionar.</p>';
+    } else {
+        charactersToShow.forEach(char => {
+            const charItem = document.createElement('button');
+            charItem.className = 'w-full text-left p-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-3';
+            
+            let iconHtml = '';
+             if (char.image) {
+                const imageUrl = URL.createObjectURL(bufferToBlob(char.image, char.imageMimeType));
+                iconHtml = `<img src="${imageUrl}" class="w-8 h-8 rounded-full object-cover flex-shrink-0">`;
+            } else {
+                iconHtml = `<div class="w-8 h-8 rounded-full bg-gray-600 flex-shrink-0 flex items-center justify-center"><i class="fas fa-user"></i></div>`;
+            }
+
+            charItem.innerHTML = `${iconHtml}<span>${char.title}</span>`;
+            charItem.dataset.characterId = char.id;
+
+            charItem.addEventListener('click', async () => {
+                const selectedChar = await getData('rpgCards', char.id);
+                if (selectedChar) {
+                    document.dispatchEvent(new CustomEvent('addRelationshipToCharacter', { detail: { data: selectedChar } }));
+                    selectCharacterModal.classList.add('hidden');
+                }
+            });
+            selectCharacterList.appendChild(charItem);
+        });
+    }
+    selectCharacterModal.classList.remove('hidden');
 }
 
 export async function openSelectionModal(type) {
@@ -67,7 +109,6 @@ export async function openSelectionModal(type) {
     });
 }
 
-// --- Lógica de Centralização dos Mini Cards ---
 function debounce(fn, wait = 100) {
     let t;
     return (...args) => {
@@ -102,11 +143,6 @@ function setupResizeCentering(gridContainer) {
     window.addEventListener('resize', debounce(centerAllSheets, 150));
 }
 
-/**
- * Mostra um modal de confirmação customizado.
- * @param {string} message - A mensagem a ser exibida.
- * @returns {Promise<boolean>} Resolve para true se confirmado, false caso contrário.
- */
 function showCustomConfirm(message) {
     return new Promise((resolve) => {
         const modalHtml = `
@@ -136,10 +172,6 @@ function showCustomConfirm(message) {
     });
 }
 
-
-/**
- * Renderiza a lista de miniaturas de personagens com animação otimizada.
- */
 async function renderCharacterList() {
     const contentDisplay = document.getElementById('content-display');
     const allCharacters = await getData('rpgCards');
@@ -222,10 +254,6 @@ async function renderCharacterList() {
     });
 }
 
-/**
- * Renderiza a lista de magias/habilidades com animação otimizada.
- * @param {string} type - 'magias' ou 'habilidades'.
- */
 async function renderSpellList(type = 'magias') {
     const contentDisplay = document.getElementById('content-display');
     let allSpells = await getData('rpgSpells');
@@ -316,9 +344,6 @@ async function renderSpellList(type = 'magias') {
     });
 }
 
-/**
- * Renderiza a lista de miniaturas de itens com animação otimizada.
- */
 async function renderItemList() {
     const contentDisplay = document.getElementById('content-display');
     const allItems = await getData('rpgItems');
@@ -456,7 +481,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (target !== 'personagem-em-jogo') {
             const titleText = document.querySelector(`.nav-button[data-target="${target}"] .hidden`)?.textContent || target.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
-            contentDisplay.innerHTML = `<div class="w-full text-center mb-2 mt-2"></div>`;//<h2 class="text-3xl font-bold text-gray-200">${titleText}</h2>
+            contentDisplay.innerHTML = `<div class="w-full text-center mb-2 mt-2"></div>`;
             contentDisplay.style.background = '';
             contentDisplay.style.boxShadow = '';
             if (mainContainer) mainContainer.style.overflowY = 'auto';
@@ -503,7 +528,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
     
-    const showCharacterSelectionModal = async () => {
+    const showCharacterSelectionModalForPlay = async () => {
+        const modalTitleEl = selectCharacterModal.querySelector('h3');
+        modalTitleEl.textContent = 'Selecionar Personagem em Jogo';
         selectCharacterList.innerHTML = '';
         const allCharacters = await getData('rpgCards');
         
@@ -555,6 +582,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             formTitle.textContent = 'Novo Personagem';
             submitButton.textContent = 'Criar Cartão';
             document.getElementById('selected-magics-container').innerHTML = '';
+            document.getElementById('selected-relationships-container').innerHTML = '';
             populatePericiasCheckboxes();
             document.getElementById('manage-inventory-from-edit-btn').classList.add('hidden');
         });
@@ -574,7 +602,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             itemSubmitButton.textContent = 'Criar Item';
             populateItemAumentosSelect();
         });
-        if (e.target.closest('#select-character-btn')) showCharacterSelectionModal();
+        if (e.target.closest('#select-character-btn')) showCharacterSelectionModalForPlay();
     });
 
     document.getElementById('manage-inventory-from-edit-btn').addEventListener('click', () => {
@@ -624,6 +652,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         e.preventDefault();
         await saveItemCard(itemForm);
         closeForm(itemCreationSection, 'itens');
+    });
+
+    document.getElementById('add-relationship-btn').addEventListener('click', () => {
+        openCharacterSelectionForRelationship();
     });
 
     document.getElementById('add-magic-to-char-btn').addEventListener('click', () => openSelectionModal('magic'));
@@ -774,3 +806,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 });
+

@@ -207,13 +207,11 @@ function setupStatEditor(characterData, container) {
         statMax = max;
         const config = STAT_CONFIG[type] || { title: type, icon: 'fa-edit', color: 'text-gray-400', border: 'border-gray-500' };
         
-        // Remove cores antigas para evitar acúmulo de classes
         Object.values(STAT_CONFIG).forEach(c => {
             modalContent.classList.remove(c.border);
             titleTextEl.parentElement.classList.remove(c.color);
         });
 
-        // Adiciona nova configuração
         modalContent.classList.add(config.border);
         titleTextEl.parentElement.classList.add(config.color);
         iconEl.className = `fas ${config.icon}`;
@@ -224,14 +222,14 @@ function setupStatEditor(characterData, container) {
         modal.classList.remove('hidden');
         setTimeout(() => {
             modal.classList.add('visible');
-        }, 10); // Pequeno delay para a transição funcionar
+        }, 10);
     };
 
     const closeModal = () => {
         modal.classList.remove('visible');
         setTimeout(() => {
             modal.classList.add('hidden');
-        }, 300); // Corresponde à duração da transição
+        }, 300);
     };
 
     const updateStat = (amount) => {
@@ -258,7 +256,6 @@ function setupStatEditor(characterData, container) {
         closeModal();
     };
     
-    // Garante que os listeners sejam adicionados apenas uma vez, clonando os botões
     const newAddBtn = addBtn.cloneNode(true);
     addBtn.parentNode.replaceChild(newAddBtn, addBtn);
     const newSubtractBtn = subtractBtn.cloneNode(true);
@@ -270,7 +267,6 @@ function setupStatEditor(characterData, container) {
     newSubtractBtn.addEventListener('click', () => updateStat(-Math.abs(parseInt(inputEl.value, 10) || 0)));
     newCloseBtn.addEventListener('click', closeModal);
 
-    // Fechar com a tecla Esc
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal.classList.contains('visible')) {
             closeModal();
@@ -278,7 +274,6 @@ function setupStatEditor(characterData, container) {
     });
     
     sheetContainer.querySelectorAll('[data-action="edit-stat"]').forEach(el => {
-        // Clona o elemento para remover listeners antigos e evitar duplicação
         const newEl = el.cloneNode(true);
         el.parentNode.replaceChild(newEl, el);
         newEl.addEventListener('click', () => {
@@ -398,6 +393,30 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
         return `<div class="text-center">${label}<br>${baseValue}${suffix}${bonusHtml}</div>`;
     }).join('');
     
+    let relationshipsHtml = '';
+    if (characterData.relationships && characterData.relationships.length > 0) {
+        const relatedCharsData = (await Promise.all(
+            characterData.relationships.map(id => getData('rpgCards', id))
+        )).filter(Boolean);
+
+        if (relatedCharsData.length > 0) {
+            const relationshipCardsHtml = await Promise.all(relatedCharsData.map(async (char) => {
+                const miniSheetHtml = await renderFullCharacterSheet(char, false, 16/11, false);
+                return `
+                    <div class="related-character-grid-item" data-id="${char.id}">
+                        ${miniSheetHtml.replace('id="character-sheet"', `id="related-sheet-${char.id}"`)}
+                    </div>
+                `;
+            }));
+
+            relationshipsHtml = `
+                <div id="relationships-grid-${uniqueId}" class="relationships-grid">
+                     ${relationshipCardsHtml.join('')}
+                </div>
+            `;
+        }
+    }
+    
     const sheetHtml = `
             <div class="absolute top-4 right-4 z-20 flex flex-col gap-2">
                  <button id="close-sheet-btn-${uniqueId}" class="bg-red-600 hover:text-white thumb-btn" style="display: ${isModal ? 'flex' : 'none'}"><i class="fa-solid fa-xmark"></i></button>
@@ -460,7 +479,8 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
                 </div>
             </div>
 
-            <div class="absolute bottom-0 w-full p-4">               
+            <div class="absolute bottom-0 w-full p-4">
+                <!-- RELATIONSHIPS_BAR -->
                 <div class="pb-4 scrollable-content text-sm text-left" style="display: flex; flex-direction: row; overflow-y: scroll;gap: 12px; scroll-snap-type: x mandatory;">
                     <!-- Página 1: Atributos -->
                     <div class="rounded-3xl w-full" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; border-color: ${palette.borderColor}; position: relative; z-index: 1; overflow-y: visible; display: flex; flex-direction: column; justify-content: flex-end;">
@@ -503,6 +523,8 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
         </div>
     `;
     
+    const finalHtml = sheetHtml.replace('<!-- RELATIONSHIPS_BAR -->', relationshipsHtml);
+
     if (!isModal && !isInPlay) {
         const inventoryCount = characterData.items?.length || 0;
         const magicCount = characterData.spells?.length || 0;
@@ -512,14 +534,38 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
                 <div class="flex items-center gap-1"><i class="fas fa-magic"></i> ${magicCount}</div>
             </div>
         `;
-        return sheetHtml.replace('<!-- THUMBNAIL_EXTRAS -->', thumbnailInventoryHtml);
+        return finalHtml.replace('<!-- THUMBNAIL_EXTRAS -->', thumbnailInventoryHtml);
     }
     
     sheetContainer.style.background = `url('${imageBack}')`;
     sheetContainer.style.backgroundSize = 'cover';
     sheetContainer.style.backgroundPosition = 'center';
     sheetContainer.style.boxShadow = 'inset 0px 0px 10px 0px black';
-    sheetContainer.innerHTML = sheetHtml;
+    sheetContainer.innerHTML = finalHtml;
+    
+    const relationshipsGrid = sheetContainer.querySelector(`#relationships-grid-${uniqueId}`);
+    if (relationshipsGrid) {
+        relationshipsGrid.addEventListener('click', (e) => {
+            if (e.target === relationshipsGrid) {
+                relationshipsGrid.classList.toggle('expanded');
+            }
+        });
+    }
+
+    sheetContainer.querySelectorAll('.related-character-grid-item').forEach(card => {
+        card.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const grid = card.parentElement;
+            if (grid.classList.contains('expanded')) {
+                const relatedCharData = await getData('rpgCards', card.dataset.id);
+                if (relatedCharData) {
+                    await renderFullCharacterSheet(relatedCharData, true, 16/9);
+                }
+            } else {
+                grid.classList.add('expanded');
+            }
+        });
+    });
     
     populateInventory(sheetContainer, characterData, uniqueId);
 
@@ -563,5 +609,5 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     if (isModal || isInPlay) {
         setupStatEditor(characterData, sheetContainer);
     }
-    return sheetHtml;
+    return finalHtml;
 }
