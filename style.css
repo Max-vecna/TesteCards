@@ -430,7 +430,6 @@ body {
     cursor: pointer;
     transition: margin 0.4s ease-in-out, transform 0.4s ease-in-out;
     margin-left: -45px; /* Sobrepõe os cards para empilhá-los */
-    border-radius: 5px; /* Raio da borda para um visual mais limpo */
     overflow: hidden; /* Garante que o conteúdo interno respeite o border-radius */
 }
 
@@ -451,7 +450,7 @@ body {
 
 .related-character-grid-item > div { /* This targets the character-sheet div inside */
     transform: scale(0.13) !important;
-    transform-origin: top left;
+    transform-origin: left;
     box-shadow: 0 2px 8px rgba(0,0,0,0.7) !important;
     border-width: 3px !important;
     pointer-events: none; /* Make sure clicks go to the parent */
