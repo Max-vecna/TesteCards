@@ -23,7 +23,10 @@ function getPredominantColor(imageUrl) {
                     count++;
                 }
                 // Retorna a cor com um canal alfa para o painel de fundo
-                resolve(`rgba(${Math.floor(r/count)}, ${Math.floor(g/count)}, ${Math.floor(b/count)}, 30%)`);
+                 resolve({
+                    color30: `rgba(${Math.floor(r/count)}, ${Math.floor(g/count)}, ${Math.floor(b/count)}, 30%)`,
+                    color100: `rgba(${Math.floor(r/count)}, ${Math.floor(g/count)}, ${Math.floor(b/count)}, 100%)`
+                });
             } catch (e) { reject(e); }
         };
         img.onerror = reject;
@@ -58,6 +61,9 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
         imageUrl = createdObjectUrl;
     }
     sheetContainer.style.backgroundImage = `url('${imageUrl}')`;
+    sheetContainer.style.backgroundSize = 'cover';
+    sheetContainer.style.backgroundPosition = 'center';
+    
     const predominantColor = await getPredominantColor(imageUrl).catch(() => 'rgba(160, 82, 45, 0.9)');
     
     const scale = isModal ? 1 : .24;
@@ -110,10 +116,10 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
 
     const sheetHtml = `
         <button id="close-item-sheet-btn-${uniqueId}" class="absolute top-4 right-4 bg-red-600 hover:text-white z-20 thumb-btn" style="display:${isModal? "block": "none"}"><i class="fa-solid fa-xmark"></i></button>
-        <div id="item-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
+        <div id="item-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; box-shadow: 0 0 20px ${predominantColor.color100}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
             <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
             
-            <div class="mt-auto p-4 md:p-6 w-full text-left absolute bottom-0" style="background-color: ${predominantColor};">
+            <div class="mt-auto p-4 md:p-6 w-full text-left absolute bottom-0" style="background-color: ${predominantColor.color30};">
                 <div class="sheet-card-text-panel">
                     <div class="flex justify-between items-start">
                         <h2 class="text-2xl md:text-3xl font-bold tracking-tight text-white pr-2">${itemData.name}</h2>

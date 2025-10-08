@@ -339,7 +339,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     }
 
     const imageUrl = characterData.image ? URL.createObjectURL(bufferToBlob(characterData.image, characterData.imageMimeType)) : 'https://placehold.co/800x600/4a5568/a0aec0?text=Personagem';
-    const imageBack = characterData.backgroundImage ? URL.createObjectURL(bufferToBlob(characterData.backgroundImage, characterData.backgroundMimeType)) : 'https://placehold.co/800x600/4a5568/a0aec0?text=Fundo';
+    const imageBack = characterData.backgroundImage ? URL.createObjectURL(bufferToBlob(characterData.backgroundImage, characterData.backgroundMimeType)) : URL.createObjectURL(bufferToBlob(characterData.image, characterData.imageMimeType));
     
     const uniqueId = `char-${characterData.id}`;
     const predominantColor = await getPredominantColor(imageBack).catch(() => '#4a5568');

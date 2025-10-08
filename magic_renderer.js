@@ -32,7 +32,10 @@ function getPredominantColor(imageUrl) {
                 const avgG = Math.floor(g / count);
                 const avgB = Math.floor(b / count);
 
-                resolve(`rgb(${avgR}, ${avgG}, ${avgB}, 30%)`);
+                 resolve({
+                    color30: `rgb(${avgR}, ${avgG}, ${avgB}, 30%)`,
+                    color100: `rgb(${avgR}, ${avgG}, ${avgB})`
+                });
             } catch (e) {
                 reject(e);
             }
@@ -72,12 +75,15 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
     } else {
         imageUrl = 'https://placehold.co/400x400/00796B/B2DFDB?text=Magia';
     }
-    sheetContainer.style.backgroundImage = `url('${imageUrl}')`;
+    sheetContainer.style.backgroundImage = `url('${imageUrl}')`;    
+    sheetContainer.style.backgroundSize = 'cover';
+    sheetContainer.style.backgroundPosition = 'center';
+
     const predominantColor = await getPredominantColor(imageUrl).catch(e => {
         console.error("Erro ao extrair cor média:", e);
         return '#4a5568';
     });
-
+console.log(predominantColor);
     var scale = isModal? 1 : .24;
     var origin = isModal?  "" : "transform-origin: top left";
     
@@ -135,10 +141,10 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
 
     const sheetHtml = `
         <button id="close-spell-sheet-btn-${uniqueId}" class="absolute top-4 right-4 bg-red-600 hover:text-white z-20 thumb-btn" style="display:${isModal? "block": "none"};"><i class="fa-solid fa-xmark"></i></button>
-        <div id="spell-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
+        <div id="spell-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; box-shadow: 0 0 20px ${predominantColor.color100}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
             <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
             
-            <div class="mt-auto p-4 md:p-6 w-full text-left absolute bottom-0" style="background: ${predominantColor}">
+            <div class="mt-auto p-4 md:p-6 w-full text-left absolute bottom-0" style="background: ${predominantColor.color30}">
                 <div class="sheet-card-text-panel">
                     <p class="text-sm font-medium">${circleHtml} - ${spellData.manaCost} PM</p>
                     <h2 class="text-2xl md:text-3xl font-bold tracking-tight text-white">${spellData.name}</h2>
