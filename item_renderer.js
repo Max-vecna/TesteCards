@@ -57,7 +57,7 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
         createdObjectUrl = URL.createObjectURL(bufferToBlob(itemData.image, itemData.imageMimeType));
         imageUrl = createdObjectUrl;
     }
-
+    sheetContainer.style.backgroundImage = `url('${imageUrl}')`;
     const predominantColor = await getPredominantColor(imageUrl).catch(() => 'rgba(160, 82, 45, 0.9)');
     
     const scale = isModal ? 1 : .24;

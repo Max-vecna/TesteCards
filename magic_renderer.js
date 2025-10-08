@@ -72,7 +72,7 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
     } else {
         imageUrl = 'https://placehold.co/400x400/00796B/B2DFDB?text=Magia';
     }
-
+    sheetContainer.style.backgroundImage = `url('${imageUrl}')`;
     const predominantColor = await getPredominantColor(imageUrl).catch(e => {
         console.error("Erro ao extrair cor média:", e);
         return '#4a5568';
