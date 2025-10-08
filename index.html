@@ -58,7 +58,7 @@
         </div>
 
         <!-- Dynamic Content Display -->
-        <main class="w-full h-full max-w-6xl flex-grow bg-gray-800 rounded-2xl shadow-2xl flex flex-col items-center">
+        <main class="w-full h-full max-w-6xl flex-grow bg-gray-800 rounded-2xl shadow-2xl flex flex-col items-center" style="border: 4px solid #1f2937; box-shadow: black 0px 0px 10px 1px inset;">
             <div id="content-display" class="w-full h-full flex flex-col items-center overflow-y-auto">
                 <!-- Conteúdo dinâmico será injetado aqui pelo JavaScript -->
             </div>
@@ -446,27 +446,34 @@
     </div>
     
     <!-- Stat Editor Modal -->
-    <div id="stat-editor-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-[80] p-4">
-        <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 w-full max-w-sm border border-gray-700">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="stat-editor-title" class="text-xl font-bold text-indigo-300">Editar Valor</h3>
-                <button id="stat-editor-close-btn" class="text-gray-400 hover:text-white text-3xl font-bold">&times;</button>
+    <div id="stat-editor-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center hidden z-[80] p-4 transition-opacity duration-300">
+        <div id="stat-editor-content" class="bg-gray-900/70 border-2 border-gray-700 text-white rounded-2xl shadow-2xl p-6 w-full max-w-sm transform transition-all duration-300 scale-95 opacity-0">
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="stat-editor-title" class="text-2xl font-bold flex items-center gap-3">
+                    <i id="stat-editor-icon" class="fas fa-edit"></i>
+                    <span id="stat-editor-title-text">Editar Valor</span>
+                </h3>
+                <button id="stat-editor-close-btn" class="text-gray-400 hover:text-white text-2xl w-8 h-8 rounded-full hover:bg-gray-700 flex items-center justify-center transition-colors">&times;</button>
             </div>
-            <div class="space-y-4">
+            <div class="space-y-6">
                 <div>
-                    <label for="stat-editor-value" class="block text-sm font-semibold mb-1">Valor a ser alterado</label>
-                    <input type="number" id="stat-editor-value" placeholder="0" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600">
+                    <label for="stat-editor-value" class="block text-sm font-semibold mb-2 text-gray-300">Valor a Adicionar ou Subtrair</label>
+                    <input type="number" id="stat-editor-value" placeholder="0" class="w-full text-center text-2xl px-4 py-3 bg-gray-800 text-white rounded-lg border-2 border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-500/50 transition-all duration-300">
                 </div>
                 <div class="flex justify-center gap-4">
-                    <button id="stat-editor-subtract-btn" class="py-2 px-6 rounded-lg bg-red-600 hover:bg-red-700 font-bold text-lg">-</button>
-                    <button id="stat-editor-add-btn" class="py-2 px-6 rounded-lg bg-green-600 hover:bg-green-700 font-bold text-lg">+</button>
+                    <button id="stat-editor-subtract-btn" class="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold text-3xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <button id="stat-editor-add-btn" class="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold text-3xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
+                        <i class="fas fa-plus"></i>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Fixed Bottom Navigation Menu -->
-    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 bg-gray-800/80 backdrop-blur-sm p-2 flex  gap-2 z-50 shadow-lg" style="width: calc(100%); justify-content: space-around;">
+    <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 bg-gray-800/80 backdrop-blur-sm p-2 flex  gap-2 z-50 shadow-lg" style="width: calc(100%); justify-content: space-around; padding: .75rem">
         <button class="nav-button px-4 py-2 text-sm md:px-6 md:py-3 md:text-lg font-semibold rounded-full focus:outline-none flex items-center gap-2 active" data-target="personagem-em-jogo" title="Personagem em Jogo">
             <i class="fas fa-theater-masks"></i>
             <span class="hidden md:inline">Em Jogo</span>

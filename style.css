@@ -403,3 +403,12 @@ body {
     width: 90%;
     margin: 0 auto;
 }
+
+/* Stat Editor Modal Transitions */
+#stat-editor-modal.visible {
+    opacity: 1;
+}
+#stat-editor-modal.visible #stat-editor-content {
+    transform: scale(1);
+    opacity: 1;
+}

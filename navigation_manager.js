@@ -456,7 +456,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (target !== 'personagem-em-jogo') {
             const titleText = document.querySelector(`.nav-button[data-target="${target}"] .hidden`)?.textContent || target.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
-            contentDisplay.innerHTML = `<div class="w-full text-center mb-2 mt-2"><h2 class="text-3xl font-bold text-gray-200">${titleText}</h2></div>`;
+            contentDisplay.innerHTML = `<div class="w-full text-center mb-2 mt-2"></div>`;//<h2 class="text-3xl font-bold text-gray-200">${titleText}</h2>
             contentDisplay.style.background = '';
             contentDisplay.style.boxShadow = '';
             if (mainContainer) mainContainer.style.overflowY = 'auto';

@@ -185,7 +185,9 @@ function setupStatEditor(characterData, container) {
     const modal = document.getElementById('stat-editor-modal');
     if (!sheetContainer || !modal) return;
 
-    const titleEl = modal.querySelector('#stat-editor-title');
+    const modalContent = modal.querySelector('#stat-editor-content');
+    const titleTextEl = modal.querySelector('#stat-editor-title-text');
+    const iconEl = modal.querySelector('#stat-editor-icon');
     const inputEl = modal.querySelector('#stat-editor-value');
     const addBtn = modal.querySelector('#stat-editor-add-btn');
     const subtractBtn = modal.querySelector('#stat-editor-subtract-btn');
@@ -194,18 +196,46 @@ function setupStatEditor(characterData, container) {
     let currentStat = null;
     let statMax = Infinity;
 
+    const STAT_CONFIG = {
+        vida: { title: 'Vida', icon: 'fa-heart', color: 'text-red-400', border: 'border-red-500' },
+        mana: { title: 'Mana', icon: 'fa-fire', color: 'text-blue-400', border: 'border-blue-500' },
+        dinheiro: { title: 'Dinheiro', icon: 'fa-coins', color: 'text-amber-400', border: 'border-amber-500' }
+    };
+
     const openModal = (type, max) => {
         currentStat = type;
         statMax = max;
-        titleEl.textContent = `Editar ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+        const config = STAT_CONFIG[type] || { title: type, icon: 'fa-edit', color: 'text-gray-400', border: 'border-gray-500' };
+        
+        // Remove cores antigas para evitar acúmulo de classes
+        Object.values(STAT_CONFIG).forEach(c => {
+            modalContent.classList.remove(c.border);
+            titleTextEl.parentElement.classList.remove(c.color);
+        });
+
+        // Adiciona nova configuração
+        modalContent.classList.add(config.border);
+        titleTextEl.parentElement.classList.add(config.color);
+        iconEl.className = `fas ${config.icon}`;
+        titleTextEl.textContent = `Editar ${config.title}`;
         inputEl.value = '';
+        inputEl.focus();
+
         modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.add('visible');
+        }, 10); // Pequeno delay para a transição funcionar
     };
 
-    const closeModal = () => modal.classList.add('hidden');
+    const closeModal = () => {
+        modal.classList.remove('visible');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300); // Corresponde à duração da transição
+    };
 
     const updateStat = (amount) => {
-        if (!currentStat) return;
+        if (!currentStat || isNaN(amount)) return;
         let currentValue;
 
         if (currentStat === 'vida') {
@@ -219,7 +249,7 @@ function setupStatEditor(characterData, container) {
             characterData.attributes.manaAtual = Math.max(0, newValue);
             sheetContainer.querySelector('[data-stat-current="mana"]').textContent = characterData.attributes.manaAtual;
         } else if (currentStat === 'dinheiro') {
-            currentValue = characterData.dinheiro;
+            currentValue = characterData.dinheiro || 0;
             characterData.dinheiro = Math.max(0, currentValue + amount);
             sheetContainer.querySelector('[data-stat-current="dinheiro"]').textContent = characterData.dinheiro;
         }
@@ -227,18 +257,36 @@ function setupStatEditor(characterData, container) {
         saveData('rpgCards', characterData);
         closeModal();
     };
+    
+    // Garante que os listeners sejam adicionados apenas uma vez, clonando os botões
+    const newAddBtn = addBtn.cloneNode(true);
+    addBtn.parentNode.replaceChild(newAddBtn, addBtn);
+    const newSubtractBtn = subtractBtn.cloneNode(true);
+    subtractBtn.parentNode.replaceChild(newSubtractBtn, subtractBtn);
+    const newCloseBtn = closeBtn.cloneNode(true);
+    closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
 
+    newAddBtn.addEventListener('click', () => updateStat(Math.abs(parseInt(inputEl.value, 10) || 0)));
+    newSubtractBtn.addEventListener('click', () => updateStat(-Math.abs(parseInt(inputEl.value, 10) || 0)));
+    newCloseBtn.addEventListener('click', closeModal);
+
+    // Fechar com a tecla Esc
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('visible')) {
+            closeModal();
+        }
+    });
+    
     sheetContainer.querySelectorAll('[data-action="edit-stat"]').forEach(el => {
-        el.addEventListener('click', () => {
-            const type = el.dataset.statType;
-            const max = el.dataset.statMax ? parseInt(el.dataset.statMax, 10) : Infinity;
+        // Clona o elemento para remover listeners antigos e evitar duplicação
+        const newEl = el.cloneNode(true);
+        el.parentNode.replaceChild(newEl, el);
+        newEl.addEventListener('click', () => {
+            const type = newEl.dataset.statType;
+            const max = newEl.dataset.statMax ? parseInt(newEl.dataset.statMax, 10) : Infinity;
             openModal(type, max);
         });
     });
-
-    addBtn.onclick = () => updateStat(Math.abs(parseInt(inputEl.value, 10) || 0));
-    subtractBtn.onclick = () => updateStat(-Math.abs(parseInt(inputEl.value, 10) || 0));
-    closeBtn.onclick = closeModal;
 }
 
 
@@ -304,8 +352,8 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     const cdValue = 10 + (parseInt(characterData.level) || 0) + (parseInt(characterData.attributes.sabedoria) || 0) + (totalFixedBonuses.sabedoria || 0);
     const palette = { borderColor: predominantColor };
 
-    var scale = isModal || isInPlay ? 1 : .24;
-    var origin = isModal || isInPlay ? "transform-origin: bottom left" : "transform-origin: top left";
+    var scale = isModal || isInPlay ? .9 : .24;
+    var origin = isModal || isInPlay ? "transform-origin: none" : "transform-origin: top left";
     
     let periciasHtml = '<p class="text-xs text-gray-400 italic px-2">Nenhuma perícia selecionada.</p>';
     const allPericias = {};
