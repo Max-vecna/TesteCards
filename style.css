@@ -430,17 +430,12 @@ body {
     cursor: pointer;
     transition: margin 0.4s ease-in-out, transform 0.4s ease-in-out;
     margin-left: -45px; /* Sobrepõe os cards para empilhá-los */
-    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
     border-radius: 5px; /* Raio da borda para um visual mais limpo */
     overflow: hidden; /* Garante que o conteúdo interno respeite o border-radius */
 }
 
 .related-character-grid-item:first-child {
     margin-left: 0;
-}
-
-.related-character-grid-item:hover {
-    transform: translateY(-6px);
 }
 
 /* Estado expandido: cards lado a lado */
