@@ -455,7 +455,7 @@ body {
 
 
 .related-character-grid-item > div { /* This targets the character-sheet div inside */
-    transform: scale(0.15) !important;
+    transform: scale(0.13) !important;
     transform-origin: top left;
     box-shadow: 0 2px 8px rgba(0,0,0,0.7) !important;
     border-width: 3px !important;
