@@ -1,19 +1,7 @@
 import { saveData, getData, removeData } from './local_db.js';
 import { renderFullItemSheet } from './item_renderer.js';
 import { openSelectionModal } from './navigation_manager.js';
-
-const AUMENTOS_DATA = {
-    "Status": ["Vida", "Mana", "Armadura", "Esquiva", "Bloqueio", "Deslocamento"],
-    "Atributos": ["Agilidade", "Carisma", "Força", "Inteligência", "Sabedoria", "Vigor"],
-    "Perícias": {
-        "AGILIDADE": [ "Acrobacia", "Iniciativa", "Montaria", "Furtividade", "Pontaria", "Ladinagem", "Reflexos"],
-        "CARISMA": ["Adestramento", "Enganação", "Intimidação", "Persuasão"],
-        "INTELIGÊNCIA": ["Arcanismo", "História", "Investigação", "Ofício", "Religião", "Tecnologia"],
-        "FORÇA": ["Atletismo", "Luta"],
-        "SABEDORIA": ["Intuição", "Percepção", "Natureza", "Vontade", "Medicina", "Sobrevivência"],
-        "VIGOR": ["Fortitude"]
-    }
-};
+import { getAumentosData } from './character_manager.js';
 
 let currentEditingItemId = null;
 let itemImageFile = null;
@@ -64,6 +52,8 @@ export function populateItemAumentosSelect() {
     const select = document.getElementById('item-aumento-select');
     if (!select) return;
     select.innerHTML = ''; 
+
+    const AUMENTOS_DATA = getAumentosData();
 
     const statusGroup = document.createElement('optgroup');
     statusGroup.label = 'Status';
@@ -251,6 +241,10 @@ export async function importItem(file) {
 
 document.addEventListener('DOMContentLoaded', () => {
     populateItemAumentosSelect();
+    
+    // Ouve o evento de atualização de perícias para recarregar o dropdown
+    document.addEventListener('periciasUpdated', populateItemAumentosSelect);
+
     const addBtn = document.getElementById('add-item-aumento-btn');
     if (addBtn) {
         addBtn.addEventListener('click', () => {

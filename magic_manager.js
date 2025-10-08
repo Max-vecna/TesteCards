@@ -1,20 +1,6 @@
 import { openDatabase, saveData, getData, removeData } from './local_db.js';
 import { renderFullSpellSheet } from './magic_renderer.js';
-
-// Lista de perícias e atributos para popular o seletor de aumentos
-const AUMENTOS_DATA = {
-    "Status": ["Vida", "Mana", "Armadura", "Esquiva", "Bloqueio", "Deslocamento"],
-    "Atributos": ["Agilidade", "Carisma", "Força", "Inteligência", "Sabedoria", "Vigor"],
-    "Perícias": {
-        "AGILIDADE": [ "Acrobacia", "Iniciativa", "Montaria", "Furtividade", "Pontaria", "Ladinagem", "Reflexos"],
-        "CARISMA": ["Adestramento", "Enganação", "Intimidação", "Persuasão"],
-        "INTELIGÊNCIA": ["Arcanismo", "História", "Investigação", "Ofício", "Religião", "Tecnologia"],
-        "FORÇA": ["Atletismo", "Luta"],
-        "SABEDORIA": ["Intuição", "Percepção", "Natureza", "Vontade", "Medicina", "Sobrevivência"],
-        "VIGOR": ["Fortitude"]
-    }
-};
-
+import { getAumentosData } from './character_manager.js';
 
 // Variáveis de estado
 let currentEditingSpellId = null;
@@ -75,6 +61,8 @@ export function populateSpellAumentosSelect() {
     const select = document.getElementById('spell-aumento-select');
     if (!select) return;
     select.innerHTML = ''; // Limpa opções existentes
+
+    const AUMENTOS_DATA = getAumentosData();
 
     // Adiciona Status
     const statusGroup = document.createElement('optgroup');
@@ -502,6 +490,9 @@ export async function importSpell(file, type) {
 
 document.addEventListener('DOMContentLoaded', () => {
     populateSpellAumentosSelect();
+    
+    // Ouve o evento de atualização de perícias para recarregar o dropdown
+    document.addEventListener('periciasUpdated', populateSpellAumentosSelect);
 
     // Listener para o botão de adicionar aumento
     const addBtn = document.getElementById('add-spell-aumento-btn');

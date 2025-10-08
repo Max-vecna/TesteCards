@@ -69,11 +69,13 @@ async function populateInventory(container, characterData, uniqueId) {
 
     scrollArea.innerHTML = '<div class="p-4 text-center"><i class="fas fa-spinner fa-spin text-gray-400"></i></div>';
 
-    let inventoryHtml = '<h4 class="font-bold text-amber-300 border-b border-amber-300/30 pb-1 mb-1 px-2">Inventário</h4>';
+    // --- INVENTÁRIO ---
+    let inventoryHtml = `<div><h4 class="font-bold text-amber-300 border-b border-amber-300/30 pb-1 mb-2 px-2">Inventário</h4>`;
     if (characterData.items && characterData.items.length > 0) {
         const itemPromises = characterData.items.map(id => getData('rpgItems', id));
         const items = (await Promise.all(itemPromises)).filter(Boolean);
         if (items.length > 0) {
+            inventoryHtml += '<div class="grid grid-cols-2 gap-x-4 gap-y-1 px-2">';
             items.forEach(item => {
                 let iconHtml = '';
                 if (item.image) {
@@ -82,17 +84,25 @@ async function populateInventory(container, characterData, uniqueId) {
                 } else {
                     iconHtml = `<i class="fas fa-box w-5 text-center text-gray-400"></i>`;
                 }
-                inventoryHtml += `<div class="text-xs p-2 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2" data-id="${item.id}" data-type="item">${iconHtml}<span>${item.name}</span></div>`;
+                inventoryHtml += `
+                    <div class="text-xs p-1 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2 truncate" data-id="${item.id}" data-type="item" title="${item.name}">
+                        ${iconHtml}
+                        <span class="truncate">${item.name}</span>
+                    </div>`;
             });
+            inventoryHtml += '</div>';
         } else {
              inventoryHtml += '<p class="text-xs text-gray-400 italic px-2">Vazio</p>';
         }
     } else {
         inventoryHtml += '<p class="text-xs text-gray-400 italic px-2">Vazio</p>';
     }
+    inventoryHtml += '</div>';
 
-    let magicsHtml = '<h4 class="font-bold text-teal-300 border-b border-teal-300/30 pb-1 mt-3 mb-1 px-2">Magias</h4>';
-    let skillsHtml = '<h4 class="font-bold text-cyan-300 border-b border-cyan-300/30 pb-1 mt-3 mb-1 px-2">Habilidades</h4>';
+    // --- MAGIAS E HABILIDADES ---
+    let magicsHtml = '';
+    let skillsHtml = '';
+
     if (characterData.spells && characterData.spells.length > 0) {
         const magicPromises = characterData.spells.map(id => getData('rpgSpells', id));
         const magicsAndSkills = (await Promise.all(magicPromises)).filter(Boolean);
@@ -100,7 +110,10 @@ async function populateInventory(container, characterData, uniqueId) {
         const spells = magicsAndSkills.filter(ms => ms.type === 'magia' || !ms.type);
         const skills = magicsAndSkills.filter(ms => ms.type === 'habilidade');
 
+        // --- MAGIAS ---
+        magicsHtml = `<div><h4 class="font-bold text-teal-300 border-b border-teal-300/30 pb-1 mb-2 px-2">Magias</h4>`;
         if (spells.length > 0) {
+            magicsHtml += '<div class="grid grid-cols-2 gap-x-4 gap-y-1 px-2">';
             spells.forEach(magic => {
                 let iconHtml = '';
                 if (magic.image) {
@@ -109,13 +122,22 @@ async function populateInventory(container, characterData, uniqueId) {
                 } else {
                     iconHtml = `<i class="fas fa-magic w-5 text-center text-gray-400"></i>`;
                 }
-                magicsHtml += `<div class="text-xs p-2 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2" data-id="${magic.id}" data-type="spell">${iconHtml}<span>${magic.name}</span></div>`;
+                magicsHtml += `
+                    <div class="text-xs p-1 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2 truncate" data-id="${magic.id}" data-type="spell" title="${magic.name}">
+                        ${iconHtml}
+                        <span class="truncate">${magic.name}</span>
+                    </div>`;
             });
+            magicsHtml += '</div>';
         } else {
             magicsHtml += '<p class="text-xs text-gray-400 italic px-2">Nenhuma</p>';
         }
-
+        magicsHtml += '</div>';
+        
+        // --- HABILIDADES ---
+        skillsHtml = `<div><h4 class="font-bold text-cyan-300 border-b border-cyan-300/30 pb-1 mb-2 px-2">Habilidades</h4>`;
         if (skills.length > 0) {
+            skillsHtml += '<div class="grid grid-cols-2 gap-x-4 gap-y-1 px-2">';
             skills.forEach(skill => {
                 let iconHtml = '';
                 if (skill.image) {
@@ -124,14 +146,21 @@ async function populateInventory(container, characterData, uniqueId) {
                 } else {
                     iconHtml = `<i class="fas fa-fist-raised w-5 text-center text-gray-400"></i>`;
                 }
-                skillsHtml += `<div class="text-xs p-2 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2" data-id="${skill.id}" data-type="spell">${iconHtml}<span>${skill.name}</span></div>`;
+                skillsHtml += `
+                    <div class="text-xs p-1 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2 truncate" data-id="${skill.id}" data-type="spell" title="${skill.name}">
+                        ${iconHtml}
+                        <span class="truncate">${skill.name}</span>
+                    </div>`;
             });
+            skillsHtml += '</div>';
         } else {
             skillsHtml += '<p class="text-xs text-gray-400 italic px-2">Nenhuma</p>';
         }
+        skillsHtml += '</div>';
+
     } else {
-        magicsHtml += '<p class="text-xs text-gray-400 italic px-2">Nenhuma</p>';
-        skillsHtml += '<p class="text-xs text-gray-400 italic px-2">Nenhuma</p>';
+        magicsHtml = `<div><h4 class="font-bold text-teal-300 border-b border-teal-300/30 pb-1 mb-2 px-2">Magias</h4><p class="text-xs text-gray-400 italic px-2">Nenhuma</p></div>`;
+        skillsHtml = `<div><h4 class="font-bold text-cyan-300 border-b border-cyan-300/30 pb-1 mb-2 px-2">Habilidades</h4><p class="text-xs text-gray-400 italic px-2">Nenhuma</p></div>`;
     }
 
     scrollArea.innerHTML = inventoryHtml + magicsHtml + skillsHtml;
@@ -417,7 +446,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
                     </div>
                     <!-- Página 3: Inventário & Magias -->
                     <div class="pb-4 rounded-3xl w-full" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: flex-end;">
-                        <div id="inventory-magic-scroll-area-${uniqueId}" class="flex flex-col gap-1" style="overflow-y: auto; max-height: 170px;">
+                        <div id="inventory-magic-scroll-area-${uniqueId}" class="space-y-2" style="overflow-y: auto; max-height: 170px;">
                         </div>
                     </div>
                 </div>

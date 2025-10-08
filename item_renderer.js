@@ -52,35 +52,60 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
     }
 
     let createdObjectUrl = null;
-    let imageUrl = 'https://placehold.co/400x400/a0522d/ffffff?text=Item';
+    let cardBackgroundStyle = '';
+    let cardOverlayHtml = '';
+    let bottomPanelColor = 'rgba(160, 82, 45, 0.3)'; // Cor padrão do painel inferior
+
     if (itemData.image) {
         createdObjectUrl = URL.createObjectURL(bufferToBlob(itemData.image, itemData.imageMimeType));
-        imageUrl = createdObjectUrl;
+        const imageUrl = createdObjectUrl;
+        const predominantColorForShadow = await getPredominantColor(imageUrl).catch(() => 'rgba(160, 82, 45, 0.3)');
+        bottomPanelColor = predominantColorForShadow;
+        
+        cardBackgroundStyle = `
+            background-image: url('${imageUrl}');
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 0 20px ${predominantColorForShadow};
+        `;
+        cardOverlayHtml = `<div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>`;
+    
+    } else {
+        // Estilo de card simples para itens sem imagem
+        cardBackgroundStyle = `
+            background: linear-gradient(145deg, #4a5568, #2d3748);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        `;
+        bottomPanelColor = 'rgba(26, 32, 44, 0.8)';
+        // Adiciona um ícone de fundo para não ficar vazio
+        cardOverlayHtml = `
+            <div class="w-full h-full flex items-center justify-center opacity-10">
+                 <i class="fas fa-box text-9xl text-white"></i>
+            </div>
+        `;
     }
-
-    const predominantColor = await getPredominantColor(imageUrl).catch(() => 'rgba(160, 82, 45, 0.9)');
     
     const scale = isModal ? 1 : .24;
     const origin = isModal ? "" : "transform-origin: top left";
     const uniqueId = `item-${Date.now()}`;
 
-    let detailsHtml = '';
     const details = [
-        { label: 'TP', title: 'Tipo', value: itemData.type },
-        { label: 'DN', title: 'Dano', value: itemData.damage },
-        { label: 'CG', title: 'Carga', value: itemData.charge },
-        { label: 'PR', title: 'Pré-requisito', value: itemData.prerequisite }
-    ];
+        { label: 'Tipo', value: itemData.type },
+        { label: 'Dano', value: itemData.damage },
+        { label: 'Carga', value: itemData.charge },
+        { label: 'Pré-requisito', value: itemData.prerequisite }
+    ].filter(d => d.value);
 
-    if (details.some(d => d.value)) {
+    let detailsHtml = '';
+    if (details.length > 0) {
         detailsHtml = `
-            <div class="grid grid-cols-4 gap-x-2 text-xs my-2 text-center text-gray-200">
-                ${details.map(d => `
-                    <div>
-                        <p class="font-bold tracking-wider">${d.label}</p>
-                        <p class="text-gray-300 truncate" title="${d.value || d.title}">${d.value || '-'}</p>
-                    </div>
-                `).join('')}
+            <div class="pt-2">
+                <h3 class="text-sm font-semibold flex items-center gap-2">Detalhes</h3>
+                <div class="text-gray-300 text-xs leading-relaxed mt-1 pl-6 space-y-1">
+                    <ul class="list-disc list-inside">
+                        ${details.map(d => `<li><span class="font-semibold">${d.label}:</span> ${d.value}</li>`).join('')}
+                    </ul>
+                </div>
             </div>
         `;
     }
@@ -110,17 +135,14 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
 
     const sheetHtml = `
         <button id="close-item-sheet-btn-${uniqueId}" class="absolute top-4 right-4 bg-red-600 hover:text-white z-20 thumb-btn" style="display:${isModal? "block": "none"}"><i class="fa-solid fa-xmark"></i></button>
-        <div id="item-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
-            <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
-            
-            <div class="mt-auto p-4 md:p-6 w-full text-left absolute bottom-0" style="background-color: ${predominantColor};">
+        <div id="item-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; ${cardBackgroundStyle} width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
+            ${cardOverlayHtml}
+            <div class="mt-auto p-4 md:p-6 w-full text-left absolute bottom-0" style="background-color: ${bottomPanelColor};">
                 <div class="sheet-card-text-panel">
                     <div class="flex justify-between items-start">
                         <h2 class="text-2xl md:text-3xl font-bold tracking-tight text-white pr-2">${itemData.name}</h2>
                     </div>
                     
-                    ${detailsHtml}
-
                     <div class="sheet-card-divider"></div>
 
                     <div class="space-y-3 max-h-40 overflow-y-auto pr-2">
@@ -131,6 +153,7 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
                             </div>
                         ` : ''}
                         
+                        ${detailsHtml}
                         ${aumentosHtml}
                     </div>
                 </div>

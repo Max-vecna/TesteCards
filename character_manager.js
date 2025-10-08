@@ -1,7 +1,7 @@
 import { openDatabase, saveData, getData, removeData } from './local_db.js';
 import { renderFullCharacterSheet } from './card-renderer.js';
 
-// Lista de perícias
+// Lista de perícias PADRÃO
 const PERICIAS_DATA = {
     "AGILIDADE": {
         "Acrobacia": "Capacidade de realizar movimentos ágeis e controlados...",
@@ -42,6 +42,71 @@ const PERICIAS_DATA = {
         "Fortitude": "Resistência física e imunológica do personagem..."
     }
 };
+
+// --- NOVAS FUNÇÕES PARA PERÍCIAS CUSTOMIZADAS ---
+
+/**
+ * Pega as perícias customizadas do localStorage.
+ * @returns {object} As perícias customizadas.
+ */
+function getCustomPericias() {
+    return JSON.parse(localStorage.getItem('customPericias')) || {};
+}
+
+/**
+ * Salva uma nova perícia customizada no localStorage.
+ * @param {string} attribute - O atributo associado (e.g., 'INTELIGÊNCIA').
+ * @param {string} periciaName - O nome da nova perícia.
+ * @param {string} periciaDescription - A descrição da perícia.
+ */
+function saveCustomPericia(attribute, periciaName, periciaDescription) {
+    const customPericias = getCustomPericias();
+    if (!customPericias[attribute]) {
+        customPericias[attribute] = {};
+    }
+    customPericias[attribute][periciaName] = periciaDescription || `Descrição para ${periciaName}.`;
+    localStorage.setItem('customPericias', JSON.stringify(customPericias));
+}
+
+/**
+ * Junta as perícias padrão com as customizadas.
+ * @returns {object} O objeto de perícias completo.
+ */
+function getMergedPericiasData() {
+    const customPericias = getCustomPericias();
+    const merged = JSON.parse(JSON.stringify(PERICIAS_DATA)); // Cópia profunda para não modificar o objeto original
+    
+    for (const attr in customPericias) {
+        if (!merged[attr]) {
+            merged[attr] = {};
+        }
+        Object.assign(merged[attr], customPericias[attr]);
+    }
+    return merged;
+}
+
+/**
+ * Gera os dados para os dropdowns de Aumentos, incluindo perícias customizadas.
+ * @returns {object}
+ */
+export function getAumentosData() {
+    const mergedPericias = getMergedPericiasData();
+    const aumentosData = {
+        "Status": ["Vida", "Mana", "Armadura", "Esquiva", "Bloqueio", "Deslocamento"],
+        "Atributos": ["Agilidade", "Carisma", "Força", "Inteligência", "Sabedoria", "Vigor"],
+        "Perícias": {}
+    };
+
+    for (const attr in mergedPericias) {
+        const capitalizedAttr = attr.toUpperCase();
+        if (!aumentosData.Perícias[capitalizedAttr]) {
+             aumentosData.Perícias[capitalizedAttr] = [];
+        }
+        aumentosData.Perícias[capitalizedAttr].push(...Object.keys(mergedPericias[attr]));
+    }
+    return aumentosData;
+}
+
 
 // Variáveis de estado
 let currentEditingCardId = null;
@@ -147,11 +212,13 @@ export function populatePericiasCheckboxes(selectedPericias = []) {
     if (!container) return;
     container.innerHTML = '';
     
+    const ALL_PERICIAS = getMergedPericiasData();
+
     const periciaDescriptionDisplay = document.getElementById('pericia-description-display');
     const periciaDescriptionTitle = document.getElementById('periciaDescriptionTitle');
     const periciaDescriptionText = document.getElementById('periciaDescriptionText');
 
-    for (const attribute in PERICIAS_DATA) {
+    for (const attribute in ALL_PERICIAS) {
         const details = document.createElement('details');
         details.className = 'bg-gray-700 rounded-lg p-2 transition-all duration-300';
         details.innerHTML = `
@@ -171,7 +238,7 @@ export function populatePericiasCheckboxes(selectedPericias = []) {
             }, 300);
         });
 
-        for (const periciaName in PERICIAS_DATA[attribute]) {
+        for (const periciaName in ALL_PERICIAS[attribute]) {
             const periciaItem = document.createElement('div');
             periciaItem.className = 'flex items-center justify-between pericia-item rounded-md p-1';
             const periciaId = `pericia-${periciaName.replace(/\s+/g, '-')}`;
@@ -191,7 +258,7 @@ export function populatePericiasCheckboxes(selectedPericias = []) {
 
             periciaItem.querySelector('label').addEventListener('mouseenter', () => {
                 periciaDescriptionTitle.textContent = periciaName;
-                periciaDescriptionText.textContent = PERICIAS_DATA[attribute][periciaName];
+                periciaDescriptionText.textContent = ALL_PERICIAS[attribute][periciaName];
                 periciaDescriptionDisplay.classList.remove('hidden');
             });
 
@@ -462,29 +529,6 @@ export async function importCard(file) {
     });
 }
 
-document.addEventListener('addItemToCharacter', (e) => {
-    const { data, type } = e.detail;
-    if (type === 'magic') {
-        createSelectedItemElement(data, type);
-    }
-});
-
-document.getElementById('characterImageUpload').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        characterImageFile = file;
-        showImagePreview(document.getElementById('characterImagePreview'), URL.createObjectURL(file), true);
-    }
-});
-
-document.getElementById('backgroundImageUpload').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        backgroundImageFile = file;
-        showImagePreview(document.getElementById('backgroundImagePreview'), URL.createObjectURL(file), false);
-    }
-});
-
 function showCustomAlert(message) {
     const modalHtml = `
         <div id="custom-alert-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
@@ -503,3 +547,91 @@ function showCustomAlert(message) {
 export function getCurrentEditingCardId() {
     return currentEditingCardId;
 }
+
+// Helper para obter os valores das perícias selecionadas antes de recarregar a lista
+function getCurrentlySelectedPericias() {
+    const selectedPericias = [];
+    document.querySelectorAll('#pericias-checkboxes-container input[type="checkbox"]:checked').forEach(cb => {
+        const periciaName = cb.value;
+        const periciaId = `pericia-${periciaName.replace(/\s+/g, '-')}`;
+        const valueInput = document.getElementById(`${periciaId}-value`);
+        selectedPericias.push({
+            name: periciaName,
+            value: parseInt(valueInput.value) || 0
+        });
+    });
+    return selectedPericias;
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Event listeners para uploads de imagem
+    document.getElementById('characterImageUpload').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            characterImageFile = file;
+            showImagePreview(document.getElementById('characterImagePreview'), URL.createObjectURL(file), true);
+        }
+    });
+
+    document.getElementById('backgroundImageUpload').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            backgroundImageFile = file;
+            showImagePreview(document.getElementById('backgroundImagePreview'), URL.createObjectURL(file), false);
+        }
+    });
+
+    document.addEventListener('addItemToCharacter', (e) => {
+        const { data, type } = e.detail;
+        if (type === 'magic') {
+            createSelectedItemElement(data, type);
+        }
+    });
+    
+    // --- Event listeners para o formulário de adicionar nova perícia ---
+    const showBtn = document.getElementById('show-add-pericia-form-btn');
+    const addForm = document.getElementById('add-pericia-form');
+    const addBtn = document.getElementById('add-new-pericia-btn');
+    const cancelBtn = document.getElementById('cancel-add-pericia-btn');
+    const nameInput = document.getElementById('new-pericia-name');
+    const attributeSelect = document.getElementById('new-pericia-attribute');
+    const descriptionInput = document.getElementById('new-pericia-description');
+
+    if (showBtn && addForm) {
+        showBtn.addEventListener('click', () => {
+            addForm.classList.toggle('hidden');
+        });
+    }
+
+    if (cancelBtn && addForm) {
+        cancelBtn.addEventListener('click', () => {
+            addForm.classList.add('hidden');
+            if (nameInput) nameInput.value = '';
+            if (descriptionInput) descriptionInput.value = '';
+        });
+    }
+
+    if (addBtn) {
+        addBtn.addEventListener('click', () => {
+            const name = nameInput.value.trim();
+            const attribute = attributeSelect.value;
+            const description = descriptionInput.value.trim();
+
+            if (name && attribute) {
+                saveCustomPericia(attribute, name, description);
+                populatePericiasCheckboxes(getCurrentlySelectedPericias());
+
+                addForm.classList.add('hidden');
+                nameInput.value = '';
+                descriptionInput.value = '';
+
+                // Dispara um evento global para notificar outros módulos da atualização
+                document.dispatchEvent(new CustomEvent('periciasUpdated'));
+
+            } else {
+                showCustomAlert('Por favor, preencha o nome da perícia e selecione um atributo.');
+            }
+        });
+    }
+});
