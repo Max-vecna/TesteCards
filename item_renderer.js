@@ -66,7 +66,7 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
     
     const predominantColor = await getPredominantColor(imageUrl).catch(() => 'rgba(160, 82, 45, 0.9)');
     
-    const scale = isModal ? .9 : .24;
+    const scale = isModal ? .9 : .22;
     const origin = isModal ? "" : "transform-origin: top left";
     const uniqueId = `item-${Date.now()}`;
 

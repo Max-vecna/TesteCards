@@ -1,6 +1,8 @@
 import { openDatabase, saveData, getData, removeData } from './local_db.js';
 import { renderFullCharacterSheet } from './card-renderer.js';
-import { openCharacterSelectionForRelationship } from './navigation_manager.js';
+import { renderInventoryForForm } from './item_manager.js';
+import { openSelectionModal as openItemSelectionModal } from './navigation_manager.js';
+
 
 const PERICIAS_DATA = {
     "AGILIDADE": {
@@ -30,7 +32,7 @@ const PERICIAS_DATA = {
         "Atletismo": "Medida da força bruta aplicada com técnica...",
         "Luta": "Combate corpo a corpo com armas simples ou improvisadas..."
     },
-    "SABEDORIA": {
+    "SABEDoria": {
         "Intuição": "Habilidade de ler emoções e detectar mentiras...",
         "Percepção": "Capacidade de notar detalhes ao redor...",
         "Medicina": "Conhecimento de curas e tratamento de feridas...",
@@ -42,6 +44,32 @@ const PERICIAS_DATA = {
         "Fortitude": "Resistência física e imunológica do personagem..."
     }
 };
+
+let currentEditingCardId = null;
+let characterImageFile = null;
+let backgroundImageFile = null;
+let currentCharacterItems = [];
+
+export function resetCharacterFormState() {
+    currentEditingCardId = null;
+    characterImageFile = null;
+    backgroundImageFile = null;
+    currentCharacterItems = [];
+    
+    const cardForm = document.getElementById('cardForm');
+    if (cardForm) cardForm.reset();
+
+    document.getElementById('selected-magics-container').innerHTML = '';
+    document.getElementById('selected-relationships-container').innerHTML = '';
+    document.getElementById('form-inventory-section').classList.add('hidden');
+    
+    showImagePreview(document.getElementById('characterImagePreview'), null, true);
+    showImagePreview(document.getElementById('backgroundImagePreview'), null, false);
+    
+    populatePericiasCheckboxes();
+    renderInventoryForForm([], 0);
+}
+
 
 function getCustomPericias() {
     return JSON.parse(localStorage.getItem('customPericias')) || {};
@@ -86,11 +114,6 @@ export function getAumentosData() {
     }
     return aumentosData;
 }
-
-
-let currentEditingCardId = null;
-let characterImageFile = null;
-let backgroundImageFile = null;
 
 function showImagePreview(element, url, isImageElement) {
     if (url) {
@@ -173,25 +196,35 @@ function createSelectedItemElement(data, type) {
     container.appendChild(itemElement);
 }
 
-async function createSelectedRelationshipElement(data) {
+function createSelectedRelationshipElement(data) {
     const container = document.getElementById('selected-relationships-container');
     if (!container || container.querySelector(`[data-id="${data.id}"]`)) return;
 
-    const miniSheetHtml = await renderFullCharacterSheet(data, false, 12/16, false);
+    const itemElement = document.createElement('div');
+    itemElement.className = 'flex items-center justify-between bg-gray-800 p-2 rounded';
+    itemElement.dataset.id = data.id;
+    
+    let iconHtml = '';
+    if (data.image) {
+        const imageUrl = URL.createObjectURL(bufferToBlob(data.image, data.imageMimeType));
+        iconHtml = `<img src="${imageUrl}" class="w-6 h-6 rounded-full mr-2 object-cover">`;
+    } else {
+        iconHtml = `<i class="fas fa-user w-6 text-center mr-2"></i>`;
+    }
 
-    const el = document.createElement('div');
-    el.className = 'relative aspect-[120/160]';
-    el.dataset.id = data.id;
-
-    el.innerHTML = `
-        <div class="relationship-form-thumbnail overflow-hidden rounded-lg">
-             ${miniSheetHtml.replace('id="character-sheet"', `id="form-related-sheet-${data.id}"`)}
+    itemElement.innerHTML = `
+        <div class="flex items-center">
+            ${iconHtml}
+            <span class="text-sm">${data.title}</span>
         </div>
-        <button type="button" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs leading-none remove-selection-btn z-10">&times;</button>
+        <button type="button" class="text-red-500 hover:text-red-400 remove-selection-btn text-xl leading-none">&times;</button>
     `;
 
-    el.querySelector('.remove-selection-btn').addEventListener('click', () => el.remove());
-    container.appendChild(el);
+    itemElement.querySelector('.remove-selection-btn').addEventListener('click', () => {
+        itemElement.remove();
+    });
+
+    container.appendChild(itemElement);
 }
 
 
@@ -321,7 +354,8 @@ export async function saveCharacterCard(cardForm) {
 
     const imageBuffer = characterImageFile ? await readFileAsArrayBuffer(characterImageFile) : null;
     const backgroundBuffer = backgroundImageFile ? await readFileAsArrayBuffer(backgroundImageFile) : null;
-
+    
+    const itemIds = currentCharacterItems.map(item => item.id);
     const magicIds = Array.from(document.querySelectorAll('#selected-magics-container [data-id]')).map(el => el.dataset.id);
     const relationshipIds = Array.from(document.querySelectorAll('#selected-relationships-container [data-id]')).map(el => el.dataset.id);
     
@@ -336,6 +370,7 @@ export async function saveCharacterCard(cardForm) {
             dinheiro: parseInt(dinheiroInput.value) || 0,
             attributes,
             lore,
+            items: itemIds,
             spells: magicIds,
             relationships: relationshipIds,
             image: imageBuffer || cardData.image,
@@ -352,7 +387,7 @@ export async function saveCharacterCard(cardForm) {
             dinheiro: parseInt(dinheiroInput.value) || 0,
             attributes,
             lore,
-            items: [],
+            items: itemIds,
             spells: magicIds,
             relationships: relationshipIds,
             image: imageBuffer,
@@ -364,19 +399,14 @@ export async function saveCharacterCard(cardForm) {
     }
 
     await saveData('rpgCards', cardData);
-    cardForm.reset();
-    characterImageFile = null;
-    backgroundImageFile = null;
-    showImagePreview(document.getElementById('characterImagePreview'), null, true);
-    showImagePreview(document.getElementById('backgroundImagePreview'), null, false);
-    document.getElementById('selected-magics-container').innerHTML = '';
-    document.getElementById('selected-relationships-container').innerHTML = '';
-    currentEditingCardId = null;
+    resetCharacterFormState();
 }
 
 export async function editCard(cardId) {
     const cardData = await getData('rpgCards', cardId);
     if (!cardData) return;
+    
+    resetCharacterFormState();
 
     const formTitle = document.getElementById('form-title');
     const submitButton = document.getElementById('submitButton');
@@ -432,7 +462,6 @@ export async function editCard(cardId) {
 
     populatePericiasCheckboxes(cardData.attributes.pericias);
 
-    document.getElementById('selected-magics-container').innerHTML = '';
     if (cardData.spells && Array.isArray(cardData.spells)) {
         for (const magicId of cardData.spells) {
             const magicData = await getData('rpgSpells', magicId);
@@ -440,28 +469,28 @@ export async function editCard(cardId) {
         }
     }
 
-    document.getElementById('selected-relationships-container').innerHTML = '';
-      if (cardData.relationships && Array.isArray(cardData.relationships)) {
-          for (const charId of cardData.relationships) {
-              const relatedCharData = await getData('rpgCards', charId);
-              if (relatedCharData) createSelectedRelationshipElement(relatedCharData);
-          }
-      }
+    if (cardData.relationships && Array.isArray(cardData.relationships)) {
+        for (const charId of cardData.relationships) {
+            const relatedCharData = await getData('rpgCards', charId);
+            if (relatedCharData) createSelectedRelationshipElement(relatedCharData);
+        }
+    }
 
     if (cardData.image) {
         const imageBlob = bufferToBlob(cardData.image, cardData.imageMimeType);
         showImagePreview(characterImagePreview, URL.createObjectURL(imageBlob), true);
-    } else {
-        showImagePreview(characterImagePreview, null, true);
     }
     if (cardData.backgroundImage) {
         const backgroundBlob = bufferToBlob(cardData.backgroundImage, cardData.backgroundMimeType);
         showImagePreview(backgroundImagePreview, URL.createObjectURL(backgroundBlob), false);
-    } else {
-        showImagePreview(backgroundImagePreview, null, false);
     }
     
-    document.getElementById('manage-inventory-from-edit-btn').classList.remove('hidden');
+    const forcaValue = cardData.attributes.forca || 0;
+    const items = cardData.items ? (await Promise.all(cardData.items.map(id => getData('rpgItems', id)))).filter(Boolean) : [];
+    currentCharacterItems = items;
+    
+    document.getElementById('form-inventory-section').classList.remove('hidden');
+    renderInventoryForForm(currentCharacterItems, forcaValue);
 }
 
 export async function exportCard(cardId) {
@@ -571,12 +600,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const { data, type } = e.detail;
         if (type === 'magic') {
             createSelectedItemElement(data, type);
+        } else if (type === 'item') {
+            currentCharacterItems.push(data);
+            const strength = parseInt(document.getElementById('forca').value) || 0;
+            renderInventoryForForm(currentCharacterItems, strength);
         }
     });
     
     document.addEventListener('addRelationshipToCharacter', (e) => {
         const { data } = e.detail;
         createSelectedRelationshipElement(data);
+    });
+
+    document.addEventListener('requestItemRemoval', (e) => {
+        const { itemIndex } = e.detail;
+        if (itemIndex > -1 && itemIndex < currentCharacterItems.length) {
+            currentCharacterItems.splice(itemIndex, 1);
+            const strength = parseInt(document.getElementById('forca').value) || 0;
+            renderInventoryForForm(currentCharacterItems, strength);
+        }
+    });
+
+    const forcaInput = document.getElementById('forca');
+    forcaInput.addEventListener('input', () => {
+        const strength = parseInt(forcaInput.value) || 0;
+        renderInventoryForForm(currentCharacterItems, strength);
+    });
+    
+    document.getElementById('add-item-to-inventory-btn').addEventListener('click', () => {
+        openItemSelectionModal('item');
     });
 
     const showBtn = document.getElementById('show-add-pericia-form-btn');

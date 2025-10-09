@@ -347,7 +347,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     const cdValue = 10 + (parseInt(characterData.level) || 0) + (parseInt(characterData.attributes.sabedoria) || 0) + (totalFixedBonuses.sabedoria || 0);
     const palette = { borderColor: predominantColor };
 
-    var scale = isModal || isInPlay ? .9 : .24;
+    var scale = isModal || isInPlay ? .9 : .22;
     var origin = isModal || isInPlay ? "transform-origin: none" : "transform-origin: top left";
     
     let periciasHtml = '<p class="text-xs text-gray-400 italic px-2">Nenhuma perícia selecionada.</p>';
@@ -559,7 +559,8 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
             if (grid.classList.contains('expanded')) {
                 const relatedCharData = await getData('rpgCards', card.dataset.id);
                 if (relatedCharData) {
-                    await renderFullCharacterSheet(relatedCharData, true, 16/9);
+                    const nestedContainer = document.getElementById('nested-sheet-container');
+                    await renderFullCharacterSheet(relatedCharData, true, 16/9, false, nestedContainer);
                 }
             } else {
                 grid.classList.add('expanded');

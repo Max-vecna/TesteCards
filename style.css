@@ -472,3 +472,9 @@ body {
 #selected-relationships-container > div:hover .remove-selection-btn {
     opacity: 1;
 }
+
+#content-display
+{
+  max-width: 380px;
+    max-height: 650px;
+}

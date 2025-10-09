@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="./style.css">
     <style>
         /* Estilos para o formulário de sobreposição */
-        #creation-section, #character-sheet-container, #spell-creation-section, #spell-sheet-container, #item-sheet-container, #item-creation-section, #inventory-management-section {
+        #creation-section, #character-sheet-container, #spell-creation-section, #spell-sheet-container, #item-sheet-container, #item-creation-section {
             position: fixed;
             top: 0;
             left: 0;
@@ -23,7 +23,7 @@
             transition: opacity 0.3s ease-in-out;
         }
 
-        #creation-section.hidden, #character-sheet-container.hidden, #spell-creation-section.hidden, #spell-sheet-container.hidden, #item-sheet-container.hidden, #item-creation-section.hidden, #inventory-management-section.hidden {
+        #creation-section.hidden, #character-sheet-container.hidden, #spell-creation-section.hidden, #spell-sheet-container.hidden, #item-sheet-container.hidden, #item-creation-section.hidden {
             display: none;
             opacity: 0;
             pointer-events: none; /* Impede cliques quando oculto */
@@ -188,14 +188,32 @@
                         <p id="periciaDescriptionText" class="text-sm text-gray-300 mt-2"></p>
                     </div>
                 </div>
-                 <!-- Seção de Inventário -->
-                <div>
-                    <h3 class="text-xl font-bold text-indigo-300 mb-2">Inventário</h3>
-                    <button type="button" id="manage-inventory-from-edit-btn" class="mt-2 w-full py-2 px-4 rounded-lg text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors flex items-center justify-center gap-2">
-                        <i class="fas fa-box-open"></i>
-                        Gerenciar Inventário (Slots)
-                    </button>
+                
+                <!-- Seção de Inventário Integrada -->
+                <div id="form-inventory-section" class="hidden">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-amber-300">Inventário</h3>
+                        <button type="button" id="add-item-to-inventory-btn" class="py-2 px-4 rounded-full text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors flex items-center gap-2">
+                            <i class="fas fa-plus"></i> Adicionar Item
+                        </button>
+                    </div>
+                    <p id="slots-info" class="text-sm text-gray-400 text-center my-2">Força: 0 | Carga: 0/5</p>
+                    <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700 space-y-4">               
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-400 mb-2">Equipamento Especial (Concede Slots)</h4>
+                            <div id="special-equipment-container" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2"></div>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-400 mb-2">Itens com Carga</h4>
+                            <div id="item-slots-container" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2"></div>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-400 mb-2">Itens de Carga Zero</h4>
+                            <div id="zero-charge-items-container" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2"></div>
+                        </div>
+                    </div>
                 </div>
+
                 <!-- Seção de Magias -->
                 <div>
                     <h3 class="text-xl font-bold text-indigo-300 mb-2">Magias & Habilidades</h3>
@@ -207,7 +225,7 @@
                 <!-- Seção de Relacionamentos -->
                 <div>
                     <h3 class="text-xl font-bold text-indigo-300 mb-2">Relacionamentos</h3>
-                    <div id="selected-relationships-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 bg-gray-700 p-2 rounded-lg min-h-[50px]">
+                    <div id="selected-relationships-container" class="space-y-2 bg-gray-700 p-2 rounded-lg min-h-[50px]">
                         <!-- Personagens relacionados aparecerão aqui -->
                     </div>
                     <button type="button" id="add-relationship-btn" class="mt-2 w-full py-2 px-4 rounded-lg text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors">Adicionar Relacionamento</button>
@@ -394,39 +412,6 @@
         </div>
     </div>
 
-    <!-- Inventory Management Section -->
-    <div id="inventory-management-section" class="hidden">
-        <div class="form-container">
-            <div class="flex justify-between items-center mb-6">
-                <h2 id="inventory-section-title" class="text-2xl font-bold text-amber-300">Gerenciar Inventário</h2>
-                <button id="close-inventory-btn" class="text-gray-400 hover:text-white text-3xl font-bold">&times;</button>
-            </div>
-            <div class="flex justify-between items-center sticky top-0 bg-gray-800 backdrop-blur-sm py-2 z-10 -m-4 p-4 mb-2 rounded-2xl">
-                <div>
-                    <h3 class="text-xl font-bold text-amber-300">Inventário</h3>
-                    <p id="slots-info" class="text-sm text-gray-400">Slots: 0/0</p>
-                </div>
-                <button id="add-item-to-inventory-btn" class="py-2 px-4 rounded-full text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors flex items-center gap-2">
-                    <i class="fas fa-plus"></i> Item
-                </button>
-            </div>
-            <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700 space-y-4 max-h-[80vh] overflow-y-auto">               
-                <div>
-                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Equipamento Especial (Concede Slots)</h4>
-                    <div id="special-equipment-container" class="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 gap-2"></div>
-                </div>
-                <div>
-                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Itens com Carga</h4>
-                    <div id="item-slots-container" class="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 gap-2"></div>
-                </div>
-                <div>
-                    <h4 class="text-sm font-semibold text-gray-400 mb-2">Itens de Carga Zero</h4>
-                    <div id="zero-charge-items-container" class="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 gap-2"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal de Seleção de Personagem -->
     <div id="select-character-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4" style="z-index: 1000000000000000000;">
         <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 w-full max-w-sm border border-gray-700">
@@ -515,3 +500,4 @@
     <script type="module" src="./navigation_manager.js"></script>
 </body>
 </html>
+

@@ -242,7 +242,6 @@ export async function importItem(file) {
 document.addEventListener('DOMContentLoaded', () => {
     populateItemAumentosSelect();
     
-    // Ouve o evento de atualização de perícias para recarregar o dropdown
     document.addEventListener('periciasUpdated', populateItemAumentosSelect);
 
     const addBtn = document.getElementById('add-item-aumento-btn');
@@ -272,89 +271,10 @@ document.getElementById('itemImageUpload').addEventListener('change', (e) => {
     }
 });
 
-// --- SISTEMA DE INVENTÁRIO ---
+export function renderInventoryForForm(characterItems, strengthValue) {
+    const strength = strengthValue || 0;
+    const charItemsWithOriginalIndex = characterItems.map((item, index) => ({ ...item, originalIndex: index }));
 
-let currentManagingCharacterId = null;
-
-function handleAddItemToInventory(e) {
-    if (e.detail.type === 'item' && currentManagingCharacterId) {
-        linkItem(e.detail.data.id, currentManagingCharacterId);
-    }
-}
-
-export function cleanupInventoryManagementListeners() {
-    document.removeEventListener('addItemToCharacter', handleAddItemToInventory);
-    currentManagingCharacterId = null;
-}
-
-async function getInventoryStatus(characterId) {
-    const character = await getData('rpgCards', characterId);
-    if (!character) return { totalSlots: 0, usedSlots: 0 };
-
-    const allMasterItems = await getData('rpgItems');
-    const itemsMap = new Map(allMasterItems.map(i => [i.id, i]));
-    const charItems = (character.items || []).map(id => itemsMap.get(id)).filter(Boolean);
-
-    const strength = parseInt(character.attributes.forca) || 0;
-    const slotAddingItems = charItems.filter(item => parseInt(item.charge) < 0);
-    const regularItems = charItems.filter(item => parseInt(item.charge) > 0);
-    
-    const extraSlots = slotAddingItems.reduce((acc, item) => acc + Math.abs(parseInt(item.charge)), 0);
-    const totalSlots = (strength * 2) + 5 + extraSlots;
-    
-    const totalCharge = regularItems.reduce((acc, item) => acc + parseInt(item.charge), 0);
-
-    return { totalSlots, usedSlots: totalCharge };
-}
-
-export async function unlinkItem(itemIndexInCharacterArray, characterId) {
-    const character = await getData('rpgCards', characterId);
-    if (!character || !character.items) return;
-
-    character.items.splice(itemIndexInCharacterArray, 1);
-    await saveData('rpgCards', character);
-    await renderInventoryManagement(characterId);
-}
-
-export async function linkItem(templateId, characterId) {
-    const character = await getData('rpgCards', characterId);
-    const itemToAdd = await getData('rpgItems', templateId);
-    if (!character || !itemToAdd) return;
-
-    const inventoryStatus = await getInventoryStatus(characterId);
-    if (parseInt(itemToAdd.charge) > 0 && (inventoryStatus.usedSlots + parseInt(itemToAdd.charge)) > inventoryStatus.totalSlots) {
-        alert("Não há espaço suficiente no inventário para este item.");
-        return;
-    }
-
-    character.items = character.items || [];
-    character.items.push(templateId);
-    await saveData('rpgCards', character);
-    await renderInventoryManagement(characterId);
-    document.getElementById('selection-modal').classList.add('hidden');
-}
-
-export async function renderInventoryManagement(characterId) {
-    currentManagingCharacterId = characterId;
-
-    const character = await getData('rpgCards', characterId);
-    if (!character) return;
-    
-    document.getElementById('inventory-section-title').textContent = `Inventário de: ${character.title}`;
-
-    document.removeEventListener('addItemToCharacter', handleAddItemToInventory);
-    document.addEventListener('addItemToCharacter', handleAddItemToInventory);
-    
-    const addItemBtn = document.getElementById('add-item-to-inventory-btn');
-    const newAddItemBtn = addItemBtn.cloneNode(true);
-    addItemBtn.parentNode.replaceChild(newAddItemBtn, addItemBtn);
-    newAddItemBtn.addEventListener('click', () => openSelectionModal('item'));
-
-    const allMasterItems = await getData('rpgItems');
-    const itemsMap = new Map(allMasterItems.map(i => [i.id, i]));
-    const charItemsWithOriginalIndex = (character.items || []).map((id, index) => ({ ...itemsMap.get(id), originalIndex: index })).filter(item => item.id);
-
-    const strength = parseInt(character.attributes.forca) || 0;
     const slotAddingItems = charItemsWithOriginalIndex.filter(item => parseInt(item.charge) < 0);
     const zeroChargeItems = charItemsWithOriginalIndex.filter(item => parseInt(item.charge) == 0);
     const regularItems = charItemsWithOriginalIndex.filter(item => parseInt(item.charge) > 0);
@@ -381,11 +301,11 @@ export async function renderInventoryManagement(characterId) {
             let imageURL = 'https://placehold.co/60x60/d2a679/422006?text=B';
             if (item.image) imageURL = URL.createObjectURL(bufferToBlob(item.image, item.imageMimeType));
             slot.innerHTML = `<img src="${imageURL}" alt="${item.name}"><span class="slot-item-name">${item.name} (${item.charge})</span>`;
-            slot.addEventListener('click', () => unlinkItem(item.originalIndex, characterId));
+            slot.addEventListener('click', () => document.dispatchEvent(new CustomEvent('requestItemRemoval', { detail: { itemIndex: item.originalIndex } })));
             specialContainer.appendChild(slot);
         });
     } else {
-        specialContainer.innerHTML = '<p class="col-span-5 text-center text-xs text-gray-500">Nenhum equipamento especial.</p>';
+        specialContainer.innerHTML = '<p class="col-span-full text-center text-xs text-gray-500">Nenhum equipamento especial.</p>';
     }
 
     if (zeroChargeItems.length > 0) {
@@ -396,11 +316,11 @@ export async function renderInventoryManagement(characterId) {
             let imageURL = 'https://placehold.co/60x60/9ca3af/1f2937?text=0';
             if (item.image) imageURL = URL.createObjectURL(bufferToBlob(item.image, item.imageMimeType));
             slot.innerHTML = `<img src="${imageURL}" alt="${item.name}"><span class="slot-item-name">${item.name}</span>`;
-            slot.addEventListener('click', () => unlinkItem(item.originalIndex, characterId));
+            slot.addEventListener('click', () => document.dispatchEvent(new CustomEvent('requestItemRemoval', { detail: { itemIndex: item.originalIndex } })));
             zeroChargeContainer.appendChild(slot);
         });
     } else {
-        zeroChargeContainer.innerHTML = '<p class="col-span-5 text-center text-xs text-gray-500">Nenhum item de carga zero.</p>';
+        zeroChargeContainer.innerHTML = '<p class="col-span-full text-center text-xs text-gray-500">Nenhum item de carga zero.</p>';
     }
 
     for (let i = 0; i < totalSlots; i++) {
@@ -420,9 +340,7 @@ export async function renderInventoryManagement(characterId) {
             occupiedSlot.innerHTML = `<img src="${imageURL}" alt="${item.name}"><span class="slot-item-name">${item.name} (${item.charge})</span>`;
             occupiedSlot.title = `Clique para remover "${item.name}"`;
             
-            const newSlot = occupiedSlot.cloneNode(true);
-            occupiedSlot.parentNode.replaceChild(newSlot, occupiedSlot);
-            newSlot.addEventListener('click', () => unlinkItem(item.originalIndex, characterId));
+            occupiedSlot.addEventListener('click', () => document.dispatchEvent(new CustomEvent('requestItemRemoval', { detail: { itemIndex: item.originalIndex } })));
 
             for (let i = 1; i < parseInt(item.charge); i++) {
                 const nextSlotIndex = currentSlot + i;
