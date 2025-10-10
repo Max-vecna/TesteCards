@@ -1,7 +1,7 @@
 import { saveData, getData, removeData } from './local_db.js';
 import { renderFullItemSheet } from './item_renderer.js';
 import { openSelectionModal } from './navigation_manager.js';
-import { getAumentosData } from './character_manager.js';
+import { getAumentosData, populateCharacterSelect } from './character_manager.js';
 
 let currentEditingItemId = null;
 let itemImageFile = null;
@@ -121,6 +121,7 @@ export async function saveItemCard(itemForm) {
     const itemDamageInput = document.getElementById('itemDamage');
     const itemChargeInput = document.getElementById('itemCharge');
     const itemPrerequisiteInput = document.getElementById('itemPrerequisite');
+    const itemCharacterOwnerInput = document.getElementById('itemCharacterOwner');
     
     const aumentosList = document.getElementById('item-aumentos-list');
     const aumentos = [];
@@ -144,6 +145,7 @@ export async function saveItemCard(itemForm) {
             damage: itemDamageInput.value,
             charge: itemChargeInput.value,
             prerequisite: itemPrerequisiteInput.value,
+            characterId: itemCharacterOwnerInput.value,
             aumentos,
             image: imageBuffer || itemData.image,
             imageMimeType: itemImageFile ? itemImageFile.type : itemData.imageMimeType,
@@ -157,6 +159,7 @@ export async function saveItemCard(itemForm) {
             damage: itemDamageInput.value,
             charge: itemChargeInput.value,
             prerequisite: itemPrerequisiteInput.value,
+            characterId: itemCharacterOwnerInput.value,
             aumentos,
             image: imageBuffer,
             imageMimeType: itemImageFile ? itemImageFile.type : null,
@@ -182,6 +185,9 @@ export async function editItem(itemId) {
     document.getElementById('itemDamage').value = itemData.damage || '';
     document.getElementById('itemCharge').value = itemData.charge || '';
     document.getElementById('itemPrerequisite').value = itemData.prerequisite || '';
+    
+    await populateCharacterSelect('itemCharacterOwner');
+    document.getElementById('itemCharacterOwner').value = itemData.characterId || '';
 
     const aumentosList = document.getElementById('item-aumentos-list');
     aumentosList.innerHTML = '';

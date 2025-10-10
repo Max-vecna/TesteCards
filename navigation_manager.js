@@ -1,4 +1,4 @@
-import { populatePericiasCheckboxes, saveCharacterCard, editCard, importCard, getCurrentEditingCardId, exportCard, resetCharacterFormState } from './character_manager.js';
+import { populatePericiasCheckboxes, saveCharacterCard, editCard, importCard, getCurrentEditingCardId, exportCard, resetCharacterFormState, populateCharacterSelect } from './character_manager.js';
 import { populateSpellAumentosSelect, saveSpellCard, editSpell, importSpell, exportSpell } from './magic_manager.js';
 import { populateItemAumentosSelect, saveItemCard, editItem, importItem, removeItem, exportItem } from './item_manager.js';
 import { openDatabase, removeData, getData, saveData } from './local_db.js';
@@ -310,12 +310,38 @@ async function renderCharacterList() {
 
 async function renderSpellList(type = 'magias') {
     const contentDisplay = document.getElementById('content-display');
-    let allSpells = await getData('rpgSpells');
+    const currentCharacterFilter = sessionStorage.getItem(`${type}-filter`) || 'all';
 
+    const filterContainer = document.createElement('div');
+    filterContainer.className = 'w-full flex justify-end items-center p-4 pt-2';
+    filterContainer.innerHTML = `
+        <label for="${type}-character-filter" class="text-sm font-semibold mr-2">Filtrar por Personagem:</label>
+        <select id="${type}-character-filter" class="px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 text-sm" style="min-width: 150px;">
+            <option value="all">Todos</option>
+            <option value="">Nenhum</option>
+        </select>
+    `;
+    contentDisplay.appendChild(filterContainer);
+
+    const filterSelect = document.getElementById(`${type}-character-filter`);
+    const characters = await getData('rpgCards');
+    characters.sort((a, b) => a.title.localeCompare(b.title)).forEach(char => {
+        const option = document.createElement('option');
+        option.value = char.id;
+        option.textContent = char.title;
+        filterSelect.appendChild(option);
+    });
+    filterSelect.value = currentCharacterFilter;
+
+    let allSpells = await getData('rpgSpells');
     if (type === 'magias') {
         allSpells = allSpells.filter(spell => spell.type === 'magia' || !spell.type);
     } else if (type === 'habilidades') {
         allSpells = allSpells.filter(spell => spell.type === 'habilidade');
+    }
+
+    if (filterSelect.value && filterSelect.value !== 'all') {
+        allSpells = allSpells.filter(item => item.characterId === filterSelect.value);
     }
 
     const gridContainer = document.createElement('div');
@@ -384,6 +410,11 @@ async function renderSpellList(type = 'magias') {
     });
     
     setupResizeCentering(gridContainer);
+    
+    filterSelect.addEventListener('change', (e) => {
+        sessionStorage.setItem(`${type}-filter`, e.target.value);
+        renderContent(type);
+    });
 
     document.getElementById(importBtnId).addEventListener('click', () => {
         document.getElementById(importInputId).click();
@@ -400,7 +431,33 @@ async function renderSpellList(type = 'magias') {
 
 async function renderItemList() {
     const contentDisplay = document.getElementById('content-display');
-    const allItems = await getData('rpgItems');
+    const currentCharacterFilter = sessionStorage.getItem('itens-filter') || 'all';
+
+    const filterContainer = document.createElement('div');
+    filterContainer.className = 'w-full flex justify-end items-center p-4 pt-2';
+    filterContainer.innerHTML = `
+        <label for="itens-character-filter" class="text-sm font-semibold mr-2">Filtrar por Personagem:</label>
+        <select id="itens-character-filter" class="px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 text-sm" style="min-width: 150px;">
+            <option value="all">Todos</option>
+            <option value="">Nenhum</option>
+        </select>
+    `;
+    contentDisplay.appendChild(filterContainer);
+
+    const filterSelect = document.getElementById('itens-character-filter');
+    const characters = await getData('rpgCards');
+    characters.sort((a, b) => a.title.localeCompare(b.title)).forEach(char => {
+        const option = document.createElement('option');
+        option.value = char.id;
+        option.textContent = char.title;
+        filterSelect.appendChild(option);
+    });
+    filterSelect.value = currentCharacterFilter;
+    
+    let allItems = await getData('rpgItems');
+    if (filterSelect.value && filterSelect.value !== 'all') {
+        allItems = allItems.filter(item => item.characterId === filterSelect.value);
+    }
 
     const container = document.createElement('div');
     container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 p-6 pt-0';
@@ -458,6 +515,11 @@ async function renderItemList() {
     });
 
     setupResizeCentering(container);
+    
+    filterSelect.addEventListener('change', (e) => {
+        sessionStorage.setItem('itens-filter', e.target.value);
+        renderContent('itens');
+    });
 
     document.getElementById('import-item-btn').addEventListener('click', () => {
         document.getElementById('import-item-json-input').click();
@@ -532,7 +594,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (target !== 'personagem-em-jogo') {
             const titleText = document.querySelector(`.nav-button[data-target="${target}"] .hidden`)?.textContent || target.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
-            contentDisplay.innerHTML = `<div class="w-full text-center mb-2 mt-2"></div>`;
             contentDisplay.style.background = '';
             contentDisplay.style.boxShadow = '';
             if (mainContainer) mainContainer.style.overflowY = 'auto';
@@ -634,7 +695,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             submitButton.textContent = 'Criar Cartão';
             document.getElementById('form-inventory-section').classList.remove('hidden');
         });
-         if (action === "add-spell" || action === "add-habilidade") showView(spellCreationSection, false, () => {
+         if (action === "add-spell" || action === "add-habilidade") showView(spellCreationSection, false, async () => {
             const isHabilidade = action === "add-habilidade";
             spellForm.reset();
             spellForm.dataset.type = isHabilidade ? 'habilidade' : 'magia';
@@ -643,12 +704,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             enhanceWrapper.classList.toggle('hidden', isHabilidade);
             trueWrapper.classList.toggle('hidden', isHabilidade);
             populateSpellAumentosSelect();
+            await populateCharacterSelect('spellCharacterOwner');
         });
-        if (action === "add-item") showView(itemCreationSection, false, () => {
+        if (action === "add-item") showView(itemCreationSection, false, async () => {
             itemForm.reset();
             itemFormTitle.textContent = 'Novo Item';
             itemSubmitButton.textContent = 'Criar Item';
             populateItemAumentosSelect();
+            await populateCharacterSelect('itemCharacterOwner');
         });
         if (e.target.closest('#select-character-btn')) showCharacterSelectionModalForPlay();
     });

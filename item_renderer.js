@@ -66,8 +66,8 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
     
     const predominantColor = await getPredominantColor(imageUrl).catch(() => 'rgba(160, 82, 45, 0.9)');
     
-    const scale = isModal ? .9 : .22;
     const origin = isModal ? "" : "transform-origin: top left";
+    const transformProp = isModal ? '' : `transform: scale(0.22);`;
     const uniqueId = `item-${Date.now()}`;
 
     const details = [
@@ -116,7 +116,7 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
 
     const sheetHtml = `
         <button id="close-item-sheet-btn-${uniqueId}" class="absolute top-4 right-4 bg-red-600 hover:text-white z-20 thumb-btn" style="display:${isModal? "block": "none"}"><i class="fa-solid fa-xmark"></i></button>
-        <div id="item-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; box-shadow: 0 0 20px ${predominantColor.color100}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
+        <div id="item-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; box-shadow: 0 0 20px ${predominantColor.color100}; width: ${finalWidth}px; height: ${finalHeight}px; ${transformProp} margin: 0 auto;">        
             <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
             
             <div class="mt-auto p-4 md:p-6 w-full text-left absolute bottom-0" style="background-color: ${predominantColor.color30};">
@@ -149,11 +149,17 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
 
     sheetContainer.innerHTML = sheetHtml;
     sheetContainer.classList.remove('hidden');
+    setTimeout(() => sheetContainer.classList.add('visible'), 10);
 
     const closeSheet = () => {
-        sheetContainer.classList.add('hidden');
-        sheetContainer.innerHTML = '';
-        if (createdObjectUrl) URL.revokeObjectURL(createdObjectUrl);
+        sheetContainer.classList.remove('visible');
+        const handler = () => {
+            sheetContainer.classList.add('hidden');
+            sheetContainer.innerHTML = '';
+            if (createdObjectUrl) URL.revokeObjectURL(createdObjectUrl);
+            sheetContainer.removeEventListener('transitionend', handler);
+        };
+        sheetContainer.addEventListener('transitionend', handler);
     };
 
     const closeBtn = sheetContainer.querySelector(`#close-item-sheet-btn-${uniqueId}`);

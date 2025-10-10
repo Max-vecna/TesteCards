@@ -84,8 +84,8 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
         return '#4a5568';
     });
 console.log(predominantColor);
-    var scale = isModal? .9 : .22;
-    var origin = isModal?  "" : "transform-origin: top left";
+    const origin = isModal ?  "" : "transform-origin: top left";
+    const transformProp = isModal ? '' : `transform: scale(0.22);`;
     
     // Processar aumentos
     let aumentosHtml = '';
@@ -141,7 +141,7 @@ console.log(predominantColor);
 
     const sheetHtml = `
         <button id="close-spell-sheet-btn-${uniqueId}" class="absolute top-4 right-4 bg-red-600 hover:text-white z-20 thumb-btn" style="display:${isModal? "block": "none"};"><i class="fa-solid fa-xmark"></i></button>
-        <div id="spell-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; box-shadow: 0 0 20px ${predominantColor.color100}; width: ${finalWidth}px; height: ${finalHeight}px; transform: scale(${scale}); margin: 0 auto;">        
+        <div id="spell-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; box-shadow: 0 0 20px ${predominantColor.color100}; width: ${finalWidth}px; height: ${finalHeight}px; ${transformProp} margin: 0 auto;">        
             <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
             
             <div class="mt-auto p-4 md:p-6 w-full text-left absolute bottom-0" style="background: ${predominantColor.color30}">
@@ -182,23 +182,29 @@ console.log(predominantColor);
 
     sheetContainer.innerHTML = sheetHtml;
     sheetContainer.classList.remove('hidden');
+    setTimeout(() => sheetContainer.classList.add('visible'), 10);
+
+    const closeSheet = () => {
+        sheetContainer.classList.remove('visible');
+        const handler = () => {
+            sheetContainer.classList.add('hidden');
+            sheetContainer.innerHTML = '';
+            if (createdObjectUrl) URL.revokeObjectURL(createdObjectUrl);
+            sheetContainer.removeEventListener('transitionend', handler);
+        };
+        sheetContainer.addEventListener('transitionend', handler);
+    };
 
     const closeSheetBtn = sheetContainer.querySelector(`#close-spell-sheet-btn-${uniqueId}`);
     if (closeSheetBtn) {
         const btn = closeSheetBtn.cloneNode(true);
         closeSheetBtn.parentNode.replaceChild(btn, closeSheetBtn);
-        btn.addEventListener('click', () => {
-            sheetContainer.classList.add('hidden');
-            sheetContainer.innerHTML = '';
-            if (createdObjectUrl) URL.revokeObjectURL(createdObjectUrl);
-        });
+        btn.addEventListener('click', closeSheet);
     }
 
     const overlayHandler = (e) => {
         if (e.target === sheetContainer) {
-            sheetContainer.classList.add('hidden');
-            sheetContainer.innerHTML = '';
-            if (createdObjectUrl) URL.revokeObjectURL(createdObjectUrl);
+            closeSheet();
             sheetContainer.removeEventListener('click', overlayHandler);
         }
     };

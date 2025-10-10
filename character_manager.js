@@ -162,6 +162,36 @@ function base64ToArrayBuffer(base64) {
     return bytes.buffer;
 }
 
+/**
+ * Populates a select element with a list of characters.
+ * @param {string} selectId - The ID of the select element to populate.
+ * @param {boolean} includeNoneOption - Whether to include a "None" or "All" option.
+ * @param {string} noneOptionText - The text for the none/all option.
+ */
+export async function populateCharacterSelect(selectId, includeNoneOption = true, noneOptionText = 'Nenhum') {
+    const selectElement = document.getElementById(selectId);
+    if (!selectElement) return;
+
+    selectElement.innerHTML = ''; // Clear existing options
+
+    if (includeNoneOption) {
+        const noneOption = document.createElement('option');
+        noneOption.value = '';
+        noneOption.textContent = noneOptionText;
+        selectElement.appendChild(noneOption);
+    }
+
+    const characters = await getData('rpgCards');
+    if (characters) {
+        characters.sort((a, b) => a.title.localeCompare(b.title)).forEach(char => {
+            const option = document.createElement('option');
+            option.value = char.id;
+            option.textContent = char.title;
+            selectElement.appendChild(option);
+        });
+    }
+}
+
 function createSelectedItemElement(data, type) {
     const containerId = type === 'item' ? 'selected-items-container' : 'selected-magics-container';
     const container = document.getElementById(containerId);
@@ -675,4 +705,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-

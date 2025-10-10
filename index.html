@@ -7,9 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./animations.css"> <!-- Adicionado o novo CSS de animações -->
     <style>
         /* Estilos para o formulário de sobreposição */
-        #creation-section, #character-sheet-container, #spell-creation-section, #spell-sheet-container, #item-sheet-container, #item-creation-section {
+        #creation-section, #character-sheet-container, #spell-creation-section, #spell-sheet-container, #item-sheet-container, #item-creation-section, #nested-sheet-container {
             position: fixed;
             top: 0;
             left: 0;
@@ -20,12 +21,10 @@
             align-items: center;
             justify-content: center;
             z-index: 60; /* Maior que a navegação */
-            transition: opacity 0.3s ease-in-out;
         }
 
-        #creation-section.hidden, #character-sheet-container.hidden, #spell-creation-section.hidden, #spell-sheet-container.hidden, #item-sheet-container.hidden, #item-creation-section.hidden {
+        #creation-section.hidden, #character-sheet-container.hidden, #spell-creation-section.hidden, #spell-sheet-container.hidden, #item-sheet-container.hidden, #item-creation-section.hidden, #nested-sheet-container.hidden {
             display: none;
-            opacity: 0;
             pointer-events: none; /* Impede cliques quando oculto */
         }
 
@@ -71,6 +70,8 @@
     <div id="spell-sheet-container" class="hidden"></div>
     <!-- Container da Ficha de Item -->
     <div id="item-sheet-container" class="hidden"></div>
+    <!-- Contêiner para fichas aninhadas (ex: relacionamentos) -->
+    <div id="nested-sheet-container" class="hidden"></div>
     
     <!-- Formulário de Criação de Personagem -->
     <div id="creation-section" class="hidden">
@@ -267,6 +268,13 @@
                     </div>
                 </div>
                 
+                <div>
+                    <label for="spellCharacterOwner" class="block text-sm font-semibold mb-1">Personagem</label>
+                    <select id="spellCharacterOwner" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600">
+                        <!-- Options will be populated by JS -->
+                    </select>
+                </div>
+
                 <!-- Campos de Execução e Custo de Mana -->
                 <div id="mana-cost-wrapper" class="grid grid-cols-2 gap-4">
                     <div>
@@ -357,6 +365,13 @@
                 </div>
                 <div><label for="itemName" class="block text-sm font-semibold mb-1">Nome</label><input type="text" id="itemName" placeholder="Ex: Poção de Cura" required class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></div>
                 
+                <div>
+                    <label for="itemCharacterOwner" class="block text-sm font-semibold mb-1">Personagem</label>
+                    <select id="itemCharacterOwner" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600">
+                        <!-- Options will be populated by JS -->
+                    </select>
+                </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label for="itemType" class="block text-sm font-semibold mb-1">Tipo</label>
@@ -500,4 +515,3 @@
     <script type="module" src="./navigation_manager.js"></script>
 </body>
 </html>
-
