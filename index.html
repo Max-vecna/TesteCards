@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="./animations.css"> <!-- Adicionado o novo CSS de animações -->
     <style>
         /* Estilos para o formulário de sobreposição */
-        #creation-section, #character-sheet-container, #spell-creation-section, #spell-sheet-container, #item-sheet-container, #item-creation-section, #nested-sheet-container {
+        #creation-section, #character-sheet-container, #spell-creation-section, #spell-sheet-container, #item-sheet-container, #item-creation-section, #attack-creation-section, #attack-sheet-container, #nested-sheet-container {
             position: fixed;
             top: 0;
             left: 0;
@@ -23,7 +23,7 @@
             z-index: 60; /* Maior que a navegação */
         }
 
-        #creation-section.hidden, #character-sheet-container.hidden, #spell-creation-section.hidden, #spell-sheet-container.hidden, #item-sheet-container.hidden, #item-creation-section.hidden, #nested-sheet-container.hidden {
+        #creation-section.hidden, #character-sheet-container.hidden, #spell-creation-section.hidden, #spell-sheet-container.hidden, #item-sheet-container.hidden, #item-creation-section.hidden, #attack-creation-section.hidden, #attack-sheet-container.hidden, #nested-sheet-container.hidden {
             display: none;
             pointer-events: none; /* Impede cliques quando oculto */
         }
@@ -51,6 +51,16 @@
 
     <!-- Main Content -->
     <div id="main-content" class="main-content flex-grow w-full">
+        <!-- DB Actions -->
+        <div class="absolute top-4 right-1 z-50 flex flex-col gap-3">
+            <button id="export-db-btn" class="w-8 h-8 rounded-full bg-gray-700 hover:bg-indigo-600 text-white font-bold flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform" title="Exportar Banco de Dados">
+                <i class="fas fa-file-download"></i>
+            </button>
+            <button id="import-db-btn" class="w-8 h-8 rounded-full bg-gray-700 hover:bg-green-600 text-white font-bold flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform" title="Importar Banco de Dados">
+                <i class="fas fa-file-upload"></i>
+            </button>
+        </div>
+
         <!-- Loader for content changes -->
         <div id="content-loader" class="hidden absolute inset-0 flex items-center justify-center bg-gray-800/70 z-50">
             <div class="w-16 h-16 border-4 border-t-transparent border-indigo-400 rounded-full animate-spin"></div>
@@ -70,6 +80,8 @@
     <div id="spell-sheet-container" class="hidden"></div>
     <!-- Container da Ficha de Item -->
     <div id="item-sheet-container" class="hidden"></div>
+    <!-- Container da Ficha de Ataque -->
+    <div id="attack-sheet-container" class="hidden"></div>
     <!-- Contêiner para fichas aninhadas (ex: relacionamentos) -->
     <div id="nested-sheet-container" class="hidden"></div>
     
@@ -202,15 +214,15 @@
                     <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700 space-y-4">               
                         <div>
                             <h4 class="text-sm font-semibold text-gray-400 mb-2">Equipamento Especial (Concede Slots)</h4>
-                            <div id="special-equipment-container" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2"></div>
+                            <div id="special-equipment-container" class="grid grid-cols-5 sm:grid-cols-5 md:grid-cols-6 gap-2"></div>
                         </div>
                         <div>
                             <h4 class="text-sm font-semibold text-gray-400 mb-2">Itens com Carga</h4>
-                            <div id="item-slots-container" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2"></div>
+                            <div id="item-slots-container" class="grid grid-cols-5 sm:grid-cols-5 md:grid-cols-6 gap-2"></div>
                         </div>
                         <div>
                             <h4 class="text-sm font-semibold text-gray-400 mb-2">Itens de Carga Zero</h4>
-                            <div id="zero-charge-items-container" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2"></div>
+                            <div id="zero-charge-items-container" class="grid grid-cols-5 sm:grid-cols-5 md:grid-cols-6 gap-2"></div>
                         </div>
                     </div>
                 </div>
@@ -222,6 +234,14 @@
                         <!-- Magias selecionadas aparecerão aqui -->
                     </div>
                     <button type="button" id="add-magic-to-char-btn" class="mt-2 w-full py-2 px-4 rounded-lg text-sm font-bold text-white bg-teal-600 hover:bg-teal-700 transition-colors">Adicionar Magia/Habilidade</button>
+                </div>
+                <!-- Seção de Ataques -->
+                <div>
+                    <h3 class="text-xl font-bold text-red-400 mb-2">Ataques</h3>
+                    <div id="selected-attacks-container" class="space-y-2 bg-gray-700 p-2 rounded-lg min-h-[50px]">
+                        <!-- Ataques selecionados aparecerão aqui -->
+                    </div>
+                    <button type="button" id="add-attack-to-char-btn" class="mt-2 w-full py-2 px-4 rounded-lg text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-colors">Adicionar Ataque</button>
                 </div>
                 <!-- Seção de Relacionamentos -->
                 <div>
@@ -427,6 +447,44 @@
         </div>
     </div>
 
+    <!-- Formulário de Criação de Ataque -->
+    <div id="attack-creation-section" class="hidden">
+        <div class="form-container">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="attack-form-title" class="text-2xl font-bold text-red-400">Novo Ataque</h2>
+                <button id="close-attack-form-btn" class="text-gray-400 hover:text-white text-3xl font-bold">&times;</button>
+            </div>
+            <form id="attackForm" class="space-y-6">
+                <div>
+                    <h3 class="text-xl font-bold text-red-400 mb-2">Ícone</h3>
+                    <div class="mt-4 text-center">
+                        <label for="attackImageUpload" class="block text-sm font-semibold mb-1 cursor-pointer">Faça upload de uma imagem:</label>
+                        <input type="file" id="attackImageUpload" accept="image/*" class="file-upload-input">
+                        <img id="attackImagePreview" class="mt-4 mx-auto w-32 h-32 object-cover rounded-full border-4 border-gray-600 hidden" alt="Pré-visualização do Ataque">
+                    </div>
+                </div>
+                <div>
+                    <label for="attackName" class="block text-sm font-semibold mb-1">Nome</label>
+                    <input type="text" id="attackName" placeholder="Ex: Golpe Poderoso" required class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600">
+                </div>
+                <div>
+                    <label for="attackCharacterOwner" class="block text-sm font-semibold mb-1">Personagem</label>
+                    <select id="attackCharacterOwner" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600">
+                        <!-- Options will be populated by JS -->
+                    </select>
+                </div>
+                <div>
+                    <label for="attackDescription" class="block text-sm font-semibold mb-1">Descrição</label>
+                    <textarea id="attackDescription" rows="4" placeholder="Ex: Um ataque concentrado que causa dano extra." class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600"></textarea>
+                </div>
+                <button type="submit" id="attackSubmitButton" class="w-full py-3 px-4 rounded-full text-lg font-bold text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 focus:outline-none transition duration-300 ease-in-out transform hover:scale-105 shadow-xl">
+                    Salvar Ataque
+                </button>
+            </form>
+        </div>
+    </div>
+
+
     <!-- Modal de Seleção de Personagem -->
     <div id="select-character-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4" style="z-index: 1000000000000000000;">
         <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 w-full max-w-sm border border-gray-700">
@@ -480,6 +538,9 @@
         </div>
     </div>
 
+    <!-- Hidden file input for DB import -->
+    <input type="file" id="import-db-input" accept=".json" class="hidden">
+
     <!-- Fixed Bottom Navigation Menu -->
     <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 bg-gray-800/80 backdrop-blur-sm p-2 flex  gap-2 z-50 shadow-lg" style="width: calc(100%); justify-content: space-around; padding: .75rem">
         <button class="nav-button px-4 py-2 text-sm md:px-6 md:py-3 md:text-lg font-semibold rounded-full focus:outline-none flex items-center gap-2 active" data-target="personagem-em-jogo" title="Personagem em Jogo">
@@ -489,7 +550,11 @@
         <button class="nav-button px-4 py-2 text-sm md:px-6 md:py-3 md:text-lg font-semibold rounded-full focus:outline-none flex items-center gap-2" data-target="personagem" title="Personagens">
             <i class="fas fa-users"></i>
             <span class="hidden md:inline">Personagens</span>
-        </button>       
+        </button>
+        <button class="nav-button px-4 py-2 text-sm md:px-6 md:py-3 md:text-lg font-semibold rounded-full focus:outline-none flex items-center gap-2" data-target="ataques" title="Ataques">
+            <i class="fas fa-khanda"></i> <!-- Um ícone de espadas cruzadas -->
+            <span class="hidden md:inline">Ataques</span>
+        </button>
         <button class="nav-button px-4 py-2 text-sm md:px-6 md:py-3 md:text-lg font-semibold rounded-full focus:outline-none flex items-center gap-2" data-target="magias" title="Magias">
             <i class="fas fa-magic"></i>
             <span class="hidden md:inline">Magias</span>
@@ -501,7 +566,7 @@
         <button class="nav-button px-4 py-2 text-sm md:px-6 md:py-3 md:text-lg font-semibold rounded-full focus:outline-none flex items-center gap-2" data-target="itens" title="Itens">
             <i class="fas fa-box"></i>
             <span class="hidden md:inline">Itens</span>
-        </button>       
+        </button>
     </nav>
 
     <script src="./splash_screen.js"></script>
@@ -512,6 +577,8 @@
     <script type="module" src="./magic_manager.js"></script>
     <script type="module" src="./item_renderer.js"></script>
     <script type="module" src="./item_manager.js"></script>
+    <script type="module" src="./attack_renderer.js"></script>
+    <script type="module" src="./attack_manager.js"></script>
     <script type="module" src="./navigation_manager.js"></script>
 </body>
 </html>

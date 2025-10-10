@@ -83,7 +83,7 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
         console.error("Erro ao extrair cor média:", e);
         return '#4a5568';
     });
-console.log(predominantColor);
+
     const origin = isModal ?  "" : "transform-origin: top left";
     const transformProp = isModal ? '' : `transform: scale(0.22);`;
     
@@ -112,32 +112,47 @@ console.log(predominantColor);
 
     const uniqueId = `spell-${Date.now()}`;
     
-    const statsHtml = `
-        <div class="grid grid-cols-5 gap-x-2 text-xs my-2 text-center text-gray-200">
-            <div>
-                <p class="font-bold tracking-wider">EX</p>
-                <p class="text-gray-300 truncate" title="${spellData.execution || '-'}">${spellData.execution || '-'}</p>
+    // Verifica se há dados para a barra de estatísticas
+    const statsFields = ['execution', 'range', 'target', 'duration', 'resistencia'];
+    const hasStatsInfo = statsFields.some(field => spellData[field]);
+    let statsHtml = '';
+    if (hasStatsInfo) {
+        statsHtml = `
+            <div class="grid grid-cols-5 gap-x-2 text-xs my-2 text-center text-gray-200">
+                <div>
+                    <p class="font-bold tracking-wider">EX</p>
+                    <p class="text-gray-300 truncate" title="${spellData.execution || '-'}">${spellData.execution || '-'}</p>
+                </div>
+                <div>
+                    <p class="font-bold tracking-wider">AL</p>
+                    <p class="text-gray-300 truncate" title="${spellData.range || '-'}">${spellData.range || '-'}</p>
+                </div>
+                <div>
+                    <p class="font-bold tracking-wider">AV</p>
+                    <p class="text-gray-300 truncate" title="${spellData.target || '-'}">${spellData.target || '-'}</p>
+                </div>
+                <div>
+                    <p class="font-bold tracking-wider">DU</p>
+                    <p class="text-gray-300 truncate" title="${spellData.duration || '-'}">${spellData.duration || '-'}</p>
+                </div>
+                <div>
+                    <p class="font-bold tracking-wider">CD</p>
+                    <p class="text-gray-300 truncate" title="${spellData.resistencia || '-'}">${spellData.resistencia || '-'}</p>
+                </div>
             </div>
-            <div>
-                <p class="font-bold tracking-wider">AL</p>
-                <p class="text-gray-300 truncate" title="${spellData.range || '-'}">${spellData.range || '-'}</p>
-            </div>
-            <div>
-                <p class="font-bold tracking-wider">AV</p>
-                <p class="text-gray-300 truncate" title="${spellData.target || '-'}">${spellData.target || '-'}</p>
-            </div>
-            <div>
-                <p class="font-bold tracking-wider">DU</p>
-                <p class="text-gray-300 truncate" title="${spellData.duration || '-'}">${spellData.duration || '-'}</p>
-            </div>
-            <div>
-                <p class="font-bold tracking-wider">CD</p>
-                <p class="text-gray-300 truncate" title="${spellData.resistencia || '-'}">${spellData.resistencia || '-'}</p>
-            </div>
-        </div>
-    `;
+        `;
+    }
 
-    const circleHtml = spellData.circle ? `<span class="text-lg font-normal text-gray-300">${spellData.circle}º Círculo</span>` : '';
+    // Verifica se há dados para a barra do topo (círculo/mana)
+    const hasTopBarInfo = (spellData.circle && spellData.circle > 0) || (spellData.manaCost && spellData.manaCost > 0);
+    let topBarHtml = '';
+    if (hasTopBarInfo) {
+        const circleText = spellData.circle > 0 ? `${spellData.circle}º Círculo` : '';
+        const manaText = spellData.manaCost > 0 ? `${spellData.manaCost} PM` : '';
+        const separator = circleText && manaText ? ' - ' : '';
+        topBarHtml = `<p class="text-sm font-medium">${circleText}${separator}${manaText}</p>`;
+    }
+
 
     const sheetHtml = `
         <button id="close-spell-sheet-btn-${uniqueId}" class="absolute top-4 right-4 bg-red-600 hover:text-white z-20 thumb-btn" style="display:${isModal? "block": "none"};"><i class="fa-solid fa-xmark"></i></button>
@@ -146,10 +161,10 @@ console.log(predominantColor);
             
             <div class="mt-auto p-4 md:p-6 w-full text-left absolute bottom-0" style="background: ${predominantColor.color30}">
                 <div class="sheet-card-text-panel">
-                    <p class="text-sm font-medium">${circleHtml} - ${spellData.manaCost} PM</p>
+                    ${topBarHtml}
                     <h2 class="text-2xl md:text-3xl font-bold tracking-tight text-white">${spellData.name}</h2>
                 
-                    <div class="sheet-card-divider"></div>
+                    ${hasTopBarInfo || hasStatsInfo ? '<div class="sheet-card-divider"></div>' : ''}
                     ${statsHtml}
                     <div class="space-y-3 max-h-32 overflow-y-auto pr-2">
                         ${spellData.description ? `

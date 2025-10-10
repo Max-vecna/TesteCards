@@ -1,6 +1,7 @@
 import { saveData, getData } from './local_db.js'; 
 import { renderFullItemSheet } from './item_renderer.js';
 import { renderFullSpellSheet } from './magic_renderer.js';
+import { renderFullAttackSheet } from './attack_renderer.js';
 
 const PERICIAS_DATA = {
      "AGILIDADE": [ "Acrobacia", "Iniciativa", "Montaria", "Furtividade", "Pontaria", "Ladinagem", "Reflexos"],
@@ -163,7 +164,39 @@ async function populateInventory(container, characterData, uniqueId) {
         skillsHtml = `<div><h4 class="font-bold text-cyan-300 border-b border-cyan-300/30 pb-1 mb-2 px-2">Habilidades</h4><p class="text-xs text-gray-400 italic px-2">Nenhuma</p></div>`;
     }
 
-    scrollArea.innerHTML = inventoryHtml + magicsHtml + skillsHtml;
+    // --- ATAQUES ---
+    let attacksHtml = '';
+    if (characterData.attacks && characterData.attacks.length > 0) {
+        const attackPromises = characterData.attacks.map(id => getData('rpgAttacks', id));
+        const attacks = (await Promise.all(attackPromises)).filter(Boolean);
+
+        attacksHtml = `<div><h4 class="font-bold text-red-400 border-b border-red-400/30 pb-1 mb-2 px-2">Ataques</h4>`;
+        if (attacks.length > 0) {
+            attacksHtml += '<div class="grid grid-cols-2 gap-x-4 gap-y-1 px-2">';
+            attacks.forEach(attack => {
+                let iconHtml = '';
+                if (attack.image) {
+                    const imageUrl = URL.createObjectURL(bufferToBlob(attack.image, attack.imageMimeType));
+                    iconHtml = `<img src="${imageUrl}" class="w-5 h-5 rounded-full object-cover flex-shrink-0" style="image-rendering: pixelated;">`;
+                } else {
+                    iconHtml = `<i class="fas fa-khanda w-5 text-center text-gray-400"></i>`;
+                }
+                attacksHtml += `
+                    <div class="text-xs p-1 rounded hover:bg-white/10 cursor-pointer flex items-center gap-2 truncate" data-id="${attack.id}" data-type="attack" title="${attack.name}">
+                        ${iconHtml}
+                        <span class="truncate">${attack.name}</span>
+                    </div>`;
+            });
+            attacksHtml += '</div>';
+        } else {
+            attacksHtml += '<p class="text-xs text-gray-400 italic px-2">Nenhum</p>';
+        }
+        attacksHtml += '</div>';
+    } else {
+         attacksHtml = `<div><h4 class="font-bold text-red-400 border-b border-red-400/30 pb-1 mb-2 px-2">Ataques</h4><p class="text-xs text-gray-400 italic px-2">Nenhum</p></div>`;
+    }
+
+    scrollArea.innerHTML = inventoryHtml + magicsHtml + skillsHtml + attacksHtml;
 
     scrollArea.addEventListener('click', async (e) => {
         const target = e.target.closest('[data-id][data-type]');
@@ -176,6 +209,9 @@ async function populateInventory(container, characterData, uniqueId) {
         } else if (type === 'spell') {
             const spellData = await getData('rpgSpells', id);
             if (spellData) await renderFullSpellSheet(spellData, true, 16/9);
+        } else if (type === 'attack') {
+            const attackData = await getData('rpgAttacks', id);
+            if (attackData) await renderFullAttackSheet(attackData, true, 16/9);
         }
     });
 }
@@ -529,10 +565,12 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     if (!isModal && !isInPlay) {
         const inventoryCount = characterData.items?.length || 0;
         const magicCount = characterData.spells?.length || 0;
+        const attackCount = characterData.attacks?.length || 0;
         const thumbnailInventoryHtml = `
             <div class="absolute bottom-2 right-2 flex flex-col items-end text-xs opacity-80 bg-black/50 p-1 rounded">
                 <div class="flex items-center gap-1"><i class="fas fa-box"></i> ${inventoryCount}</div>
                 <div class="flex items-center gap-1"><i class="fas fa-magic"></i> ${magicCount}</div>
+                <div class="flex items-center gap-1"><i class="fas fa-khanda"></i> ${attackCount}</div>
             </div>
         `;
         return finalHtml.replace('<!-- THUMBNAIL_EXTRAS -->', thumbnailInventoryHtml);
@@ -551,6 +589,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     const relationshipsGrid = sheetContainer.querySelector(`#relationships-grid-${uniqueId}`);
     if (relationshipsGrid) {
         relationshipsGrid.addEventListener('click', (e) => {
+            // Only toggle if the click is on the grid background itself, not a card item
             if (e.target === relationshipsGrid) {
                 relationshipsGrid.classList.toggle('expanded');
             }
@@ -561,14 +600,17 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
         card.addEventListener('click', async (e) => {
             e.stopPropagation();
             const grid = card.parentElement;
-            if (grid.classList.contains('expanded')) {
+
+            // If the grid is not expanded, expand it.
+            if (!grid.classList.contains('expanded')) {
+                grid.classList.add('expanded');
+            } else {
+            // If it's already expanded, the click means "view character".
                 const relatedCharData = await getData('rpgCards', card.dataset.id);
                 if (relatedCharData) {
                     const nestedContainer = document.getElementById('nested-sheet-container');
                     await renderFullCharacterSheet(relatedCharData, true, 16/9, false, nestedContainer);
                 }
-            } else {
-                grid.classList.add('expanded');
             }
         });
     });

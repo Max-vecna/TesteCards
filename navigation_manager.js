@@ -1,7 +1,9 @@
 import { populatePericiasCheckboxes, saveCharacterCard, editCard, importCard, getCurrentEditingCardId, exportCard, resetCharacterFormState, populateCharacterSelect } from './character_manager.js';
 import { populateSpellAumentosSelect, saveSpellCard, editSpell, importSpell, exportSpell } from './magic_manager.js';
 import { populateItemAumentosSelect, saveItemCard, editItem, importItem, removeItem, exportItem } from './item_manager.js';
-import { openDatabase, removeData, getData, saveData } from './local_db.js';
+import { saveAttackCard, editAttack, removeAttack, exportAttack, importAttack } from './attack_manager.js';
+import { renderFullAttackSheet } from './attack_renderer.js';
+import { openDatabase, removeData, getData, saveData, exportDatabase, importDatabase } from './local_db.js';
 import { renderFullCharacterSheet } from './card-renderer.js';
 import { renderFullSpellSheet } from './magic_renderer.js';
 import { renderFullItemSheet } from './item_renderer.js';
@@ -67,100 +69,131 @@ export async function openSelectionModal(type) {
     const isItem = type === 'item';
     let storeName;
     switch(type) {
-        case 'item':
-            storeName = 'rpgItems';
-            break;
-        case 'magic':
-            storeName = 'rpgSpells';
-            break;
-        case 'relationship':
-            storeName = 'rpgCards';
-            break;
-        default:
-            storeName = 'rpgSpells'; // Fallback
+        case 'item': storeName = 'rpgItems'; break;
+        case 'magic': storeName = 'rpgSpells'; break;
+        case 'relationship': storeName = 'rpgCards'; break;
+        case 'attack': storeName = 'rpgAttacks'; break;
+        default: storeName = 'rpgSpells';
     }
 
-    const title = isItem ? 'Selecionar Item' : (type === 'magic' ? 'Selecionar Magia/Habilidade' : 'Selecionar Relacionamento');
+    const title = isItem ? 'Selecionar Item' : (type === 'magic' ? 'Selecionar Magia/Habilidade' : (type === 'attack' ? 'Selecionar Ataque' : 'Selecionar Relacionamento'));
     let color = 'text-gray-300';
     if (isItem) color = 'text-amber-300';
     if (type === 'magic') color = 'text-teal-300';
     if (type === 'relationship') color = 'text-purple-300';
+    if (type === 'attack') color = 'text-red-400';
 
-    
     selectionModalTitle.className = `text-xl font-bold ${color}`;
     selectionModalTitle.textContent = title;
-    
-    let data = await getData(storeName);
 
-    if (type === 'relationship') {
-        const currentCharacterId = getCurrentEditingCardId();
-        if(data && Array.isArray(data)) {
-            data = data.filter(c => c.id !== currentCharacterId);
-        }
-    }
-
-    selectionModalList.innerHTML = '';
-
-    if (!data || data.length === 0) {
-        let contentType = 'conteúdo';
-        if(isItem) contentType = 'item';
-        else if (type === 'magic') contentType = 'magia/habilidade';
-        else if (type === 'relationship') contentType = 'personagem';
-        selectionModalList.innerHTML = `<p class="text-gray-400 text-center p-4">Nenhum ${contentType} encontrado. Crie um primeiro!</p>`;
-        return;
-    }
-
-    data.forEach(item => {
-        const el = document.createElement('button');
-        el.className = 'w-full text-left p-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-3';
-        
-        let iconHtml = '';
-        if (item.image) {
-            const imageUrl = URL.createObjectURL(bufferToBlob(item.image, item.imageMimeType));
-            iconHtml = `<img src="${imageUrl}" class="w-8 h-8 rounded-full object-cover flex-shrink-0" style="image-rendering: pixelated;">`;
-        } else {
-            let iconClass;
-            switch(type) {
-                case 'item':
-                    iconClass = 'fa-box';
-                    break;
-                case 'magic':
-                    iconClass = 'fa-magic';
-                    break;
-                case 'relationship':
-                    iconClass = 'fa-user';
-                    break;
-                default:
-                    iconClass = 'fa-question-circle';
-            }
-            iconHtml = `<i class="fas ${iconClass} w-8 text-center text-xl text-gray-400"></i>`;
-        }
-
-        el.innerHTML = `
-            ${iconHtml}
-            <div>
-                <p class="font-semibold">${item.name || item.title}</p>
-                ${type === 'magic' && item.type ? `<p class="text-xs text-gray-400 capitalize">${item.type}</p>` : ''}
+    if (type !== 'relationship') {
+        const filterHtml = `
+            <div class="mb-4">
+                <label for="selection-modal-filter" class="text-sm font-semibold mr-2">Filtrar por Personagem:</label>
+                <select id="selection-modal-filter" class="px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 text-sm w-full mt-1">
+                </select>
             </div>
         `;
+        selectionModalList.innerHTML = filterHtml;
+    } else {
+        selectionModalList.innerHTML = '';
+    }
 
-        el.addEventListener('click', () => {
-            let eventType = 'addItemToCharacter';
-            let detail = { data: item };
+    const listContainer = document.createElement('div');
+    listContainer.className = 'space-y-2';
+    selectionModalList.appendChild(listContainer);
 
-            if (type === 'item') {
-                detail.type = 'item';
-            } else if (type === 'magic') {
-                detail.type = 'magic';
-            } else if (type === 'relationship') {
-                eventType = 'addRelationshipToCharacter';
+    const renderList = async (characterId) => {
+        listContainer.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></div>';
+
+        let data = await getData(storeName);
+
+        if (type === 'relationship') {
+            const currentCharacterId = getCurrentEditingCardId();
+            if (data && Array.isArray(data)) {
+                data = data.filter(c => c.id !== currentCharacterId);
             }
+        } else if (characterId && characterId !== 'all') {
+            data = data.filter(item => item.characterId === characterId);
+        }
+
+        listContainer.innerHTML = '';
+
+        if (!data || data.length === 0) {
+            let contentType = 'conteúdo';
+            if(isItem) contentType = 'item';
+            else if (type === 'magic') contentType = 'magia/habilidade';
+            else if (type === 'relationship') contentType = 'personagem';
+            else if (type === 'attack') contentType = 'ataque';
+            listContainer.innerHTML = `<p class="text-gray-400 text-center p-4">Nenhum ${contentType} encontrado.</p>`;
+            return;
+        }
+
+        data.forEach(item => {
+            const el = document.createElement('button');
+            el.className = 'w-full text-left p-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-3';
             
-            document.dispatchEvent(new CustomEvent(eventType, { detail }));
-            selectionModal.classList.add('hidden');
+            let iconHtml = '';
+            if (item.image) {
+                const imageUrl = URL.createObjectURL(bufferToBlob(item.image, item.imageMimeType));
+                iconHtml = `<img src="${imageUrl}" class="w-8 h-8 rounded-full object-cover flex-shrink-0" style="image-rendering: pixelated;">`;
+            } else {
+                let iconClass;
+                switch(type) {
+                    case 'item': iconClass = 'fa-box'; break;
+                    case 'magic': iconClass = 'fa-magic'; break;
+                    case 'relationship': iconClass = 'fa-user'; break;
+                    case 'attack': iconClass = 'fa-khanda'; break;
+                    default: iconClass = 'fa-question-circle';
+                }
+                iconHtml = `<i class="fas ${iconClass} w-8 text-center text-xl text-gray-400"></i>`;
+            }
+
+            el.innerHTML = `
+                ${iconHtml}
+                <div>
+                    <p class="font-semibold">${item.name || item.title}</p>
+                    ${type === 'magic' && item.type ? `<p class="text-xs text-gray-400 capitalize">${item.type}</p>` : ''}
+                </div>
+            `;
+
+            el.addEventListener('click', () => {
+                let eventType = 'addItemToCharacter';
+                let detail = { data: item, type };
+
+                if (type === 'relationship') {
+                    eventType = 'addRelationshipToCharacter';
+                }
+                
+                document.dispatchEvent(new CustomEvent(eventType, { detail }));
+                selectionModal.classList.add('hidden');
+            });
+            listContainer.appendChild(el);
         });
-        selectionModalList.appendChild(el);
-    });
+    };
+
+    if (type !== 'relationship') {
+        const filterSelect = document.getElementById('selection-modal-filter');
+        const allCharacters = await getData('rpgCards');
+        let optionsHtml = '<option value="all">Todos</option><option value="">Nenhum</option>';
+        if (allCharacters) {
+            allCharacters.sort((a,b) => a.title.localeCompare(b.title)).forEach(char => {
+                optionsHtml += `<option value="${char.id}">${char.title}</option>`;
+            });
+        }
+        filterSelect.innerHTML = optionsHtml;
+        
+        const currentCharacterId = getCurrentEditingCardId();
+        filterSelect.value = currentCharacterId || 'all';
+        
+        filterSelect.addEventListener('change', () => {
+            renderList(filterSelect.value);
+        });
+        
+        renderList(filterSelect.value);
+    } else {
+        renderList(null);
+    }
 }
 
 function debounce(fn, wait = 200) {
@@ -172,7 +205,7 @@ function debounce(fn, wait = 200) {
 }
 
 function centerSheetInMiniCard(miniCard) {
-    const sheet = miniCard.querySelector('#character-sheet, #spell-sheet, #item-sheet');
+    const sheet = miniCard.querySelector('#character-sheet, #spell-sheet, #item-sheet, #attack-sheet');
     if (!sheet) return;
 
     const thumbRect = miniCard.getBoundingClientRect();
@@ -226,12 +259,29 @@ function showCustomConfirm(message) {
     });
 }
 
+function showCustomAlert(message) {
+    const modalId = `custom-alert-modal-${Date.now()}`;
+    const modalHtml = `
+        <div id="${modalId}" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 w-full max-w-sm border border-gray-700">
+                <p class="text-center text-lg mb-4">${message}</p>
+                <button class="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-bold">OK</button>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById(modalId);
+    modal.querySelector('button').addEventListener('click', () => {
+        modal.remove();
+    });
+}
+
 async function renderCharacterList() {
     const contentDisplay = document.getElementById('content-display');
     const allCharacters = await getData('rpgCards');
 
     const container = document.createElement('div');
-    container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 p-6 pt-0';
+    container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 p-6';
     
     const addButtonWrapper = document.createElement('div');
     addButtonWrapper.className = 'relative w-full h-full aspect-square';
@@ -534,6 +584,111 @@ async function renderItemList() {
     });
 }
 
+async function renderAttackList() {
+    const contentDisplay = document.getElementById('content-display');
+    const currentCharacterFilter = sessionStorage.getItem('ataques-filter') || 'all';
+
+    const filterContainer = document.createElement('div');
+    filterContainer.className = 'w-full flex justify-end items-center p-4 pt-2';
+    filterContainer.innerHTML = `
+        <label for="ataques-character-filter" class="text-sm font-semibold mr-2">Filtrar por Personagem:</label>
+        <select id="ataques-character-filter" class="px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 text-sm" style="min-width: 150px;">
+            <option value="all">Todos</option>
+            <option value="">Nenhum</option>
+        </select>
+    `;
+    contentDisplay.appendChild(filterContainer);
+
+    const filterSelect = document.getElementById('ataques-character-filter');
+    const characters = await getData('rpgCards');
+    characters.sort((a, b) => a.title.localeCompare(b.title)).forEach(char => {
+        const option = document.createElement('option');
+        option.value = char.id;
+        option.textContent = char.title;
+        filterSelect.appendChild(option);
+    });
+    filterSelect.value = currentCharacterFilter;
+
+    let allAttacks = await getData('rpgAttacks');
+    if (filterSelect.value && filterSelect.value !== 'all') {
+        allAttacks = allAttacks.filter(item => item.characterId === filterSelect.value);
+    }
+
+    const container = document.createElement('div');
+    container.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5 p-6 pt-0';
+
+    const addButtonWrapper = document.createElement('div');
+    addButtonWrapper.className = 'relative w-full h-full aspect-square';
+    addButtonWrapper.style.aspectRatio = '120 / 160';
+    addButtonWrapper.innerHTML = `
+        <button class="add-card-button absolute inset-0" data-action="add-attack">
+            <i class="fas fa-plus text-2xl mb-2"></i>
+            <span class="text-sm font-semibold">Adicionar Ataque</span>
+        </button>
+        <div class="absolute -bottom-3 w-full flex justify-center gap-2">
+            <button class="thumb-btn bg-red-200 hover:bg-red-600 rounded-full w-8 h-8 flex items-center justify-center" id="import-attack-btn" title="Importar Ataque (JSON)">
+                <i class="fas fa-upload text-xs"></i>
+            </button>
+            <input type="file" id="import-attack-json-input" accept=".json" class="hidden">
+        </div>
+    `;
+    container.appendChild(addButtonWrapper);
+
+    const cardElements = await Promise.all((allAttacks || []).map(async (attack) => {
+        const attackSheetHtml = await renderFullAttackSheet(attack, false, 16/11);
+        const cardWrapper = document.createElement('div');
+        cardWrapper.className = 'rpg-thumbnail bg-cover bg-center relative';
+        cardWrapper.dataset.action = "view";
+        cardWrapper.dataset.type = "attack";
+        cardWrapper.dataset.id = attack.id;
+        cardWrapper.innerHTML = `
+            <div class="miniCard absolute inset-0  flex flex-col items-center justify-center text-white p-2 rounded-lg">
+                ${attackSheetHtml}
+            </div>
+            <div class="thumbnail-actions absolute z-10">
+                <button class="thumb-btn thumb-btn-menu"><i class="fas fa-ellipsis-v"></i></button>
+                <div class="thumbnail-menu" data-type="attack">
+                    <button class="menu-item" data-action="edit" data-id="${attack.id}"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="menu-item" data-action="remove" data-id="${attack.id}"><i class="fas fa-trash-alt"></i> Excluir</button>
+                    <button class="menu-item" data-action="export-json" data-id="${attack.id}"><i class="fas fa-file-download"></i> Baixar</button>
+                </div>
+            </div>
+        `;
+        return cardWrapper;
+    }));
+
+    cardElements.forEach(el => container.appendChild(el));
+    contentDisplay.appendChild(container);
+
+    requestAnimationFrame(() => {
+        container.querySelectorAll('.miniCard').forEach(centerSheetInMiniCard);
+        cardElements.forEach((cardWrapper, index) => {
+            setTimeout(() => {
+                cardWrapper.classList.add('visible');
+            }, index * 200);
+        });
+    });
+
+    setupResizeCentering(container);
+
+    filterSelect.addEventListener('change', (e) => {
+        sessionStorage.setItem('ataques-filter', e.target.value);
+        renderContent('ataques');
+    });
+
+    document.getElementById('import-attack-btn').addEventListener('click', () => {
+        document.getElementById('import-attack-json-input').click();
+    });
+
+    document.getElementById('import-attack-json-input').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            await importAttack(file);
+            renderContent('ataques');
+        }
+    });
+}
+
 
 document.addEventListener('DOMContentLoaded', async () => {
     const style = document.createElement('style');
@@ -557,6 +712,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const creationSection = document.getElementById('creation-section');
     const spellCreationSection = document.getElementById('spell-creation-section');
     const itemCreationSection = document.getElementById('item-creation-section');
+    const attackCreationSection = document.getElementById('attack-creation-section');
     const selectCharacterModal = document.getElementById('select-character-modal');
     const selectCharacterList = document.getElementById('select-character-list');
     
@@ -564,6 +720,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const closeFormBtn = document.getElementById('close-form-btn');
     const closeSpellFormBtn = document.getElementById('close-spell-form-btn');
     const closeItemFormBtn = document.getElementById('close-item-form-btn');
+    const closeAttackFormBtn = document.getElementById('close-attack-form-btn');
     
     const cardForm = document.getElementById('cardForm');
     const formTitle = document.getElementById('form-title');
@@ -579,9 +736,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const itemFormTitle = document.getElementById('item-form-title');
     const itemSubmitButton = document.getElementById('itemSubmitButton');
 
+    const attackForm = document.getElementById('attackForm');
+    const attackFormTitle = document.getElementById('attack-form-title');
+    const attackSubmitButton = document.getElementById('attackSubmitButton');
+
     const selectionModal = document.getElementById('selection-modal');
     const selectionModalCloseBtn = document.getElementById('selection-modal-close-btn');
     
+    // DB Import/Export buttons
+    const importDbBtn = document.getElementById('import-db-btn');
+    const exportDbBtn = document.getElementById('export-db-btn');
+    const importDbInput = document.getElementById('import-db-input');
+
     renderContent = async (target) => {
         contentDisplay.innerHTML = '';
         //200.classList.remove('hidden');
@@ -591,9 +757,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         creationSection.classList.add('hidden');
         spellCreationSection.classList.add('hidden');
         itemCreationSection.classList.add('hidden');
+        attackCreationSection.classList.add('hidden');
 
         if (target !== 'personagem-em-jogo') {
-            const titleText = document.querySelector(`.nav-button[data-target="${target}"] .hidden`)?.textContent || target.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const titleText = document.querySelector(`.nav-button[data-target="${target}"] .hidden`)?.textContent || (target ? target.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) : '');
             contentDisplay.style.background = '';
             contentDisplay.style.boxShadow = '';
             if (mainContainer) mainContainer.style.overflowY = 'auto';
@@ -604,6 +771,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         else if (target === 'magias') await renderSpellList('magias');
         else if (target === 'habilidades') await renderSpellList('habilidades');
         else if (target === 'itens') await renderItemList();
+        else if (target === 'ataques') await renderAttackList();
         else if (target === 'personagem-em-jogo') await renderCharacterInGame();
 
        // contentLoader.classList.add('hidden');
@@ -679,6 +847,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     navButtons.forEach(button => {
         button.addEventListener('click', (event) => {
             const target = event.currentTarget.dataset.target;
+            if (!target) return; // Ignore clicks on nav-buttons without a data-target
+
             navButtons.forEach(btn => btn.classList.remove('active'));
             event.currentTarget.classList.add('active');
             renderContent(target);
@@ -713,6 +883,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             populateItemAumentosSelect();
             await populateCharacterSelect('itemCharacterOwner');
         });
+        if (action === "add-attack") showView(attackCreationSection, false, async () => {
+            attackForm.reset();
+            attackFormTitle.textContent = 'Novo Ataque';
+            attackSubmitButton.textContent = 'Criar Ataque';
+            await populateCharacterSelect('attackCharacterOwner');
+        });
         if (e.target.closest('#select-character-btn')) showCharacterSelectionModalForPlay();
     });
     
@@ -729,6 +905,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     closeFormBtn.addEventListener('click', () => closeForm(creationSection, 'personagem'));
     closeSpellFormBtn.addEventListener('click', () => closeForm(spellCreationSection, spellForm.dataset.type === 'habilidade' ? 'habilidades' : 'magias'));
     closeItemFormBtn.addEventListener('click', () => closeForm(itemCreationSection, 'itens'));
+    closeAttackFormBtn.addEventListener('click', () => closeForm(attackCreationSection, 'ataques'));
 
     selectCharacterCloseBtn.addEventListener('click', () => selectCharacterModal.classList.add('hidden'));
 
@@ -751,11 +928,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         closeForm(itemCreationSection, 'itens');
     });
 
+    attackForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await saveAttackCard(attackForm);
+        closeForm(attackCreationSection, 'ataques');
+    });
+
     document.getElementById('add-relationship-btn').addEventListener('click', () => {
         openSelectionModal('relationship');
     });
 
     document.getElementById('add-magic-to-char-btn').addEventListener('click', () => openSelectionModal('magic'));
+    document.getElementById('add-attack-to-char-btn').addEventListener('click', () => openSelectionModal('attack'));
     selectionModalCloseBtn.addEventListener('click', () => selectionModal.classList.add('hidden'));
 
     document.addEventListener('openItemSelectionModal', () => openSelectionModal('item'));
@@ -770,6 +954,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     await openDatabase();
     renderContent('personagem-em-jogo');
     
+    exportDbBtn.addEventListener('click', async () => {
+        try {
+            await exportDatabase();
+            showCustomAlert("Banco de dados exportado com sucesso!");
+        } catch (error) {
+            console.error("Erro ao exportar banco de dados:", error);
+            showCustomAlert("Ocorreu um erro ao exportar.");
+        }
+    });
+
+    importDbBtn.addEventListener('click', () => {
+        importDbInput.click();
+    });
+
+    importDbInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (await showCustomConfirm('Isso substituirá TODOS os dados atuais. Deseja continuar?')) {
+                try {
+                    await importDatabase(file);
+                    showCustomAlert("Banco de dados importado com sucesso!");
+                    const activeNav = document.querySelector('.nav-button.active')?.dataset.target || 'personagem-em-jogo';
+                    renderContent(activeNav); // Refresh the view
+                } catch (error) {
+                    console.error("Erro ao importar banco de dados:", error);
+                    showCustomAlert("Erro ao importar. Verifique se o arquivo é válido.");
+                } finally {
+                    // Reset input value to allow importing the same file again
+                    importDbInput.value = '';
+                }
+            }
+        }
+    });
+
+
     document.addEventListener('click', async (e) => {
         const thumbCard = e.target.closest('.rpg-thumbnail');
         const menuBtn = e.target.closest('.thumb-btn-menu');
@@ -781,6 +1000,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (cardType === 'character') await renderFullCharacterSheet(await getData('rpgCards', cardId), true, 16/9, false);
             if (cardType === 'spell') await renderFullSpellSheet(await getData('rpgSpells', cardId), true, 16/9);
             if (cardType === 'item') await renderFullItemSheet(await getData('rpgItems', cardId), true, 16/9);
+            if (cardType === 'attack') await renderFullAttackSheet(await getData('rpgAttacks', cardId), true, 16/9);
             return;
         }
         
@@ -852,17 +1072,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                     itemSubmitButton.textContent = 'Salvar Item';
                     showView(itemCreationSection, true);
                     await editItem(cardId);
+                } else if (cardType === 'attack') {
+                    attackFormTitle.textContent = 'Editando Ataque';
+                    attackSubmitButton.textContent = 'Salvar Ataque';
+                    showView(attackCreationSection, true);
+                    await editAttack(cardId);
                 }
             } else if (action === 'remove' || action === 'delete') {
                 if (await showCustomConfirm('Tem certeza que deseja excluir?')) {
-                    const storeName = cardType === 'character' ? 'rpgCards' : (cardType === 'spell' ? 'rpgSpells' : 'rpgItems');
-                    await removeData(storeName, cardId);
-                    renderContent(activeNav);
+                    let storeName;
+                    if(cardType === 'character') storeName = 'rpgCards';
+                    else if (cardType === 'spell') storeName = 'rpgSpells';
+                    else if (cardType === 'item') storeName = 'rpgItems';
+                    else if (cardType === 'attack') storeName = 'rpgAttacks';
+                    
+                    if(storeName) {
+                        await removeData(storeName, cardId);
+                        renderContent(activeNav);
+                    }
                 }
             } else if (action === 'export-json') {
                  if (cardType === 'character') await exportCard(cardId);
                  if (cardType === 'spell') await exportSpell(cardId);
                  if (cardType === 'item') await exportItem(cardId);
+                 if (cardType === 'attack') await exportAttack(cardId);
             } else if (action === 'set-in-play' || action === 'remove-from-play') {
                 const isSettingInPlay = action === 'set-in-play';
                 const allCharacters = await getData('rpgCards');

@@ -60,6 +60,7 @@ export function resetCharacterFormState() {
     if (cardForm) cardForm.reset();
 
     document.getElementById('selected-magics-container').innerHTML = '';
+    document.getElementById('selected-attacks-container').innerHTML = '';
     document.getElementById('selected-relationships-container').innerHTML = '';
     document.getElementById('form-inventory-section').classList.add('hidden');
     
@@ -209,6 +210,37 @@ function createSelectedItemElement(data, type) {
     } else {
         const iconClass = type === 'item' ? 'fa-box' : 'fa-magic';
         iconHtml = `<i class="fas ${iconClass} w-6 text-center mr-2"></i>`;
+    }
+
+    itemElement.innerHTML = `
+        <div class="flex items-center">
+            ${iconHtml}
+            <span class="text-sm">${data.name}</span>
+        </div>
+        <button type="button" class="text-red-500 hover:text-red-400 remove-selection-btn text-xl leading-none">&times;</button>
+    `;
+
+    itemElement.querySelector('.remove-selection-btn').addEventListener('click', () => {
+        itemElement.remove();
+    });
+
+    container.appendChild(itemElement);
+}
+
+function createSelectedAttackElement(data) {
+    const container = document.getElementById('selected-attacks-container');
+    if (!container || container.querySelector(`[data-id="${data.id}"]`)) return;
+
+    const itemElement = document.createElement('div');
+    itemElement.className = 'flex items-center justify-between bg-gray-800 p-2 rounded';
+    itemElement.dataset.id = data.id;
+    
+    let iconHtml = '';
+    if (data.image) {
+        const imageUrl = URL.createObjectURL(bufferToBlob(data.image, data.imageMimeType));
+        iconHtml = `<img src="${imageUrl}" class="w-6 h-6 rounded-full mr-2 object-cover" style="image-rendering: pixelated;">`;
+    } else {
+        iconHtml = `<i class="fas fa-khanda w-6 text-center mr-2"></i>`;
     }
 
     itemElement.innerHTML = `
@@ -387,6 +419,7 @@ export async function saveCharacterCard(cardForm) {
     
     const itemIds = currentCharacterItems.map(item => item.id);
     const magicIds = Array.from(document.querySelectorAll('#selected-magics-container [data-id]')).map(el => el.dataset.id);
+    const attackIds = Array.from(document.querySelectorAll('#selected-attacks-container [data-id]')).map(el => el.dataset.id);
     const relationshipIds = Array.from(document.querySelectorAll('#selected-relationships-container [data-id]')).map(el => el.dataset.id);
     
     let cardData;
@@ -402,6 +435,7 @@ export async function saveCharacterCard(cardForm) {
             lore,
             items: itemIds,
             spells: magicIds,
+            attacks: attackIds,
             relationships: relationshipIds,
             image: imageBuffer || cardData.image,
             backgroundImage: backgroundBuffer || cardData.backgroundImage,
@@ -419,6 +453,7 @@ export async function saveCharacterCard(cardForm) {
             lore,
             items: itemIds,
             spells: magicIds,
+            attacks: attackIds,
             relationships: relationshipIds,
             image: imageBuffer,
             backgroundImage: backgroundBuffer,
@@ -496,6 +531,13 @@ export async function editCard(cardId) {
         for (const magicId of cardData.spells) {
             const magicData = await getData('rpgSpells', magicId);
             if (magicData) createSelectedItemElement(magicData, 'magic');
+        }
+    }
+
+    if (cardData.attacks && Array.isArray(cardData.attacks)) {
+        for (const attackId of cardData.attacks) {
+            const attackData = await getData('rpgAttacks', attackId);
+            if (attackData) createSelectedAttackElement(attackData);
         }
     }
 
@@ -634,6 +676,8 @@ document.addEventListener('DOMContentLoaded', () => {
             currentCharacterItems.push(data);
             const strength = parseInt(document.getElementById('forca').value) || 0;
             renderInventoryForForm(currentCharacterItems, strength);
+        } else if (type === 'attack') {
+            createSelectedAttackElement(data);
         }
     });
     
