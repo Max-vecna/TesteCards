@@ -163,7 +163,7 @@ export async function openSelectionModal(type) {
     });
 }
 
-function debounce(fn, wait = 500) {
+function debounce(fn, wait = 200) {
     let t;
     return (...args) => {
         clearTimeout(t);
@@ -242,7 +242,7 @@ async function renderCharacterList() {
             <span class="text-sm font-semibold">Adicionar Personagem</span>
         </button>
         <div class="absolute -bottom-3 w-full flex justify-center gap-2">
-             <button class="thumb-btn bg-indigo-500 hover:bg-indigo-600 rounded-full w-8 h-8 flex items-center justify-center" id="import-cards-btn" title="Importar Personagem (JSON)">
+             <button class="thumb-btn bg-indigo-200 hover:bg-indigo-600 rounded-full w-8 h-8 flex items-center justify-center" id="import-cards-btn" title="Importar Personagem (JSON)">
                 <i class="fas fa-upload text-xs"></i>
             </button>
             <input type="file" id="import-json-input" accept=".json" class="hidden">
@@ -289,7 +289,7 @@ async function renderCharacterList() {
         cardElements.forEach((cardWrapper, index) => {
             setTimeout(() => {
                 cardWrapper.classList.add('visible');
-            }, index * 500);
+            }, index * 200);
         });
     });
 
@@ -336,7 +336,7 @@ async function renderSpellList(type = 'magias') {
             <span class="text-sm font-semibold">${buttonText}</span>
         </button>
         <div class="absolute -bottom-3 w-full flex justify-center gap-2">
-            <button class="thumb-btn bg-indigo-500 hover:bg-indigo-600 rounded-full w-8 h-8 flex items-center justify-center" 
+            <button class="thumb-btn bg-indigo-200 hover:bg-indigo-600 rounded-full w-8 h-8 flex items-center justify-center" 
                     id="${importBtnId}" title="${importTitle}">
                 <i class="fas fa-upload text-xs"></i>
             </button>
@@ -379,7 +379,7 @@ async function renderSpellList(type = 'magias') {
         cardElements.forEach((cardWrapper, index) => {
             setTimeout(() => {
                 cardWrapper.classList.add('visible');
-            }, index * 500);
+            }, index * 200);
         });
     });
     
@@ -414,7 +414,7 @@ async function renderItemList() {
             <span class="text-sm font-semibold">Adicionar Item</span>
         </button>
         <div class="absolute -bottom-3 w-full flex justify-center gap-2">
-            <button class="thumb-btn bg-amber-500 hover:bg-amber-600 rounded-full w-8 h-8 flex items-center justify-center" id="import-item-btn" title="Importar Item (JSON)">
+            <button class="thumb-btn bg-amber-200 hover:bg-amber-600 rounded-full w-8 h-8 flex items-center justify-center" id="import-item-btn" title="Importar Item (JSON)">
                 <i class="fas fa-upload text-xs"></i>
             </button>
             <input type="file" id="import-item-json-input" accept=".json" class="hidden">
@@ -453,7 +453,7 @@ async function renderItemList() {
         cardElements.forEach((cardWrapper, index) => {
             setTimeout(() => {
                 cardWrapper.classList.add('visible');
-            }, index * 500);
+            }, index * 200);
         });
     });
 
@@ -522,7 +522,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     renderContent = async (target) => {
         contentDisplay.innerHTML = '';
-        //contentLoader.classList.remove('hidden');
+        //200.classList.remove('hidden');
 
         await new Promise(resolve => setTimeout(resolve, 50));
 
