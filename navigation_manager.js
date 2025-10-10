@@ -163,7 +163,7 @@ export async function openSelectionModal(type) {
     });
 }
 
-function debounce(fn, wait = 100) {
+function debounce(fn, wait = 500) {
     let t;
     return (...args) => {
         clearTimeout(t);
@@ -289,7 +289,7 @@ async function renderCharacterList() {
         cardElements.forEach((cardWrapper, index) => {
             setTimeout(() => {
                 cardWrapper.classList.add('visible');
-            }, index * 80);
+            }, index * 500);
         });
     });
 
@@ -379,7 +379,7 @@ async function renderSpellList(type = 'magias') {
         cardElements.forEach((cardWrapper, index) => {
             setTimeout(() => {
                 cardWrapper.classList.add('visible');
-            }, index * 80);
+            }, index * 500);
         });
     });
     
@@ -453,7 +453,7 @@ async function renderItemList() {
         cardElements.forEach((cardWrapper, index) => {
             setTimeout(() => {
                 cardWrapper.classList.add('visible');
-            }, index * 80);
+            }, index * 500);
         });
     });
 
@@ -478,12 +478,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     style.innerHTML = `
         .rpg-thumbnail {
             opacity: 0;
-            transform: translateY(15px);
-            transition: opacity 0.4s ease-out, transform 0.4s ease-out, box-shadow 0.2s ease-in-out;
+            transform: translateY(20px) scale(0.95);
+            transition: opacity 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.2s ease-in-out;
         }
         .rpg-thumbnail.visible {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
         }
     `;
     document.head.appendChild(style);
@@ -522,7 +522,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     renderContent = async (target) => {
         contentDisplay.innerHTML = '';
-        contentLoader.classList.remove('hidden');
+        //contentLoader.classList.remove('hidden');
 
         await new Promise(resolve => setTimeout(resolve, 50));
 
@@ -545,7 +545,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         else if (target === 'itens') await renderItemList();
         else if (target === 'personagem-em-jogo') await renderCharacterInGame();
 
-        contentLoader.classList.add('hidden');
+       // contentLoader.classList.add('hidden');
     };
     
     function showView(section, isEditing, setupFunction) {
@@ -840,4 +840,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 });
-
