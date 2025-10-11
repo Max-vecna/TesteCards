@@ -383,7 +383,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     const cdValue = 10 + (parseInt(characterData.level) || 0) + (parseInt(characterData.attributes.sabedoria) || 0) + (totalFixedBonuses.sabedoria || 0);
     const palette = { borderColor: predominantColor };
 
-    const scale = isModal || isInPlay ? 1 : .22;
+    const scale = isModal || isInPlay ? .9 : .22;
     const origin = isModal || isInPlay ? "" : "transform-origin: top left";
     const transformProp = (isModal || isInPlay) ? '' : `transform: scale(${scale});`;
     
@@ -665,3 +665,4 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     }
     return finalHtml;
 }
+
