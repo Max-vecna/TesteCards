@@ -383,7 +383,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     const cdValue = 10 + (parseInt(characterData.level) || 0) + (parseInt(characterData.attributes.sabedoria) || 0) + (totalFixedBonuses.sabedoria || 0);
     const palette = { borderColor: predominantColor };
 
-    const scale = isModal || isInPlay ? .9 : .22;
+    const scale = isModal || isInPlay ? 1 : .22;
     const origin = isModal || isInPlay ? "" : "transform-origin: top left";
     const transformProp = (isModal || isInPlay) ? '' : `transform: scale(${scale});`;
     
@@ -458,7 +458,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
             <div class="absolute top-4 right-4 z-20 flex flex-col gap-2">
                  <button id="close-sheet-btn-${uniqueId}" class="bg-red-600 hover:text-white thumb-btn" style="display: ${isModal ? 'flex' : 'none'}"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div id="character-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; ${transformProp} margin: 0 auto;">        
+            <div id="character-sheet" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${isInPlay ? '' : 'transform: scale(.9)'}; ${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; border: 1px solid ${predominantColor}; box-shadow: 0 0 20px ${predominantColor}; width: ${finalWidth}px; height: ${finalHeight}px; ${transformProp} margin: 0 auto;">        
                 <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
             
             <div class="absolute top-4 right-2 p-2 rounded-full text-center cursor-pointer" data-action="edit-stat" data-stat-type="vida" data-stat-max="${(characterData.attributes.vida || 0) + (totalFixedBonuses.vida || 0)}">
@@ -665,4 +665,5 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     }
     return finalHtml;
 }
+
 
