@@ -112,19 +112,6 @@ body.dark .splash-screen .text-white { color: var(--splash-text) !important; }
   position: relative; /* For loader positioning */
 }
 
-@media (min-width: 768px) {
-    .main-content {        
-      
-      width: calc(100% - 16rem) !important;
-    }
-
-}
-
-@media (max-height: 2400px) {
-    main {        
-      height: calc(100% - 54px) !important;
-    }
-}
 .main-content.visible {
   opacity: 1;
   visibility: visible;
