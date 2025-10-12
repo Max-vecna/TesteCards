@@ -121,7 +121,7 @@ body.dark .splash-screen .text-white { color: var(--splash-text) !important; }
 @media (min-height: 768px) {
     .main-content {
         
-      height: calc(100%);
+      height: calc(100% - 54px);
     }
 }
 .main-content.visible {
@@ -669,4 +669,5 @@ body:not(.dark) .text-white { color: var(--text-color) !important; }
 .border-gray-600 { border-color: var(--form-input-border) !important; }
 .border-gray-700 { border-color: var(--menu-border) !important; }
 .text-gray-400 { color: var(--text-color-light) !important; }
+
 
