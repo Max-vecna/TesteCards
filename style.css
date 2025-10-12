@@ -108,20 +108,19 @@ body.dark .splash-screen .text-white { color: var(--splash-text) !important; }
   opacity: 0;
   visibility: hidden;
   padding: 1rem;
+  height: calc(100%);
   position: relative; /* For loader positioning */
 }
 
-main{
-  height: 100%;
-}
 @media (min-width: 768px) {
-    .main-content {
+    .main-content {        
       width: calc(100% - 16rem) !important;
     }
 }
+
 @media (max-height: 768px) {
-    .main-content {        
-      height: calc(100% - 54px);
+    main {        
+      height: calc(100% - 54px) !important;
     }
 }
 .main-content.visible {
