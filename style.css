@@ -108,7 +108,7 @@ body.dark .splash-screen .text-white { color: var(--splash-text) !important; }
   opacity: 0;
   visibility: hidden;
   padding: 1rem;
-  height: calc(100% - 54px);
+  height: calc(100%);
   position: relative; /* For loader positioning */
 }
 
@@ -118,9 +118,8 @@ body.dark .splash-screen .text-white { color: var(--splash-text) !important; }
       width: calc(100% - 16rem) !important;
     }
 }
-@media (min-height: 768px) {
-    .main-content {
-        
+@media (max-height: 768px) {
+    .main-content {        
       height: calc(100% - 54px);
     }
 }
@@ -669,5 +668,4 @@ body:not(.dark) .text-white { color: var(--text-color) !important; }
 .border-gray-600 { border-color: var(--form-input-border) !important; }
 .border-gray-700 { border-color: var(--menu-border) !important; }
 .text-gray-400 { color: var(--text-color-light) !important; }
-
 
