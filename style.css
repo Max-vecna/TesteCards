@@ -107,8 +107,8 @@ body.dark .splash-screen .text-white { color: var(--splash-text) !important; }
   transition: opacity 1s ease-in, margin-left 0.3s ease-in-out;
   opacity: 0;
   visibility: hidden;
-  padding: 1rem;
-  height: calc(100%);
+  padding: 1rem;  
+  height: calc(100% - 54px);
   position: relative; /* For loader positioning */
 }
 
@@ -660,5 +660,6 @@ body:not(.dark) .text-white { color: var(--text-color) !important; }
 .border-gray-600 { border-color: var(--form-input-border) !important; }
 .border-gray-700 { border-color: var(--menu-border) !important; }
 .text-gray-400 { color: var(--text-color-light) !important; }
+
 
 
