@@ -115,7 +115,6 @@ body.dark .splash-screen .text-white { color: var(--splash-text) !important; }
 @media (min-width: 768px) {
     .main-content {
         
-      height: calc(100%);
       width: calc(100% - 16rem) !important;
     }
 }
@@ -123,7 +122,6 @@ body.dark .splash-screen .text-white { color: var(--splash-text) !important; }
     .main-content {
         
       height: calc(100%);
-      width: calc(100% - 16rem) !important;
     }
 }
 .main-content.visible {
