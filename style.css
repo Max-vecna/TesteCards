@@ -108,16 +108,8 @@ body.dark .splash-screen .text-white { color: var(--splash-text) !important; }
   opacity: 0;
   visibility: hidden;
   padding: 1rem;
-  height: calc(100% - 54px);
+  height: calc(100vh - 54px);
   position: relative; /* For loader positioning */
-}
-
-@media (min-width: 768px) {
-    .main-content {
-        
-      height: calc(100%);
-      width: calc(100% - 16rem) !important;
-    }
 }
 
 .main-content.visible {
@@ -125,28 +117,44 @@ body.dark .splash-screen .text-white { color: var(--splash-text) !important; }
   visibility: visible;
 }
 
-/* Action Sidebar (Mobile Floating) */
-#actions-sidebar .actions-menu {
-    display: none;
-    transform: scale(0.8);
-    opacity: 0;
-    transition: transform 0.2s ease-out, opacity 0.2s ease-out;
-    transform-origin: top right;
+/* Action Sidebar (Mobile Sliding) */
+#actions-sidebar {
+    left: -48px; /* Largura do painel de botões (p-2 + w-8 = 8+32+8=48px) */
+    transition: left 0.3s ease-in-out;
 }
 
-#actions-sidebar.active .actions-menu {
-    display: flex;
-    transform: scale(1);
-    opacity: 1;
+#actions-sidebar.active {
+    left: 0;
 }
 
-#actions-sidebar #sidebar-toggle {
-    transition: transform 0.3s ease;
+#sidebar-buttons {
+    background-color: var(--secondary-bg);
+    backdrop-filter: blur(4px);
+    opacity: 0.95;
 }
 
-#actions-sidebar.active #sidebar-toggle {
-    transform: rotate(90deg);
+#sidebar-buttons .sidebar-btn {
+    background-color: var(--secondary-bg-hover);
+    color: var(--secondary-text);
 }
+
+body:not(.dark) #sidebar-buttons .sidebar-btn {
+    color: var(--secondary-text);
+}
+
+#sidebar-toggle {
+    background-color: var(--secondary-bg);
+    color: var(--secondary-text);
+}
+
+#sidebar-toggle > i {
+    transition: transform 0.3s ease-in-out;
+}
+
+#actions-sidebar.active #sidebar-toggle > i {
+    transform: rotate(180deg);
+}
+
 
 /* Navegação Mobile */
 .nav-button {
@@ -649,3 +657,4 @@ body:not(.dark) .text-white { color: var(--text-color) !important; }
 .border-gray-600 { border-color: var(--form-input-border) !important; }
 .border-gray-700 { border-color: var(--menu-border) !important; }
 .text-gray-400 { color: var(--text-color-light) !important; }
+
