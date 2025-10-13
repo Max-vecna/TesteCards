@@ -103,13 +103,23 @@ body.dark .splash-screen .text-white { color: var(--splash-text) !important; }
 
 /* Conteúdo Principal */
 .main-content {
-  width: calc(100%);
-  transition: opacity 1s ease-in, margin-left 0.3s ease-in-out;
+  width: 100%;
+  transition: opacity 1s ease-in, margin-left 0.3s ease-in-out, width 0.3s ease-in-out;
   opacity: 0;
   visibility: hidden;
   padding: 1rem;
-  height: calc(100% - 54px);
   position: relative; /* For loader positioning */
+  /* Mobile-first: altura para telas de celular com a barra de navegação inferior */
+  height: calc(100% - 54px); 
+}
+
+/* Em telas maiores (desktop), ajusta o layout para a barra lateral e reseta a altura */
+@media (min-width: 768px) {
+  .main-content {
+    margin-left: 256px; /* Largura da barra lateral (w-64 -> 16rem -> 256px) */
+    width: calc(100% - 256px);
+    height: 100%; /* Em desktop, sem barra inferior, então altura total */
+  }
 }
 
 .main-content.visible {
@@ -657,4 +667,3 @@ body:not(.dark) .text-white { color: var(--text-color) !important; }
 .border-gray-600 { border-color: var(--form-input-border) !important; }
 .border-gray-700 { border-color: var(--menu-border) !important; }
 .text-gray-400 { color: var(--text-color-light) !important; }
-
