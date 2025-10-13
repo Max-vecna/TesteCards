@@ -108,10 +108,20 @@ body.dark .splash-screen .text-white { color: var(--splash-text) !important; }
   opacity: 0;
   visibility: hidden;
   padding: 1rem;
-  height: calc(100vh - 54px);
-  position: relative; /* For loader positioning */
+  visibility: visible;
+  position: absolute;
+  inset: 0;
+  bottom: 54px;
 }
 
+@media (min-width: 768px) {
+    .main-content {
+        
+      width: calc(100% - 16rem) !important;
+      left: 16rem;
+      bottom: 0;
+    }
+}
 .main-content.visible {
   opacity: 1;
   visibility: visible;
@@ -578,6 +588,7 @@ body:not(.dark) #sidebar-buttons .sidebar-btn {
     padding-bottom: 8px;
     transition: all 0.5s ease;
     cursor: pointer;
+    padding-left: 10px;
 }
 
 .related-character-grid-item {
