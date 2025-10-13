@@ -421,14 +421,14 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     }
     
     const sheetHtml = `
-            <div class="absolute top-6 right-6 z-20 flex flex-col gap-2">
+            <div class="absolute top-4 right-4 z-20 flex flex-col gap-2">
                  <button id="close-sheet-btn-${uniqueId}" class="bg-red-600 hover:text-white thumb-btn" style="display: ${isModal ? 'flex' : 'none'}"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div id="character-sheet-${uniqueId}" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; box-shadow: 0 0 20px ${predominantColor.color100}; width: ${finalWidth}px; height: ${finalHeight}px; ${transformProp} margin: 0 auto;">    
             <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4); display: flex; align-items: center; justify-content: center;">
                 <div class="rounded-lg" style="width: 96%; height: 96%; border: 3px solid ${predominantColor.color100};"></div>
             </div>
-            <div class="absolute top-6 right-4 p-2 rounded-full text-center cursor-pointer" data-action="edit-stat" data-stat-type="vida" data-stat-max="${(characterData.attributes.vida || 0) + (totalFixedBonuses.vida || 0)}">
+            <div class="absolute top-4 right-2 p-2 rounded-full text-center cursor-pointer" data-action="edit-stat" data-stat-type="vida" data-stat-max="${(characterData.attributes.vida || 0) + (totalFixedBonuses.vida || 0)}">
                 <i class="fas fa-heart text-red-500 text-5xl"></i>
                 <div class="absolute inset-0 flex flex-col items-center justify-center font-bold text-white text-xs pointer-events-none">
                     <span data-stat-current="vida">${characterData.attributes.vidaAtual || 0}</span>
@@ -440,7 +440,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
                 </div>
             </div>
 
-            <div class="absolute top-6 left-4 p-2 rounded-full text-center cursor-pointer" data-action="edit-stat" data-stat-type="mana" data-stat-max="${(characterData.attributes.mana || 0) + (totalFixedBonuses.mana || 0)}">
+            <div class="absolute top-4 left-2 p-2 rounded-full text-center cursor-pointer" data-action="edit-stat" data-stat-type="mana" data-stat-max="${(characterData.attributes.mana || 0) + (totalFixedBonuses.mana || 0)}">
                 <div class="icon-container mana-icon-container">
                     <i class="fas fa-fire text-blue-500 text-5xl"></i>
                     <div class="absolute inset-0 flex flex-col items-center justify-center font-bold text-white text-xs pointer-events-none">
@@ -453,22 +453,22 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
                 </div>
             </div>
 
-            <div class="absolute top-6 left-1/2 -translate-x-1/2 text-center z-10">
+            <div class="absolute top-4 left-1/2 -translate-x-1/2 text-center z-10">
                 <h3 class="text-2xl font-bold">${characterData.title}</h3>
                 <p class="text-md italic text-gray-300">${characterData.subTitle}</p>
             </div>
 
-            <div id="lore-icon-${uniqueId}" class="absolute top-20 left-6 rounded-full p-3 bg-black/50 flex items-center justify-center text-lg text-yellow-200 cursor-pointer" data-action="toggle-lore">
+            <div id="lore-icon-${uniqueId}" class="absolute top-20 left-4 rounded-full p-3 bg-black/50 flex items-center justify-center text-lg text-yellow-200 cursor-pointer" data-action="toggle-lore">
                 <i class="fas fa-book"></i>
             </div>
-            <!-- THUMBNAIL_EXTRAS -->
-            <div class="absolute money-container top-32 left-6 rounded-full p-2 bg-black/50 flex items-center justify-center text-sm text-amber-300 font-bold cursor-pointer" data-action="edit-stat" data-stat-type="dinheiro" title="Alterar Dinheiro" style="writing-mode: vertical-rl; text-orientation: upright;">
+            
+            <div class="absolute money-container top-32 left-4 rounded-full p-2 bg-black/50 flex items-center justify-center text-sm text-amber-300 font-bold cursor-pointer" data-action="edit-stat" data-stat-type="dinheiro" title="Alterar Dinheiro" style="writing-mode: vertical-rl; text-orientation: upright;">
                 💰$<span data-stat-current="dinheiro">${characterData.dinheiro || 0}</span>
             </div>
             
             <div id="lore-modal-${uniqueId}" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 hidden transition-opacity duration-300">
                 <div class="bg-gray-800 p-8 rounded-lg max-w-xl w-full text-white shadow-lg relative">
-                    <button id="close-lore-modal-btn-${uniqueId}" class="absolute top-6 right-6 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full leading-none w-8 h-8 flex items-center justify-center">
+                    <button id="close-lore-modal-btn-${uniqueId}" class="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full leading-none w-8 h-8 flex items-center justify-center">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                     <h2 class="text-2xl font-bold mb-4 border-b pb-2">Lore do Personagem</h2>
@@ -487,7 +487,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
                 <!-- RELATIONSHIPS_BAR -->
                 <div class="pb-4 scrollable-content text-sm text-left" style="display: flex; flex-direction: row; overflow-y: scroll;gap: 12px; scroll-snap-type: x mandatory;">
                     <!-- Página 1: Atributos -->
-                    <div class="rounded-3xl w-full" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; border-color: ${palette.borderColor}; position: relative; z-index: 1; overflow-y: visible; display: flex; flex-direction: column; justify-content: flex-end;padding: 10px;">
+                    <div class="rounded-3xl w-full" style="scroll-snap-align: start;flex-shrink: 0;min-width: 100%; border-color: ${palette.borderColor}; position: relative; z-index: 1; overflow-y: visible; display: flex; flex-direction: column; justify-content: flex-end;">
                         <div class="grid grid-cols-6 gap-x-4 gap-y-1 text-xs my-2 mb-4">
                             <div class="text-center font-bold" style="color: rgb(0 247 85);">LV<br>${characterData.level || 0}</div>
                             ${combatStatsHtml}
@@ -523,25 +523,25 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
                     </div>
                 </div>
             </div>
-             
+             <!-- THUMBNAIL_EXTRAS -->
         </div>
     `;
     
     const finalHtml = sheetHtml.replace('<!-- RELATIONSHIPS_BAR -->', relationshipsHtml);
 
-    // if (!isModal && !isInPlay) {
-    //     const inventoryCount = characterData.items?.length || 0;
-    //     const magicCount = characterData.spells?.length || 0;
-    //     const attackCount = characterData.attacks?.length || 0;
-    //     const thumbnailInventoryHtml = `
-    //         <div class="absolute top-20 right-4 flex flex-col items-end text-xs opacity-80 bg-black/50 p-1 rounded">
-    //             <div class="flex items-center gap-1"><i class="fas fa-box"></i> ${inventoryCount}</div>
-    //             <div class="flex items-center gap-1"><i class="fas fa-magic"></i> ${magicCount}</div>
-    //             <div class="flex items-center gap-1"><i class="fas fa-khanda"></i> ${attackCount}</div>
-    //         </div>
-    //     `;
-    //     return finalHtml.replace('<!-- THUMBNAIL_EXTRAS -->', thumbnailInventoryHtml);
-    // }
+    if (!isModal && !isInPlay) {
+        const inventoryCount = characterData.items?.length || 0;
+        const magicCount = characterData.spells?.length || 0;
+        const attackCount = characterData.attacks?.length || 0;
+        const thumbnailInventoryHtml = `
+            <div class="absolute bottom-2 right-2 flex flex-col items-end text-xs opacity-80 bg-black/50 p-1 rounded">
+                <div class="flex items-center gap-1"><i class="fas fa-box"></i> ${inventoryCount}</div>
+                <div class="flex items-center gap-1"><i class="fas fa-magic"></i> ${magicCount}</div>
+                <div class="flex items-center gap-1"><i class="fas fa-khanda"></i> ${attackCount}</div>
+            </div>
+        `;
+        return finalHtml.replace('<!-- THUMBNAIL_EXTRAS -->', thumbnailInventoryHtml);
+    }
     
     sheetContainer.style.background = `url('${imageBack}')`;
     sheetContainer.style.backgroundSize = 'cover';

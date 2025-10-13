@@ -116,7 +116,7 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
                 <div class="rounded-lg" style="width: 96%; height: 96%; border: 3px solid ${predominantColor.color100};"></div>
             </div>
             
-            <div class="mt-auto p-6 md:p-6 w-full text-left absolute bottom-0" style="background-color: ${predominantColor.color30}">
+            <div class="mt-auto p-4 md:p-6 w-full text-left absolute bottom-0" style="background-color: ${predominantColor.color30}">
                 <div class="sheet-card-text-panel">
                     ${topBarHtml}
                     <h2 class="text-2xl md:text-3xl font-bold tracking-tight text-white">${spellData.name}</h2>
