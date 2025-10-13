@@ -308,7 +308,7 @@ async function createCharacterSection(title, items, type, renderSheetFunction, t
     gridContainer.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5';
     
     const cardElements = await Promise.all(items.map(async (item) => {
-        const sheetHtml = await renderSheetFunction(item, false, 16/11);
+        const sheetHtml = await renderSheetFunction(item, false);
         const cardWrapper = document.createElement('div');
         let cardType = type;
         if (type === 'magias' || type === 'habilidades') {
@@ -465,7 +465,7 @@ async function renderCharacterList() {
     container.appendChild(addButtonWrapper);
     
     const cardElements = await Promise.all(allCharacters.map(async (char) => {
-        const characterSheetHtml = await renderFullCharacterSheet(char, false, 16/11, false);
+        const characterSheetHtml = await renderFullCharacterSheet(char, false, false);
         const backgroundImage = char.backgroundImage ? `url('${URL.createObjectURL(bufferToBlob(char.backgroundImage, char.backgroundMimeType))}')` : '#2d3748';
 
         const cardWrapper = document.createElement('div');
@@ -678,7 +678,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         contentDisplay.classList.add('justify-center'); // Centraliza o card em jogo
 
         if (characterInPlay) {
-            await renderFullCharacterSheet(characterInPlay, false, null, true, contentDisplay);
+            await renderFullCharacterSheet(characterInPlay, false, true, contentDisplay);
         } else {
             contentDisplay.innerHTML = `
                 <div class="w-full h-full flex flex-col items-center justify-center">
@@ -882,6 +882,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    document.addEventListener('settingsChanged', (e) => {
+        if (e.detail.key === 'aspectRatio') {
+            invalidateCache('personagem');
+            invalidateCache('magias');
+            invalidateCache('habilidades');
+            invalidateCache('itens');
+            invalidateCache('ataques');
+            invalidateCache('personagem-em-jogo');
+            const activeNav = document.querySelector('.nav-button.active, .desktop-nav-button.active')?.dataset.target || 'personagem-em-jogo';
+            renderContent(activeNav, true);
+        }
+    });
+
     document.addEventListener('dataChanged', (e) => {
         const { type } = e.detail;
         const activeNav = document.querySelector('.nav-button.active, .desktop-nav-button.active')?.dataset.target;
@@ -910,10 +923,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (thumbCard && !menuBtn && !menuItem) {
             const cardId = thumbCard.dataset.id;
             const cardType = thumbCard.dataset.type;
-            if (cardType === 'character') await renderFullCharacterSheet(await getData('rpgCards', cardId), true, 16/9, false);
-            if (cardType === 'spell') await renderFullSpellSheet(await getData('rpgSpells', cardId), true, 16/9);
-            if (cardType === 'item') await renderFullItemSheet(await getData('rpgItems', cardId), true, 16/9);
-            if (cardType === 'attack') await renderFullAttackSheet(await getData('rpgAttacks', cardId), true, 16/9);
+            if (cardType === 'character') await renderFullCharacterSheet(await getData('rpgCards', cardId), true, false);
+            if (cardType === 'spell') await renderFullSpellSheet(await getData('rpgSpells', cardId), true);
+            if (cardType === 'item') await renderFullItemSheet(await getData('rpgItems', cardId), true);
+            if (cardType === 'attack') await renderFullAttackSheet(await getData('rpgAttacks', cardId), true);
             return;
         }
         

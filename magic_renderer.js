@@ -1,13 +1,14 @@
+import { getAspectRatio } from './settings_manager.js';
+
 function bufferToBlob(buffer, mimeType) {
     return new Blob([buffer], { type: mimeType });
 }
 
-export async function renderFullSpellSheet(spellData, isModal, aspect) {
+export async function renderFullSpellSheet(spellData, isModal) {
     const sheetContainer = document.getElementById('spell-sheet-container');
     if (!sheetContainer) return;
 
-    // Proporção base 16x10
-    const aspectRatio = (16 / 10);
+    const aspectRatio = getAspectRatio();
 
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
@@ -15,13 +16,12 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
     let finalWidth;
     let finalHeight;
 
-    // Calcular a largura e altura máximas, mantendo a proporção de 16x10
-    if ((windowWidth * aspectRatio) > windowHeight) {
+    if ((windowWidth / aspectRatio) > windowHeight) {
         finalHeight = windowHeight * 0.9;
-        finalWidth = finalHeight / aspectRatio;
+        finalWidth = finalHeight * aspectRatio;
     } else {
         finalWidth = windowWidth * 0.9;
-        finalHeight = finalWidth * aspectRatio;
+        finalHeight = finalWidth / aspectRatio;
     }
 
     let imageUrl;
@@ -182,3 +182,4 @@ export async function renderFullSpellSheet(spellData, isModal, aspect) {
     };
     sheetContainer.addEventListener('click', overlayHandler);
 }
+

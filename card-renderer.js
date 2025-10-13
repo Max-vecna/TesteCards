@@ -2,6 +2,7 @@ import { saveData, getData } from './local_db.js';
 import { renderFullItemSheet } from './item_renderer.js';
 import { renderFullSpellSheet } from './magic_renderer.js';
 import { renderFullAttackSheet } from './attack_renderer.js';
+import { getAspectRatio } from './settings_manager.js';
 
 const PERICIAS_DATA = {
      "AGILIDADE": [ "Acrobacia", "Iniciativa", "Montaria", "Furtividade", "Pontaria", "Ladinagem", "Reflexos"],
@@ -165,13 +166,13 @@ async function populateInventory(container, characterData, uniqueId) {
         const { id, type } = target.dataset;
         if (type === 'item') {
             const itemData = await getData('rpgItems', id);
-            if (itemData) await renderFullItemSheet(itemData, true, 16/9);
+            if (itemData) await renderFullItemSheet(itemData, true);
         } else if (type === 'spell') {
             const spellData = await getData('rpgSpells', id);
-            if (spellData) await renderFullSpellSheet(spellData, true, 16/9);
+            if (spellData) await renderFullSpellSheet(spellData, true);
         } else if (type === 'attack') {
             const attackData = await getData('rpgAttacks', id);
-            if (attackData) await renderFullAttackSheet(attackData, true, 16/9);
+            if (attackData) await renderFullAttackSheet(attackData, true);
         }
     });
 }
@@ -281,7 +282,7 @@ function setupStatEditor(characterData, container) {
 }
 
 
-export async function renderFullCharacterSheet(characterData, isModal, aspect, isInPlay, targetContainer) {
+export async function renderFullCharacterSheet(characterData, isModal, isInPlay, targetContainer) {
     const sheetContainer = targetContainer || document.getElementById('character-sheet-container');
     if (!sheetContainer && (isModal || isInPlay)) return '';
 
@@ -317,17 +318,17 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
         }
     }
     
-    const aspectRatio = 16 / 10;
+    const aspectRatio = getAspectRatio();
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
     let finalWidth, finalHeight;
 
-      if ((windowWidth * aspectRatio) > windowHeight) {
+      if ((windowWidth / aspectRatio) > windowHeight) {
         finalHeight = windowHeight * 0.9;
-        finalWidth = finalHeight / aspectRatio;
+        finalWidth = finalHeight * aspectRatio;
     } else {
         finalWidth = windowWidth * 0.9;
-        finalHeight = finalWidth * aspectRatio;
+        finalHeight = finalWidth / aspectRatio;
     }
 
     const imageUrl = characterData.image ? URL.createObjectURL(bufferToBlob(characterData.image, characterData.imageMimeType)) : 'https://placehold.co/800x600/4a5568/a0aec0?text=Personagem';
@@ -404,7 +405,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
 
         if (relatedCharsData.length > 0) {
             const relationshipCardsHtml = await Promise.all(relatedCharsData.map(async (char) => {
-                const miniSheetHtml = await renderFullCharacterSheet(char, false, 16/11, false);
+                const miniSheetHtml = await renderFullCharacterSheet(char, false, false);
                 return `
                     <div class="related-character-grid-item" data-id="${char.id}">
                         ${miniSheetHtml}
@@ -576,7 +577,7 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
                 const relatedCharData = await getData('rpgCards', card.dataset.id);
                 if (relatedCharData) {
                     const nestedContainer = document.getElementById('nested-sheet-container');
-                    await renderFullCharacterSheet(relatedCharData, true, 16/8, false, nestedContainer);
+                    await renderFullCharacterSheet(relatedCharData, true, false, nestedContainer);
                 }
             }
         });
@@ -633,3 +634,4 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
     }
     return finalHtml;
 }
+

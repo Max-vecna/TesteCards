@@ -1,12 +1,14 @@
+import { getAspectRatio } from './settings_manager.js';
+
 function bufferToBlob(buffer, mimeType) {
     return new Blob([buffer], { type: mimeType });
 }
 
-export async function renderFullItemSheet(itemData, isModal, aspect) {
+export async function renderFullItemSheet(itemData, isModal) {
     const sheetContainer = document.getElementById('item-sheet-container');
     if (!sheetContainer) return '';
 
-    const aspectRatio = 16 / 10;
+    const aspectRatio = getAspectRatio();
 
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
@@ -14,12 +16,12 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
     let finalWidth;
     let finalHeight;
 
-    if ((windowWidth * aspectRatio) > windowHeight) {
+    if ((windowWidth / aspectRatio) > windowHeight) {
         finalHeight = windowHeight * 0.9;
-        finalWidth = finalHeight / aspectRatio;
+        finalWidth = finalHeight * aspectRatio;
     } else {
         finalWidth = windowWidth * 0.9;
-        finalHeight = finalWidth * aspectRatio;
+        finalHeight = finalWidth / aspectRatio;
     }
 
     let createdObjectUrl = null;
@@ -147,3 +149,4 @@ export async function renderFullItemSheet(itemData, isModal, aspect) {
     };
     sheetContainer.addEventListener('click', overlayHandler);
 }
+
