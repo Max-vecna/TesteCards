@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const themeSwitchers = document.querySelectorAll('#theme-switcher, #theme-switcher-mobile');
+    const themeSwitcher = document.getElementById('theme-switcher');
+    const themeIcon = themeSwitcher ? themeSwitcher.querySelector('i') : null;
     const body = document.body;
 
     /**
@@ -9,30 +10,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const applyTheme = (theme) => {
         if (theme === 'dark') {
             body.classList.add('dark');
+            if(themeIcon) themeIcon.className = 'fas fa-sun';
         } else {
             body.classList.remove('dark');
+            if(themeIcon) themeIcon.className = 'fas fa-moon';
         }
-        
-        themeSwitchers.forEach(switcher => {
-            const icon = switcher.querySelector('i');
-            if (icon) {
-                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-            }
-        });
-
         localStorage.setItem('theme', theme);
     };
 
-    const switchTheme = () => {
-        const currentTheme = localStorage.getItem('theme') || 'dark';
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        applyTheme(newTheme);
-    };
-
-    themeSwitchers.forEach(switcher => {
-        switcher.addEventListener('click', switchTheme);
-    });
-
+    if (themeSwitcher) {
+        themeSwitcher.addEventListener('click', () => {
+            const currentTheme = localStorage.getItem('theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+        });
+    }
 
     // Aplica o tema salvo na carga inicial
     const savedTheme = localStorage.getItem('theme') || 'dark'; // Padrão para escuro
