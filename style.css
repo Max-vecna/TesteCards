@@ -103,23 +103,21 @@ body.dark .splash-screen .text-white { color: var(--splash-text) !important; }
 
 /* Conteúdo Principal */
 .main-content {
-  width: 100%;
-  transition: opacity 1s ease-in, margin-left 0.3s ease-in-out, width 0.3s ease-in-out;
+  width: calc(100%);
+  transition: opacity 1s ease-in, margin-left 0.3s ease-in-out;
   opacity: 0;
   visibility: hidden;
   padding: 1rem;
+  height: calc(100% - 54px);
   position: relative; /* For loader positioning */
-  /* Mobile-first: altura para telas de celular com a barra de navegação inferior */
-  height: calc(100% - 54px); 
 }
 
-/* Em telas maiores (desktop), ajusta o layout para a barra lateral e reseta a altura */
 @media (min-width: 768px) {
-  .main-content {
-    margin-left: 256px; /* Largura da barra lateral (w-64 -> 16rem -> 256px) */
-    width: calc(100% - 256px);
-    height: 100%; /* Em desktop, sem barra inferior, então altura total */
-  }
+    .main-content {
+        
+      height: calc(100%);
+      width: calc(100% - 16rem) !important;
+    }
 }
 
 .main-content.visible {
@@ -127,44 +125,28 @@ body.dark .splash-screen .text-white { color: var(--splash-text) !important; }
   visibility: visible;
 }
 
-/* Action Sidebar (Mobile Sliding) */
-#actions-sidebar {
-    left: -48px; /* Largura do painel de botões (p-2 + w-8 = 8+32+8=48px) */
-    transition: left 0.3s ease-in-out;
+/* Action Sidebar (Mobile Floating) */
+#actions-sidebar .actions-menu {
+    display: none;
+    transform: scale(0.8);
+    opacity: 0;
+    transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+    transform-origin: top right;
 }
 
-#actions-sidebar.active {
-    left: 0;
+#actions-sidebar.active .actions-menu {
+    display: flex;
+    transform: scale(1);
+    opacity: 1;
 }
 
-#sidebar-buttons {
-    background-color: var(--secondary-bg);
-    backdrop-filter: blur(4px);
-    opacity: 0.95;
+#actions-sidebar #sidebar-toggle {
+    transition: transform 0.3s ease;
 }
 
-#sidebar-buttons .sidebar-btn {
-    background-color: var(--secondary-bg-hover);
-    color: var(--secondary-text);
+#actions-sidebar.active #sidebar-toggle {
+    transform: rotate(90deg);
 }
-
-body:not(.dark) #sidebar-buttons .sidebar-btn {
-    color: var(--secondary-text);
-}
-
-#sidebar-toggle {
-    background-color: var(--secondary-bg);
-    color: var(--secondary-text);
-}
-
-#sidebar-toggle > i {
-    transition: transform 0.3s ease-in-out;
-}
-
-#actions-sidebar.active #sidebar-toggle > i {
-    transform: rotate(180deg);
-}
-
 
 /* Navegação Mobile */
 .nav-button {
