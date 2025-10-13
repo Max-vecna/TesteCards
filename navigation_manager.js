@@ -619,9 +619,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const importDbBtn = document.getElementById('import-db-btn');
     const exportDbBtn = document.getElementById('export-db-btn');
     const importDbInput = document.getElementById('import-db-input');
+    const importDbBtnMobile = document.getElementById('import-db-btn-mobile');
+    const exportDbBtnMobile = document.getElementById('export-db-btn-mobile');
 
     renderContent = async (target, force = false) => {
         contentDisplay.classList.remove('justify-center');
+        contentDisplay.removeAttribute('style'); // Limpa estilos para corrigir o bug do background
 
         // Se a view estiver em cache, não for forçado E NÃO for "em jogo", use o cache.
         if (!force && viewCache[target] && target !== 'personagem-em-jogo') {
@@ -840,7 +843,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     emJogoButtons.forEach(btn => btn.classList.add('active'));
     renderContent('personagem-em-jogo');
     
-    exportDbBtn.addEventListener('click', async () => {
+    const exportHandler = async () => {
         try {
             await exportDatabase();
             showCustomAlert("Banco de dados exportado com sucesso!");
@@ -848,11 +851,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error("Erro ao exportar banco de dados:", error);
             showCustomAlert("Ocorreu um erro ao exportar.");
         }
-    });
+    };
 
-    importDbBtn.addEventListener('click', () => {
+    const importHandler = () => {
         importDbInput.click();
-    });
+    };
+
+    exportDbBtn.addEventListener('click', exportHandler);
+    importDbBtn.addEventListener('click', importHandler);
+    exportDbBtnMobile.addEventListener('click', exportHandler);
+    importDbBtnMobile.addEventListener('click', importHandler);
 
     importDbInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];

@@ -425,8 +425,9 @@ export async function renderFullCharacterSheet(characterData, isModal, aspect, i
                  <button id="close-sheet-btn-${uniqueId}" class="bg-red-600 hover:text-white thumb-btn" style="display: ${isModal ? 'flex' : 'none'}"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div id="character-sheet-${uniqueId}" class="w-full h-full rounded-lg shadow-2xl overflow-hidden relative text-white" style="${origin}; background-image: url('${imageUrl}'); background-size: cover; background-position: center; box-shadow: 0 0 20px ${predominantColor.color100}; width: ${finalWidth}px; height: ${finalHeight}px; ${transformProp} margin: 0 auto;">    
-                <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4);"></div>
-            
+            <div class="w-full h-full" style="background: linear-gradient(-180deg, #000000a4, transparent, transparent, #0000008f, #0000008f, #000000a4); display: flex; align-items: center; justify-content: center;">
+                <div class="rounded-lg" style="width: 96%; height: 96%; border: 3px solid ${predominantColor.color100};"></div>
+            </div>
             <div class="absolute top-4 right-2 p-2 rounded-full text-center cursor-pointer" data-action="edit-stat" data-stat-type="vida" data-stat-max="${(characterData.attributes.vida || 0) + (totalFixedBonuses.vida || 0)}">
                 <i class="fas fa-heart text-red-500 text-5xl"></i>
                 <div class="absolute inset-0 flex flex-col items-center justify-center font-bold text-white text-xs pointer-events-none">
