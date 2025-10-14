@@ -9,6 +9,24 @@ const ATTACK_STORE_NAME = 'rpgAttacks'; // New store name
 
 let db;
 
+// Helper function to show alerts (copied from navigation_manager.js logic for consistency)
+function showCustomAlert(message) {
+    const modalId = `custom-alert-modal-${Date.now()}`;
+    const modalHtml = `
+        <div id="${modalId}" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4" style="z-index: 99999;">
+            <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 w-full max-w-sm border border-gray-700">
+                <p class="text-center text-lg mb-4">${message}</p>
+                <button class="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-bold">OK</button>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = document.getElementById(modalId);
+    modal.querySelector('button').addEventListener('click', () => {
+        modal.remove();
+    });
+}
+
 /**
  * Abre a conexão com o banco de dados IndexedDB.
  */
@@ -231,3 +249,70 @@ export function importDatabase(file) {
     });
 }
 
+/**
+ * Exports all images from the database as a single zip file.
+ */
+export async function exportImagesAsPng() {
+    if (!db) {
+        showCustomAlert("O banco de dados não está aberto.");
+        return;
+    }
+    if (typeof JSZip === 'undefined') {
+        showCustomAlert("A biblioteca de compressão de arquivos não foi carregada. Tente recarregar a página.");
+        return;
+    }
+
+    showCustomAlert("Iniciando a exportação de imagens. Isso pode levar um momento...");
+
+    const zip = new JSZip();
+    const storeNames = [CARD_STORE_NAME, SPELL_STORE_NAME, ITEM_STORE_NAME, ATTACK_STORE_NAME];
+    let imageCount = 0;
+
+    // Helper to sanitize filenames
+    const sanitizeFilename = (name) => name.replace(/[^a-z0-9_.-]/gi, '_').toLowerCase();
+
+    for (const storeName of storeNames) {
+        const data = await getData(storeName);
+        if (data && data.length > 0) {
+            for (const item of data) {
+                const baseName = sanitizeFilename(item.name || item.title || item.id);
+
+                // Process main image
+                if (item.image instanceof ArrayBuffer) {
+                    const extension = item.imageMimeType ? item.imageMimeType.split('/')[1] : 'png';
+                    const filename = `${storeName}/${baseName}_image.${extension}`;
+                    zip.file(filename, item.image);
+                    imageCount++;
+                }
+                
+                // Process background image (only for cards)
+                if (item.backgroundImage instanceof ArrayBuffer) {
+                    const extension = item.backgroundMimeType ? item.backgroundMimeType.split('/')[1] : 'png';
+                    const filename = `${storeName}/${baseName}_background.${extension}`;
+                    zip.file(filename, item.backgroundImage);
+                    imageCount++;
+                }
+            }
+        }
+    }
+
+    if (imageCount === 0) {
+        showCustomAlert("Nenhuma imagem encontrada no banco de dados para exportar.");
+        return;
+    }
+
+    try {
+        const content = await zip.generateAsync({ type: "blob" });
+        const url = URL.createObjectURL(content);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `farland_images_backup_${new Date().toISOString().slice(0, 10)}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error("Erro ao gerar o arquivo zip:", error);
+        showCustomAlert("Ocorreu um erro ao gerar o arquivo zip.");
+    }
+}

@@ -583,6 +583,18 @@ export async function renderFullCharacterSheet(characterData, isModal, isInPlay,
         });
     });
     
+   setTimeout(() => {
+    sheetContainer.querySelectorAll('.related-character-grid-item').forEach(item => {
+        const charSheet = item.querySelector('[id^="character-sheet-"]');
+        if (charSheet) {
+            const { width, height } = charSheet.getBoundingClientRect();
+            item.style.width = `${width}px`;
+            item.style.height = `${height}px`;
+        }
+    });
+}, 50);
+
+
     populateInventory(sheetContainer, characterData, uniqueId);
 
     // A classe 'hidden' já foi removida no início da função para os modais.

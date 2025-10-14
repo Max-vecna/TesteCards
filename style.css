@@ -592,14 +592,13 @@ body:not(.dark) #sidebar-buttons .sidebar-btn {
 }
 
 .related-character-grid-item {
-    flex-shrink: 0;
-    width: 56px;
-    height: 81px;
+        flex-shrink: 0;
+    width: 60px;
+    height: 92px;
     position: relative;
     cursor: pointer;
     transition: margin 0.4s ease-in-out, transform 0.4s ease-in-out;
-    margin-left: -45px; /* Sobrepõe os cards para empilhá-los */
-    overflow: hidden; /* Garante que o conteúdo interno respeite o border-radius */
+    margin-left: -45px;
 }
 
 .related-character-grid-item:first-child {
@@ -609,7 +608,7 @@ body:not(.dark) #sidebar-buttons .sidebar-btn {
 /* Estado expandido: cards lado a lado */
 .relationships-grid.expanded .related-character-grid-item {
     margin-left: 4px;
-    margin-right: 4px;
+    margin-right: 10px;
 }
 
 .relationships-grid.expanded .related-character-grid-item:first-child {
@@ -617,9 +616,9 @@ body:not(.dark) #sidebar-buttons .sidebar-btn {
 }
 
 
-.related-character-grid-item > div { /* This targets the character-sheet div inside */
-    transform: scale(0.13) !important;
-    transform-origin: left;
+.related-character-grid-item > div[id^="character-sheet-"] { /* This targets the character-sheet div inside */
+    transform: scale(0.11) !important;
+    transform-origin: top left;
     box-shadow: 0 2px 8px rgba(0,0,0,0.7) !important;
     border-width: 3px !important;
     pointer-events: none; /* Make sure clicks go to the parent */
@@ -660,6 +659,28 @@ body.dark main {
 
 nav {
     background-color: color-mix(in srgb, var(--sidebar-bg) 80%, transparent) !important;
+}
+
+/* Estilos do Rolador de Dados */
+#dice-roller-modal.visible {
+    opacity: 1;
+}
+
+.dice-btn {
+    background-color: var(--secondary-bg);
+    color: var(--secondary-text);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.dice-btn:hover {
+    background-color: var(--secondary-bg-hover);
+}
+
+.dice-btn:active {
+    transform: scale(0.95);
 }
 
 /* Overrides para classes do Tailwind */

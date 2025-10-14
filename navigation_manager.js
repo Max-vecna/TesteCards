@@ -3,7 +3,7 @@ import { populateSpellAumentosSelect, saveSpellCard, editSpell, importSpell, exp
 import { populateItemAumentosSelect, saveItemCard, editItem, importItem, removeItem, exportItem } from './item_manager.js';
 import { saveAttackCard, editAttack, removeAttack, exportAttack, importAttack } from './attack_manager.js';
 import { renderFullAttackSheet } from './attack_renderer.js';
-import { openDatabase, removeData, getData, saveData, exportDatabase, importDatabase } from './local_db.js';
+import { openDatabase, removeData, getData, saveData, exportDatabase, importDatabase, exportImagesAsPng } from './local_db.js';
 import { renderFullCharacterSheet } from './card-renderer.js';
 import { renderFullSpellSheet } from './magic_renderer.js';
 import { renderFullItemSheet } from './item_renderer.js';
@@ -621,6 +621,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const importDbInput = document.getElementById('import-db-input');
     const importDbBtnMobile = document.getElementById('import-db-btn-mobile');
     const exportDbBtnMobile = document.getElementById('export-db-btn-mobile');
+    const exportImagesBtn = document.getElementById('export-images-btn');
+    const exportImagesBtnMobile = document.getElementById('export-images-btn-mobile');
 
     renderContent = async (target, force = false) => {
         contentDisplay.classList.remove('justify-center');
@@ -857,10 +859,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         importDbInput.click();
     };
 
+    const exportImagesHandler = async () => {
+        try {
+            await exportImagesAsPng();
+        } catch (error) {
+            console.error("Erro ao exportar imagens:", error);
+            showCustomAlert("Ocorreu um erro ao exportar as imagens.");
+        }
+    };
+
     exportDbBtn.addEventListener('click', exportHandler);
     importDbBtn.addEventListener('click', importHandler);
     exportDbBtnMobile.addEventListener('click', exportHandler);
     importDbBtnMobile.addEventListener('click', importHandler);
+    if (exportImagesBtn) exportImagesBtn.addEventListener('click', exportImagesHandler);
+    if (exportImagesBtnMobile) exportImagesBtnMobile.addEventListener('click', exportImagesHandler);
+
 
     importDbInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
@@ -1064,4 +1078,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 });
-
