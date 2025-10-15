@@ -1,11 +1,12 @@
 // local_db.js
 
 const DB_NAME = 'rpgCreatorDB';
-const DB_VERSION = 12; // Incremented version
+const DB_VERSION = 13; // Incremented version
 const CARD_STORE_NAME = 'rpgCards';
 const SPELL_STORE_NAME = 'rpgSpells';
 const ITEM_STORE_NAME = 'rpgItems';
-const ATTACK_STORE_NAME = 'rpgAttacks'; // New store name
+const ATTACK_STORE_NAME = 'rpgAttacks';
+const CATEGORY_STORE_NAME = 'rpgCategories'; // New store for categories
 
 let db;
 
@@ -45,8 +46,11 @@ export function openDatabase() {
             if (!db.objectStoreNames.contains(ITEM_STORE_NAME)) {
                 db.createObjectStore(ITEM_STORE_NAME, { keyPath: 'id' });
             }
-            if (!db.objectStoreNames.contains(ATTACK_STORE_NAME)) { // Create new store
+            if (!db.objectStoreNames.contains(ATTACK_STORE_NAME)) { 
                 db.createObjectStore(ATTACK_STORE_NAME, { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains(CATEGORY_STORE_NAME)) { // Create category store
+                db.createObjectStore(CATEGORY_STORE_NAME, { keyPath: 'id' });
             }
             console.log("Database setup complete.");
         };
@@ -66,7 +70,7 @@ export function openDatabase() {
 
 /**
  * Adiciona um novo item (card) a um armazenamento de objetos.
- * @param {string} storeName - O nome do armazenamento de objetos ('rpgCards', 'rpgSpells', 'rpgItems').
+ * @param {string} storeName - O nome do armazenamento de objetos.
  * @param {Object} data - Os dados do item a serem salvos.
  * @returns {Promise} Uma promessa que resolve quando o item é salvo.
  */
@@ -162,7 +166,7 @@ export async function exportDatabase() {
     }
 
     const exportData = {};
-    const storeNames = [CARD_STORE_NAME, SPELL_STORE_NAME, ITEM_STORE_NAME, ATTACK_STORE_NAME];
+    const storeNames = [CARD_STORE_NAME, SPELL_STORE_NAME, ITEM_STORE_NAME, ATTACK_STORE_NAME, CATEGORY_STORE_NAME];
 
     for (const storeName of storeNames) {
         const data = await getData(storeName);
@@ -206,7 +210,7 @@ export function importDatabase(file) {
                     return;
                 }
 
-                const storeNames = [CARD_STORE_NAME, SPELL_STORE_NAME, ITEM_STORE_NAME, ATTACK_STORE_NAME];
+                const storeNames = [CARD_STORE_NAME, SPELL_STORE_NAME, ITEM_STORE_NAME, ATTACK_STORE_NAME, CATEGORY_STORE_NAME];
                 const transaction = db.transaction(storeNames, 'readwrite');
 
                 // Clear existing stores

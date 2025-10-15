@@ -1,6 +1,7 @@
-import { openDatabase, saveData, getData, removeData } from './local_db.js';
+import { saveData, getData, removeData } from './local_db.js';
 import { renderFullSpellSheet } from './magic_renderer.js';
 import { getAumentosData, populateCharacterSelect } from './character_manager.js';
+import { populateCategorySelect } from './category_manager.js';
 
 // Variáveis de estado
 let currentEditingSpellId = null;
@@ -208,6 +209,7 @@ export async function saveSpellCard(spellForm, type) {
     const spellEnhanceInput = document.getElementById('spellEnhance');
     const spellTrueInput = document.getElementById('spellTrue');
     const spellCharacterOwnerInput = document.getElementById('spellCharacterOwner');
+    const spellCategorySelect = document.getElementById('spell-category-select');
 
     const aumentosList = document.getElementById('spell-aumentos-list');
     const aumentos = [];
@@ -246,6 +248,7 @@ export async function saveSpellCard(spellForm, type) {
             aumentos: aumentos,
             type: type,
             characterId: spellCharacterOwnerInput.value,
+            categoryId: spellCategorySelect.value,
             image: imageBuffer,
             imageMimeType: imageMimeType,
         });
@@ -266,6 +269,7 @@ export async function saveSpellCard(spellForm, type) {
             aumentos: aumentos,
             type: type,
             characterId: spellCharacterOwnerInput.value,
+            categoryId: spellCategorySelect.value,
             image: imageBuffer,
             imageMimeType: imageMimeType,
         };
@@ -309,6 +313,9 @@ export async function editSpell(spellId) {
     
     await populateCharacterSelect('spellCharacterOwner');
     document.getElementById('spellCharacterOwner').value = spellData.characterId || '';
+
+    await populateCategorySelect('spell-category-select', spellData.type);
+    document.getElementById('spell-category-select').value = spellData.categoryId || '';
 
     const aumentosList = document.getElementById('spell-aumentos-list');
     aumentosList.innerHTML = '';

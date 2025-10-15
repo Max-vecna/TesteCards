@@ -1,5 +1,6 @@
 import { saveData, getData, removeData } from './local_db.js';
 import { populateCharacterSelect } from './character_manager.js';
+import { populateCategorySelect } from './category_manager.js';
 
 let currentEditingAttackId = null;
 let attackImageFile = null;
@@ -108,6 +109,7 @@ export async function saveAttackCard(attackForm) {
     const attackNameInput = document.getElementById('attackName');
     const attackDescriptionInput = document.getElementById('attackDescription');
     const attackCharacterOwnerInput = document.getElementById('attackCharacterOwner');
+    const attackCategorySelect = document.getElementById('attack-category-select');
 
     let existingData = null;
     if (currentEditingAttackId) {
@@ -124,6 +126,7 @@ export async function saveAttackCard(attackForm) {
             name: attackNameInput.value,
             description: attackDescriptionInput.value,
             characterId: attackCharacterOwnerInput.value,
+            categoryId: attackCategorySelect.value,
             image: imageBuffer,
             imageMimeType: imageMimeType,
         });
@@ -133,6 +136,7 @@ export async function saveAttackCard(attackForm) {
             name: attackNameInput.value,
             description: attackDescriptionInput.value,
             characterId: attackCharacterOwnerInput.value,
+            categoryId: attackCategorySelect.value,
             image: imageBuffer,
             imageMimeType: imageMimeType,
         };
@@ -160,6 +164,9 @@ export async function editAttack(attackId) {
     
     await populateCharacterSelect('attackCharacterOwner');
     document.getElementById('attackCharacterOwner').value = attackData.characterId || '';
+
+    await populateCategorySelect('attack-category-select', 'ataque');
+    document.getElementById('attack-category-select').value = attackData.categoryId || '';
 
     const attackImagePreview = document.getElementById('attackImagePreview');
     if (attackData.image) {

@@ -2,11 +2,13 @@ import { populatePericiasCheckboxes, saveCharacterCard, editCard, importCard, ge
 import { populateSpellAumentosSelect, saveSpellCard, editSpell, importSpell, exportSpell } from './magic_manager.js';
 import { populateItemAumentosSelect, saveItemCard, editItem, importItem, removeItem, exportItem } from './item_manager.js';
 import { saveAttackCard, editAttack, removeAttack, exportAttack, importAttack } from './attack_manager.js';
+import { renderCategoryScreen, populateCategorySelect } from './category_manager.js';
 import { renderFullAttackSheet } from './attack_renderer.js';
 import { openDatabase, removeData, getData, saveData, exportDatabase, importDatabase, exportImagesAsPng } from './local_db.js';
 import { renderFullCharacterSheet } from './card-renderer.js';
 import { renderFullSpellSheet } from './magic_renderer.js';
 import { renderFullItemSheet } from './item_renderer.js';
+import { showCustomAlert, showCustomConfirm } from './ui_utils.js';
 
 
 let renderContent; 
@@ -249,71 +251,26 @@ export async function openSelectionModal(type) {
     }
 }
 
-function showCustomConfirm(message) {
-    return new Promise((resolve) => {
-        const modalHtml = `
-            <div id="custom-confirm-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-                <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 w-full max-w-sm border border-gray-700">
-                    <p class="text-center text-lg mb-6">${message}</p>
-                    <div class="flex justify-end gap-4">
-                        <button id="confirm-cancel-btn" class="py-2 px-4 rounded-lg bg-gray-600 hover:bg-gray-700 font-bold">Cancelar</button>
-                        <button id="confirm-ok-btn" class="py-2 px-4 rounded-lg bg-red-600 hover:bg-red-700 font-bold">Excluir</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-        const modal = document.getElementById('custom-confirm-modal');
-        const confirmBtn = document.getElementById('confirm-ok-btn');
-        const cancelBtn = document.getElementById('confirm-cancel-btn');
-
-        const cleanupAndResolve = (value) => {
-            modal.remove();
-            resolve(value);
-        };
-
-        confirmBtn.onclick = () => cleanupAndResolve(true);
-        cancelBtn.onclick = () => cleanupAndResolve(false);
-    });
-}
-
-function showCustomAlert(message) {
-    const modalId = `custom-alert-modal-${Date.now()}`;
-    const modalHtml = `
-        <div id="${modalId}" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-            <div class="bg-gray-800 text-white rounded-lg shadow-2xl p-6 w-full max-w-sm border border-gray-700">
-                <p class="text-center text-lg mb-4">${message}</p>
-                <button class="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-bold">OK</button>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    const modal = document.getElementById(modalId);
-    modal.querySelector('button').addEventListener('click', () => {
-        modal.remove();
-    });
-}
-
-async function createCharacterSection(title, items, type, renderSheetFunction, themeColor) {
-    const section = document.createElement('section');
-    section.className = 'character-section pt-4';
-
-    const titleEl = document.createElement('h2');
-    titleEl.className = `text-xl font-bold ${themeColor} mb-4 border-b-2 border-gray-700 pb-2`;
-    titleEl.textContent = title;
-    section.appendChild(titleEl);
-
+async function createItemGrid(items, type, renderSheetFunction) {
     const gridContainer = document.createElement('div');
     gridContainer.className = 'grid gap-4 w-full justify-items-center grid-cols-3 md:grid-cols-4 lg:grid-cols-5';
     
+    if (items.length === 0) return gridContainer;
+
     const cardElements = await Promise.all(items.map(async (item) => {
         const sheetHtml = await renderSheetFunction(item, false);
         const cardWrapper = document.createElement('div');
-        let cardType = type;
+        let cardType = type; // e.g., 'magias', 'habilidades', 'itens', 'ataques'
+        
+        // Normalize type for data-attribute consistency
         if (type === 'magias' || type === 'habilidades') {
             cardType = 'spell';
+        } else if (type === 'itens') {
+            cardType = 'item';
+        } else if (type === 'ataques') {
+            cardType = 'attack';
         }
+
 
         cardWrapper.className = 'rpg-thumbnail bg-cover bg-center relative';
         cardWrapper.dataset.action = "view";
@@ -336,34 +293,33 @@ async function createCharacterSection(title, items, type, renderSheetFunction, t
     }));
 
     cardElements.forEach(el => gridContainer.appendChild(el));
-    section.appendChild(gridContainer);
-    return section;
+    return gridContainer;
 }
+
 
 async function renderGroupedList({
     type,
     storeName,
     buttonText,
-    buttonAction,
-    importBtnId,
-    importInputId,
-    importTitle,
-    importFunction,
-    themeColor,
-    renderSheetFunction,
-    unassignedTitle
+        buttonAction,
+        importBtnId,
+        importInputId,
+        importTitle,
+        importFunction,
+        themeColor,
+        renderSheetFunction,
+        unassignedTitle
 }) {
     const contentDisplay = document.getElementById('content-display');
     contentDisplay.innerHTML = '';
 
     const allItems = await getData(storeName);
     const allCharacters = await getData('rpgCards');
+    const allCategories = await getData('rpgCategories');
 
-    const charactersById = allCharacters.reduce((acc, char) => {
-        acc[char.id] = char;
-        return acc;
-    }, {});
-
+    const charactersById = allCharacters.reduce((acc, char) => { acc[char.id] = char; return acc; }, {});
+    const categoriesById = allCategories.reduce((acc, cat) => { acc[cat.id] = cat; return acc; }, {});
+    
     const itemsByCharacter = {};
     const unassignedItems = [];
 
@@ -374,10 +330,7 @@ async function renderGroupedList({
         const charId = item.characterId;
         if (charId && charactersById[charId]) {
             if (!itemsByCharacter[charId]) {
-                itemsByCharacter[charId] = {
-                    character: charactersById[charId],
-                    items: []
-                };
+                itemsByCharacter[charId] = { character: charactersById[charId], items: [] };
             }
             itemsByCharacter[charId].items.push(item);
         } else {
@@ -409,22 +362,55 @@ async function renderGroupedList({
     addGrid.appendChild(addButtonWrapper);
     pageContainer.appendChild(addGrid);
 
-    const characterIds = Object.keys(itemsByCharacter)
-        .sort((a, b) => itemsByCharacter[a].character.title.localeCompare(itemsByCharacter[b].character.title));
+    const renderCharacterItems = async (characterName, items, container) => {
+        const itemsByCategory = items.reduce((acc, item) => {
+            const catId = item.categoryId || 'unassigned';
+            if (!acc[catId]) acc[catId] = [];
+            acc[catId].push(item);
+            return acc;
+        }, {});
+
+        const section = document.createElement('section');
+        section.className = 'character-section pt-4';
+        section.innerHTML = `<h2 class="text-xl font-bold ${themeColor} mb-4 border-b-2 border-gray-700 pb-2">${characterName}</h2>`;
+        
+        const categoryIds = Object.keys(itemsByCategory).sort((a,b) => {
+            if (a === 'unassigned') return 1;
+            if (b === 'unassigned') return -1;
+            return categoriesById[a].name.localeCompare(categoriesById[b].name);
+        });
+
+       
+
+        for(const catId of categoryIds) {
+            const categoryName = catId === 'unassigned' ? 'Sem Categoria' : categoriesById[catId].name;
+            const categoryDesc = catId === 'unassigned' ? 'Sem Categoria' : categoriesById[catId].description;
+            const subSection = document.createElement('div');
+            subSection.className = 'mb-6';
+            subSection.innerHTML = `<h3 class="popup text-lg font-semibold text-gray-300 mb-3" onclick="myFunction()">${categoryName} 
+                                        
+                                            <span class="popuptext" id="myPopup">${categoryDesc} </span>
+                                        
+                                    </h3>`;
+            const grid = await createItemGrid(itemsByCategory[catId], type, renderSheetFunction);
+            subSection.appendChild(grid);
+            section.appendChild(subSection);
+        }
+        container.appendChild(section);
+    };
+
+    const characterIds = Object.keys(itemsByCharacter).sort((a, b) => itemsByCharacter[a].character.title.localeCompare(itemsByCharacter[b].character.title));
     
     for (const charId of characterIds) {
         const group = itemsByCharacter[charId];
-        const section = await createCharacterSection(group.character.title, group.items, type, renderSheetFunction, themeColor);
-        pageContainer.appendChild(section);
+        await renderCharacterItems(group.character.title, group.items, pageContainer);
     }
     
     if (unassignedItems.length > 0) {
-        const section = await createCharacterSection(unassignedTitle, unassignedItems, type, renderSheetFunction, themeColor);
-        pageContainer.appendChild(section);
+        await renderCharacterItems(unassignedTitle, unassignedItems, pageContainer);
     }
     
     contentDisplay.appendChild(pageContainer);
-    
     applyThumbnailScaling(pageContainer);
 
     document.getElementById(importBtnId).addEventListener('click', () => {
@@ -439,6 +425,8 @@ async function renderGroupedList({
         }
     });
 }
+
+
 
 async function renderCharacterList() {
     const contentDisplay = document.getElementById('content-display');
@@ -532,7 +520,7 @@ async function renderSpellList(type = 'magias') {
 
 async function renderItemList() {
     await renderGroupedList({
-        type: 'item',
+        type: 'itens',
         storeName: 'rpgItems',
         buttonText: 'Adicionar Item',
         buttonAction: 'add-item',
@@ -548,7 +536,7 @@ async function renderItemList() {
 
 async function renderAttackList() {
     await renderGroupedList({
-        type: 'attack',
+        type: 'ataques',
         storeName: 'rpgAttacks',
         buttonText: 'Adicionar Ataque',
         buttonAction: 'add-attack',
@@ -653,6 +641,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         else if (target === 'habilidades') await renderSpellList('habilidades');
         else if (target === 'itens') await renderItemList();
         else if (target === 'ataques') await renderAttackList();
+        else if (target === 'categorias') await renderCategoryScreen();
         else if (target === 'personagem-em-jogo') await renderCharacterInGame();
 
         // Não salva a tela "em-jogo" no cache por ser muito dinâmica
@@ -736,7 +725,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             navButtons.forEach(btn => btn.classList.remove('active'));
             
-            // Ativa o botão clicado e o seu "par" (mobile/desktop)
             document.querySelectorAll(`[data-target="${target}"]`).forEach(b => b.classList.add('active'));
 
             renderContent(target);
@@ -763,6 +751,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             trueWrapper.classList.toggle('hidden', isHabilidade);
             populateSpellAumentosSelect();
             await populateCharacterSelect('spellCharacterOwner');
+            await populateCategorySelect('spell-category-select', isHabilidade ? 'habilidade' : 'magia');
         });
         if (action === "add-item") showView(itemCreationSection, false, async () => {
             itemForm.reset();
@@ -770,12 +759,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             itemSubmitButton.textContent = 'Criar Item';
             populateItemAumentosSelect();
             await populateCharacterSelect('itemCharacterOwner');
+            await populateCategorySelect('item-category-select', 'item');
         });
         if (action === "add-attack") showView(attackCreationSection, false, async () => {
             attackForm.reset();
             attackFormTitle.textContent = 'Novo Ataque';
             attackSubmitButton.textContent = 'Criar Ataque';
             await populateCharacterSelect('attackCharacterOwner');
+            await populateCategorySelect('attack-category-select', 'ataque');
         });
         if (e.target.closest('#select-character-btn')) showCharacterSelectionModalForPlay();
     });
@@ -829,7 +820,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('add-magic-to-char-btn').addEventListener('click', () => openSelectionModal('magic'));
     document.getElementById('add-attack-to-char-btn').addEventListener('click', () => openSelectionModal('attack'));
     selectionModalCloseBtn.addEventListener('click', () => selectionModal.classList.add('hidden'));
-
+    
     document.addEventListener('openItemSelectionModal', () => openSelectionModal('item'));
 
     document.addEventListener('navigateHome', () => {
@@ -840,7 +831,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     await openDatabase();
-    // Inicia na tela "Em Jogo" e marca o botão como ativo
+    
     const emJogoButtons = document.querySelectorAll('[data-target="personagem-em-jogo"]');
     emJogoButtons.forEach(btn => btn.classList.add('active'));
     renderContent('personagem-em-jogo');
@@ -898,12 +889,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.addEventListener('settingsChanged', (e) => {
         if (e.detail.key === 'aspectRatio') {
-            invalidateCache('personagem');
-            invalidateCache('magias');
-            invalidateCache('habilidades');
-            invalidateCache('itens');
-            invalidateCache('ataques');
-            invalidateCache('personagem-em-jogo');
+            Object.keys(viewCache).forEach(key => invalidateCache(key));
             const activeNav = document.querySelector('.nav-button.active, .desktop-nav-button.active')?.dataset.target || 'personagem-em-jogo';
             renderContent(activeNav, true);
         }
@@ -912,18 +898,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.addEventListener('dataChanged', (e) => {
         const { type } = e.detail;
         const activeNav = document.querySelector('.nav-button.active, .desktop-nav-button.active')?.dataset.target;
-
-        invalidateCache(type);
         
-        if (type === 'personagem') {
-            invalidateCache('magias');
-            invalidateCache('habilidades');
-            invalidateCache('itens');
-            invalidateCache('ataques');
-            invalidateCache('personagem-em-jogo');
-        }
+        Object.keys(viewCache).forEach(key => invalidateCache(key));
         
-        if (activeNav === type || (type === 'personagem' && activeNav === 'personagem-em-jogo')) {
+        if (activeNav) {
             renderContent(activeNav, true);
         }
     });
@@ -1078,3 +1056,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 });
+

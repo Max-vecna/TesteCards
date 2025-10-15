@@ -2,6 +2,7 @@ import { saveData, getData, removeData } from './local_db.js';
 import { renderFullItemSheet } from './item_renderer.js';
 import { openSelectionModal } from './navigation_manager.js';
 import { getAumentosData, populateCharacterSelect } from './character_manager.js';
+import { populateCategorySelect } from './category_manager.js';
 
 let currentEditingItemId = null;
 let itemImageFile = null;
@@ -181,6 +182,7 @@ export async function saveItemCard(itemForm) {
     const itemChargeInput = document.getElementById('itemCharge');
     const itemPrerequisiteInput = document.getElementById('itemPrerequisite');
     const itemCharacterOwnerInput = document.getElementById('itemCharacterOwner');
+    const itemCategorySelect = document.getElementById('item-category-select');
     
     const aumentosList = document.getElementById('item-aumentos-list');
     const aumentos = [];
@@ -211,6 +213,7 @@ export async function saveItemCard(itemForm) {
             charge: itemChargeInput.value,
             prerequisite: itemPrerequisiteInput.value,
             characterId: itemCharacterOwnerInput.value,
+            categoryId: itemCategorySelect.value,
             aumentos,
             image: imageBuffer,
             imageMimeType: imageMimeType,
@@ -225,6 +228,7 @@ export async function saveItemCard(itemForm) {
             charge: itemChargeInput.value,
             prerequisite: itemPrerequisiteInput.value,
             characterId: itemCharacterOwnerInput.value,
+            categoryId: itemCategorySelect.value,
             aumentos,
             image: imageBuffer,
             imageMimeType: imageMimeType,
@@ -258,6 +262,9 @@ export async function editItem(itemId) {
     
     await populateCharacterSelect('itemCharacterOwner');
     document.getElementById('itemCharacterOwner').value = itemData.characterId || '';
+
+    await populateCategorySelect('item-category-select', 'item');
+    document.getElementById('item-category-select').value = itemData.categoryId || '';
 
     const aumentosList = document.getElementById('item-aumentos-list');
     aumentosList.innerHTML = '';
