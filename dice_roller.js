@@ -151,7 +151,7 @@ function loadHistory() {
  * Inicializa o rolador de dados, configurando todos os event listeners.
  */
 function initializeDiceRoller() {
-    const fab = document.getElementById('dice-roller-fab');
+    const fab = document.querySelectorAll('.dice-roller-fab');
     const modal = document.getElementById('dice-roller-modal');
     const closeModalBtn = document.getElementById('dice-modal-close-btn');
     const diceButtons = document.querySelectorAll('.dice-btn');
@@ -171,11 +171,23 @@ function initializeDiceRoller() {
         }
     };
 
-    fab.addEventListener('click', () => toggleModal(true));
-    closeModalBtn.addEventListener('click', () => toggleModal(false));
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) toggleModal(false);
+    fab.forEach(btn => {
+        btn.addEventListener('click', () => toggleModal(true));
+        closeModalBtn.addEventListener('click', () => toggleModal(false));
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) toggleModal(false);
+        });
     });
+
+    fab.forEach(btn => {
+        btn.addEventListener('click', () => toggleModal(true));
+        closeModalBtn.addEventListener('click', () => toggleModal(false));
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) toggleModal(false);
+        });
+    });
+
+   
 
     const performRoll = (notation) => {
         const result = rollDice(notation);
