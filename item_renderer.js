@@ -8,7 +8,7 @@ export async function renderFullItemSheet(itemData, isModal) {
     const sheetContainer = document.getElementById('item-sheet-container');
     if (!sheetContainer) return '';
 
-    const aspectRatio = getAspectRatio();
+    const aspectRatio = isModal?  getAspectRatio() : 10/16;
 
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;

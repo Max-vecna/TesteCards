@@ -8,7 +8,7 @@ export async function renderFullAttackSheet(attackData, isModal) {
     const sheetContainer = document.getElementById('attack-sheet-container');
     if (!sheetContainer) return '';
 
-    const aspectRatio = getAspectRatio();
+    const aspectRatio = isModal?  getAspectRatio() : 10/16;
 
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;

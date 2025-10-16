@@ -318,7 +318,7 @@ export async function renderFullCharacterSheet(characterData, isModal, isInPlay,
         }
     }
     
-    const aspectRatio = getAspectRatio();
+    let aspectRatio = isModal || isInPlay ? getAspectRatio() : 10/16;
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
     let finalWidth, finalHeight;

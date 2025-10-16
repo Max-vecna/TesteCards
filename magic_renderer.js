@@ -8,7 +8,7 @@ export async function renderFullSpellSheet(spellData, isModal) {
     const sheetContainer = document.getElementById('spell-sheet-container');
     if (!sheetContainer) return;
 
-    const aspectRatio = getAspectRatio();
+    const aspectRatio = isModal?  getAspectRatio() : 10/16;
 
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
