@@ -15,19 +15,21 @@ const ITEM_STORES_TO_CHECK = [
 ];
 
 /**
- * Salva uma nova categoria no banco de dados.
+ * Salva uma nova categoria ou atualiza uma existente no banco de dados.
  */
-async function saveCategory(name, type, description) {
+async function saveCategory(name, type, description, editId = null) {
     if (!name || !type) {
         showCustomAlert("Por favor, insira um nome e selecione um tipo para a categoria.");
         return;
     }
+    
     const category = {
-        id: Date.now().toString(),
+        id: editId || Date.now().toString(),
         name: name.trim(),
         type: type,
         description: description.trim()
     };
+    
     await saveData('rpgCategories', category);
     renderCategoryScreen(); // Atualiza a tela
 }
@@ -133,8 +135,15 @@ export async function renderCategoryScreen() {
         const nameInput = document.getElementById('category-name');
         const typeSelect = document.getElementById('category-type');
         const descriptionInput = document.getElementById('category-description');
-        saveCategory(nameInput.value, typeSelect.value, descriptionInput.value);
+        const submitButton = form.querySelector('button[type="submit"]');
+        const editId = submitButton.dataset.editId || null;
+        
+        saveCategory(nameInput.value, typeSelect.value, descriptionInput.value, editId);
+        
+        // Resetar o formulário e o botão
         form.reset();
+        submitButton.textContent = 'Adicionar';
+        delete submitButton.dataset.editId;
     });
 
     const listsContainer = document.getElementById('category-lists-container');
@@ -152,7 +161,7 @@ export async function renderCategoryScreen() {
                 <div class="bg-gray-700/50 p-2 rounded-md">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
-                            <span class="font-medium">${cat.name}</span>
+                            <span class="font-medium category-item" data-id="${cat.id}" data-name="${cat.name}" data-type="${cat.type}" data-description="${cat.description || ''}" style="cursor: pointer;">${cat.name}</span>
                             ${cat.description ? `<button data-desc-id="desc-${cat.id}" class="toggle-desc-btn text-gray-400 hover:text-white text-xs w-5 h-5 rounded-full bg-gray-600 flex items-center justify-center font-bold">?</button>` : ''}
                         </div>
                         <button data-id="${cat.id}" class="delete-category-btn text-red-500 hover:text-red-400 text-lg" title="Excluir Categoria">&times;</button>
@@ -181,6 +190,24 @@ export async function renderCategoryScreen() {
             if (descEl) {
                 descEl.classList.toggle('hidden');
             }
+        });
+    });
+    
+    // Adiciona evento de clique para os itens de categoria
+    listsContainer.querySelectorAll('.category-item').forEach(item => {
+        item.addEventListener('click', () => {
+            // Preenche os campos do formulário com os dados da categoria
+            document.getElementById('category-name').value = item.dataset.name;
+            document.getElementById('category-type').value = item.dataset.type;
+            document.getElementById('category-description').value = item.dataset.description;
+            
+            // Modifica o botão para indicar que está editando
+            const submitButton = document.querySelector('#add-category-form button[type="submit"]');
+            submitButton.textContent = 'Atualizar';
+            submitButton.dataset.editId = item.dataset.id;
+            
+            // Rola a página para o formulário
+            document.getElementById('add-category-form').scrollIntoView({ behavior: 'smooth' });
         });
     });
 }
