@@ -440,6 +440,10 @@ export async function renderFullCharacterSheet(characterData, isModal, isInPlay,
                     </span>
                 </div>
             </div>
+            <div class="absolute top-6 left-1/2 -translate-x-1/2 text-center z-10">
+                <h3 class="text-2xl font-bold">${characterData.title}</h3>
+                <p class="text-md italic text-gray-300">${characterData.subTitle}</p>
+            </div>
 
             <div class="absolute top-6 left-4 p-2 rounded-full text-center cursor-pointer" data-action="edit-stat" data-stat-type="mana" data-stat-max="${(characterData.attributes.mana || 0) + (totalFixedBonuses.mana || 0)}">
                 <div class="icon-container mana-icon-container">
@@ -452,18 +456,11 @@ export async function renderFullCharacterSheet(characterData, isModal, isInPlay,
                         </span>
                     </div>
                 </div>
+            </div>    
+            <div id="lore-icon-${uniqueId}" class="absolute  left-6 rounded-full p-3 bg-black/50 flex items-center justify-center text-lg text-yellow-200 cursor-pointer" data-action="toggle-lore" style="top:90px">
+                <i class="fas fa-book" style="font-size: 14px;"></i>
             </div>
-
-            <div class="absolute top-6 left-1/2 -translate-x-1/2 text-center z-10">
-                <h3 class="text-2xl font-bold">${characterData.title}</h3>
-                <p class="text-md italic text-gray-300">${characterData.subTitle}</p>
-            </div>
-
-            <div id="lore-icon-${uniqueId}" class="absolute top-20 left-6 rounded-full p-3 bg-black/50 flex items-center justify-center text-lg text-yellow-200 cursor-pointer" data-action="toggle-lore">
-                <i class="fas fa-book"></i>
-            </div>
-            <!-- THUMBNAIL_EXTRAS -->
-            <div class="absolute money-container top-32 left-6 rounded-full p-2 bg-black/50 flex items-center justify-center text-sm text-amber-300 font-bold cursor-pointer" data-action="edit-stat" data-stat-type="dinheiro" title="Alterar Dinheiro" style="writing-mode: vertical-rl; text-orientation: upright;">
+            <div class="absolute money-container top-32 left-6 rounded-full p-2 bg-black/50 flex items-center justify-center text-sm text-amber-300 font-bold cursor-pointer" data-action="edit-stat" data-stat-type="dinheiro" title="Alterar Dinheiro" style="writing-mode: vertical-rl; text-orientation: upright; top: 141px;">
                 💰$<span data-stat-current="dinheiro">${characterData.dinheiro || 0}</span>
             </div>
             

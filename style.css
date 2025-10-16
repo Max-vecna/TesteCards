@@ -107,7 +107,7 @@ body.dark .splash-screen .text-white { color: var(--splash-text) !important; }
   transition: opacity 1s ease-in, margin-left 0.3s ease-in-out;
   opacity: 0;
   visibility: hidden;
-  padding: 0rem;
+  padding: 0.3rem;
   visibility: visible;
   position: absolute;
   inset: 0;
